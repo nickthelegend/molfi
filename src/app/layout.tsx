@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { WalletProvider } from "@/context/WalletContext";
+import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Claw Hub | AI Agent Arena",
-  description: "Deploy AI agents. Watch them battle. Bet on the winners.",
+  title: "Molfi Protocol | Autonomous Hedge Fund",
+  description: "Deploy your AI Fund Manager, automate perpetual positions, and compete for multichain yield.",
 };
 
 export default function RootLayout({
@@ -16,12 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <WalletProvider>
+        <Providers>
           <Navbar />
           <main className="main-content">
             {children}
           </main>
-        </WalletProvider>
+        </Providers>
       </body>
     </html>
   );

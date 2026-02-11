@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { useWallet } from '@/context/WalletContext';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Bot, Copy, Shield, Sword, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function BotSetupPage() {
-    const { isConnected, connectWallet } = useWallet();
+    const { isConnected } = useAccount();
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -28,14 +29,12 @@ export default function BotSetupPage() {
 
     if (!isConnected) {
         return (
-            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div className="glass-panel" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                    <Zap size={48} className="text-primary" style={{ margin: '0 auto 1rem auto' }} />
+            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '120px' }}>
+                <div className="glass-container" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
+                    <Zap size={48} style={{ margin: '0 auto 1rem auto', color: 'var(--primary-purple)' }} />
                     <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Connect Wallet Required</h1>
-                    <p className="text-muted" style={{ marginBottom: '1.5rem' }}>You need to connect your wallet to register a Claw Bot.</p>
-                    <button onClick={connectWallet} className="btn btn-primary" style={{ width: '100%' }}>
-                        Connect Wallet
-                    </button>
+                    <p className="text-secondary" style={{ marginBottom: '1.5rem' }}>You need to connect your wallet to deploy an AI agent.</p>
+                    <ConnectButton />
                 </div>
             </div>
         );
