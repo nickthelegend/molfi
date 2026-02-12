@@ -68,51 +68,82 @@ export default function Navbar() {
 
 ---
 
-## 📁 **Files Modified**
+## 📁 **Files Fixed**
 
 ```
 src/components/
-├── Providers.tsx                ✅ FIXED (previous)
-└── Navbar.tsx                   ✅ FIXED (now)
+├── Providers.tsx     ✅ FIXED (localStorage)
+└── Navbar.tsx        ✅ FIXED (WagmiProvider)
+
+src/app/
+├── trade/page.tsx    ✅ FIXED (WagmiProvider)
+└── clawdex/page.tsx  ✅ FIXED (WagmiProvider)
 ```
 
 ---
 
 ## ✅ **Changes Made**
 
-### **1. Added Mounted State**
+### **1. Providers.tsx - Prevent wagmi from rendering during SSR**
 ```tsx
 const [mounted, setMounted] = useState(false);
 
 useEffect(() => {
     setMounted(true);
 }, []);
+
+if (!mounted) {
+    return <>{children}</>;
+}
 ```
 
-### **2. Wrapped Desktop ConnectButton**
+### **2. Navbar.tsx - Wrap ConnectButton**
 ```tsx
-{mounted && (
-    <ConnectButton
-        chainStatus="icon"
-        accountStatus={{
-            smallScreen: 'avatar',
-            largeScreen: 'full',
-        }}
-        showBalance={{
-            smallScreen: false,
-            largeScreen: true,
-        }}
-    />
-)}
-```
+const [mounted, setMounted] = useState(false);
 
-### **3. Wrapped Mobile ConnectButton**
-```tsx
+useEffect(() => {
+    setMounted(true);
+}, []);
+
+// Desktop
+{mounted && <ConnectButton />}
+
+// Mobile
 {mounted && (
-    <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
+    <div>
         <ConnectButton />
     </div>
 )}
+```
+
+### **3. trade/page.tsx - Prevent useAccount during SSR**
+```tsx
+const [mounted, setMounted] = useState(false);
+const { isConnected, address } = useAccount();
+
+useEffect(() => {
+    setMounted(true);
+}, []);
+
+// Don't render until mounted
+if (!mounted) {
+    return null;
+}
+```
+
+### **4. clawdex/page.tsx - Prevent useAccount during SSR**
+```tsx
+const [mounted, setMounted] = useState(false);
+const { isConnected, address } = useAccount();
+
+useEffect(() => {
+    setMounted(true);
+}, []);
+
+// Don't render until mounted
+if (!mounted) {
+    return null;
+}
 ```
 
 ---

@@ -22,6 +22,21 @@ interface Trade {
 }
 
 export default function ClawDexPage() {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Don't render until mounted to avoid SSR issues with wagmi hooks
+    if (!mounted) {
+        return null;
+    }
+
+    return <ClawDexPageContent />;
+}
+
+function ClawDexPageContent() {
     const { isConnected, address } = useAccount();
     const [selectedPair, setSelectedPair] = useState<'BTC/USDT' | 'ETH/USDT'>('BTC/USDT');
     const [orderType, setOrderType] = useState<'market' | 'limit'>('limit');
@@ -139,7 +154,7 @@ export default function ClawDexPage() {
     }
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1800px', margin: '0 auto' }}>
+        <div className="container" style={{ paddingTop: '120px', paddingRight: '1rem', paddingBottom: '2rem', paddingLeft: '1rem', maxWidth: '1800px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

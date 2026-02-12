@@ -1,12 +1,27 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { TrendingUp, TrendingDown, Zap, DollarSign } from 'lucide-react';
 import TradingViewChart from '@/components/TradingViewChart';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function TradePage() {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Don't render until mounted to avoid SSR issues with wagmi hooks
+    if (!mounted) {
+        return null;
+    }
+
+    return <TradePageContent />;
+}
+
+function TradePageContent() {
     const { isConnected, address } = useAccount();
     const [selectedPair, setSelectedPair] = useState<'BTC/USDT' | 'ETH/USDT'>('BTC/USDT');
     const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
@@ -68,6 +83,7 @@ export default function TradePage() {
         }
     };
 
+
     const calculateLiquidationPrice = () => {
         const entryPrice = selectedPair === 'BTC/USDT' ? 45250 : 2480;
         const maxLoss = parseFloat(collateral) * 0.8;
@@ -92,7 +108,7 @@ export default function TradePage() {
     }
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1800px', margin: '0 auto' }}>
+        <div className="container" style={{ paddingTop: '120px', paddingRight: '1rem', paddingBottom: '2rem', paddingLeft: '1rem', maxWidth: '1800px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -63,7 +63,7 @@ export default function ClawDexAgentsPage() {
     }, [selectedAgent]);
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1600px', margin: '0 auto' }}>
+        <div className="container" style={{ paddingTop: '120px', paddingRight: '1rem', paddingBottom: '2rem', paddingLeft: '1rem', maxWidth: '1600px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
