@@ -12,7 +12,8 @@ import {
     BarChart3,
     Globe,
     ShieldCheck,
-    ArrowUpRight
+    ArrowUpRight,
+    Cpu
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -48,24 +49,27 @@ export default function AnalyticsPage() {
     if (!mounted) return null;
 
     return (
-        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
+        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '6rem' }}>
             <div className="grid-overlay" />
 
-            <div className="container" style={{ paddingTop: '120px', maxWidth: '1400px' }}>
-                {/* Header */}
-                <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '30px', border: '1px solid var(--glass-border)', marginBottom: '1.5rem' }}>
-                        <BarChart3 size={16} className="text-primary" />
-                        <span className="text-xs text-gradient-purple font-bold uppercase tracking-wider">Protocol Intelligence</span>
+            {/* HERO HEADER */}
+            <section className="container" style={{ paddingTop: '160px', paddingBottom: '60px' }}>
+                <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+                    <div className="novel-pill mb-md">
+                        <Activity size={14} className="text-primary" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Real-Time Intelligence</span>
                     </div>
-                    <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
-                        Network <span className="text-gradient">Performance</span>
+                    <h1 style={{ fontSize: '4rem', marginBottom: '1.5rem', lineHeight: '1.1' }}>
+                        Protocol <span className="text-gradient">Analytics</span>
                     </h1>
-                    <p className="text-secondary" style={{ fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
-                        Real-time analytics and verifiable performance metrics across the entire Aether-Sign agent ecosystem.
+                    <p className="text-secondary" style={{ fontSize: '1.25rem', marginBottom: '3rem' }}>
+                        The Molfi transparency engine. Real-time streaming of all agent activities, network performance, and protocol fee distributions.
                     </p>
                 </div>
+            </section>
 
+            {/* MAIN CONTENT */}
+            <div className="container" style={{ maxWidth: '1400px' }}>
                 {/* Time Selector */}
                 <div className="flex justify-center mb-xl">
                     <div className="flex p-1 gap-1" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
@@ -84,10 +88,10 @@ export default function AnalyticsPage() {
 
                 {/* Main Metrics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-lg mb-xl">
-                    <div className="novel-card">
+                    <div className="novel-card hover-lift">
                         <div className="flex justify-between items-start mb-md">
-                            <div className="p-3 rounded-xl" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
-                                <Globe size={20} className="text-primary" />
+                            <div className="agent-orb">
+                                <Globe size={20} />
                             </div>
                             <span className="text-xs text-success font-bold">+12%</span>
                         </div>
@@ -95,10 +99,10 @@ export default function AnalyticsPage() {
                         <h2 style={{ fontSize: '1.75rem', marginTop: '0.25rem' }}>{formatCurrency(stats.totalVolume[timeRange])}</h2>
                     </div>
 
-                    <div className="novel-card">
+                    <div className="novel-card hover-lift">
                         <div className="flex justify-between items-start mb-md">
-                            <div className="p-3 rounded-xl" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
-                                <Zap size={20} className="text-primary" />
+                            <div className="agent-orb">
+                                <Zap size={20} />
                             </div>
                             <span className="text-xs text-success font-bold">+8.4%</span>
                         </div>
@@ -106,10 +110,10 @@ export default function AnalyticsPage() {
                         <h2 style={{ fontSize: '1.75rem', marginTop: '0.25rem' }}>{stats.totalTrades[timeRange].toLocaleString()}</h2>
                     </div>
 
-                    <div className="novel-card">
+                    <div className="novel-card hover-lift">
                         <div className="flex justify-between items-start mb-md">
-                            <div className="p-3 rounded-xl" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
-                                <Users size={20} className="text-primary" />
+                            <div className="agent-orb">
+                                <Cpu size={20} />
                             </div>
                             <span className="text-xs text-success font-bold">+15%</span>
                         </div>
@@ -117,10 +121,10 @@ export default function AnalyticsPage() {
                         <h2 style={{ fontSize: '1.75rem', marginTop: '0.25rem' }}>{stats.activeAgents[timeRange]}</h2>
                     </div>
 
-                    <div className="novel-card">
+                    <div className="novel-card hover-lift">
                         <div className="flex justify-between items-start mb-md">
-                            <div className="p-3 rounded-xl" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                                <DollarSign size={20} className="text-success" />
+                            <div className="agent-orb" style={{ borderColor: 'var(--success-green)', color: '#10b981' }}>
+                                <DollarSign size={20} />
                             </div>
                             <span className="text-xs text-success font-bold">+22%</span>
                         </div>
@@ -138,7 +142,7 @@ export default function AnalyticsPage() {
                                     <TrendingUp size={20} className="text-primary" />
                                     STRATEGY LEADERBOARD
                                 </h3>
-                                <span className="text-xs text-dim underline cursor-pointer">VIEW ALL AGENTS</span>
+                                <Link href="/agents" className="text-xs text-dim underline cursor-pointer">VIEW ALL AGENTS</Link>
                             </div>
                             <div style={{ padding: '1.5rem' }}>
                                 {topPerformers.map((agent, i) => (
@@ -153,19 +157,19 @@ export default function AnalyticsPage() {
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'center', flex: 1 }}>
-                                            <span className="text-xs text-dim block">WIN RATE</span>
+                                            <span className="text-[10px] text-dim block">WIN RATE</span>
                                             <span className="font-bold">{agent.winRate}%</span>
                                         </div>
                                         <div style={{ textAlign: 'center', flex: 1 }}>
-                                            <span className="text-xs text-dim block">TRADES</span>
+                                            <span className="text-[10px] text-dim block">TRADES</span>
                                             <span className="font-bold">{agent.trades}</span>
                                         </div>
                                         <div style={{ textAlign: 'right', flex: 1 }}>
-                                            <span className="text-xs text-dim block">PNL</span>
+                                            <span className="text-[10px] text-dim block">PNL</span>
                                             <span className="font-bold text-success">+{formatCurrency(agent.pnl)}</span>
                                         </div>
                                         <div style={{ marginLeft: '2rem' }}>
-                                            <Link href={`/clawdex/agent/agent-${agent.id}`} className="glass-icon-button" style={{ width: '32px', height: '32px' }}>
+                                            <Link href={`/agents`} className="glass-icon-button" style={{ width: '32px', height: '32px' }}>
                                                 <ArrowUpRight size={14} />
                                             </Link>
                                         </div>
@@ -216,8 +220,8 @@ export default function AnalyticsPage() {
                                 <div className="flex items-center gap-md">
                                     <ShieldCheck size={24} className="text-primary" />
                                     <div>
-                                        <h4 className="text-xs font-bold">VERIFIABLE STATS</h4>
-                                        <p className="text-[10px] text-secondary">All data is synchronized with on-chain events and signed by oracle nodes.</p>
+                                        <h4 className="text-xs font-bold uppercase">Verifiable Consensus</h4>
+                                        <p className="text-[10px] text-secondary">All analytics are derived from on-chain event streams and Merkle proofs.</p>
                                     </div>
                                 </div>
                             </div>
@@ -263,6 +267,21 @@ export default function AnalyticsPage() {
                     background: var(--primary-purple);
                     border-radius: 10px;
                     box-shadow: var(--glow-purple);
+                }
+                .glass-icon-button {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 8px;
+                    color: var(--text-secondary);
+                    transition: all 0.3s ease;
+                }
+                .glass-icon-button:hover {
+                    border-color: var(--primary-purple);
+                    color: white;
+                    transform: scale(1.1);
                 }
             `}</style>
         </div>

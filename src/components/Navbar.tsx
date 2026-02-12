@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2 } from 'lucide-react';
+import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2, Swords } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AlertCenter from './AlertCenter';
 
@@ -32,30 +32,32 @@ export default function Navbar() {
                     <Link href="/trade" className="nav-link">
                         <Zap size={18} /> Trade
                     </Link>
+                    <Link href="/arena" className="nav-link">
+                        <Swords size={18} /> Arena
+                    </Link>
                     <Link href="/analytics" className="nav-link">
                         <BarChart2 size={18} /> Analytics
                     </Link>
                     <Link href="/agents" className="nav-link">
                         <Bot size={18} /> Agents
                     </Link>
-                </div>
 
-                {/* Wallet Button & Alerts */}
-                <div className="nav-links" style={{ gap: '1rem' }}>
-                    <AlertCenter />
-                    {mounted && (
-                        <ConnectButton
-                            chainStatus="icon"
-                            accountStatus={{
-                                smallScreen: 'avatar',
-                                largeScreen: 'full',
-                            }}
-                            showBalance={{
-                                smallScreen: false,
-                                largeScreen: true,
-                            }}
-                        />
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>
+                        <AlertCenter />
+                        {mounted && (
+                            <ConnectButton
+                                chainStatus="icon"
+                                accountStatus={{
+                                    smallScreen: 'avatar',
+                                    largeScreen: 'full',
+                                }}
+                                showBalance={{
+                                    smallScreen: false,
+                                    largeScreen: true,
+                                }}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 {/* Mobile Menu Toggle */}
@@ -72,6 +74,7 @@ export default function Navbar() {
                 <div className="mobile-menu">
                     <Link href="/clawdex" onClick={() => setIsMenuOpen(false)} className="nav-link">ClawDex</Link>
                     <Link href="/trade" onClick={() => setIsMenuOpen(false)} className="nav-link">Trade</Link>
+                    <Link href="/arena" onClick={() => setIsMenuOpen(false)} className="nav-link">Arena</Link>
                     <Link href="/analytics" onClick={() => setIsMenuOpen(false)} className="nav-link">Analytics</Link>
                     <Link href="/agents" onClick={() => setIsMenuOpen(false)} className="nav-link">Agents</Link>
                     {mounted && (

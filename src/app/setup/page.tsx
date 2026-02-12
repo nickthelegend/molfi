@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Bot, CheckCircle, Zap, TrendingUp, Shield, Link as LinkIcon, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import {
+    Bot,
+    CheckCircle,
+    Zap,
+    TrendingUp,
+    Shield,
+    Link as LinkIcon,
+    ArrowRight,
+    ArrowLeft,
+    Loader2,
+    Cpu,
+    Network,
+    Lock,
+    Globe,
+    Terminal
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRegisterAgent } from '@/hooks/useRegisterAgent';
 import { createAgentMetadata, uploadToIPFS, validateAgentMetadata } from '@/lib/ipfs';
@@ -13,19 +28,13 @@ import { monadTestnet } from '@/lib/wagmi';
 type Step = 1 | 2 | 3 | 4 | 5;
 
 interface FormData {
-    // Step 2: Agent Details
     name: string;
     description: string;
     agentType: 'fund-manager' | 'trader' | 'analyst';
-    image?: string;
-
-    // Step 3: Strategy
     riskProfile: 'conservative' | 'balanced' | 'aggressive';
     targetAssets: string[];
     leveragePreference: number;
     tradingStyle: string;
-
-    // Step 4: Metadata
     agentWallet?: string;
     apiEndpoint?: string;
     twitter?: string;
@@ -37,6 +46,7 @@ export default function AgentSetupPage() {
     const chainId = useChainId();
     const { register, isPending, isConfirming, isConfirmed, hash, error } = useRegisterAgent();
 
+    const [mounted, setMounted] = useState(false);
     const [currentStep, setCurrentStep] = useState<Step>(1);
     const [formData, setFormData] = useState<FormData>({
         name: '',
@@ -48,122 +58,84 @@ export default function AgentSetupPage() {
         tradingStyle: 'balanced',
     });
     const [isUploading, setIsUploading] = useState(false);
-    const [agentId, setAgentId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const updateFormData = (updates: Partial<FormData>) => {
         setFormData(prev => ({ ...prev, ...updates }));
     };
 
-    const nextStep = () => {
-        if (currentStep < 5) {
-            setCurrentStep((currentStep + 1) as Step);
-        }
-    };
-
-    const prevStep = () => {
-        if (currentStep > 1) {
-            setCurrentStep((currentStep - 1) as Step);
-        }
-    };
+    const nextStep = () => { if (currentStep < 5) setCurrentStep((currentStep + 1) as Step); };
+    const prevStep = () => { if (currentStep > 1) setCurrentStep((currentStep - 1) as Step); };
 
     const handleRegister = async () => {
         try {
             setIsUploading(true);
-
-            // Create metadata
             const metadata = createAgentMetadata({
                 ...formData,
                 chainId,
-                agentWallet: formData.agentWallet || address,
+                agentWallet: formData.agentWallet || address || '',
                 socialLinks: {
-                    twitter: formData.twitter,
-                    discord: formData.discord,
+                    twitter: formData.twitter || '',
+                    discord: formData.discord || ''
                 },
             });
-
-            // Validate metadata
             validateAgentMetadata(metadata);
-
-            // Upload to IPFS
             const ipfsURI = await uploadToIPFS(metadata);
-
             setIsUploading(false);
-
-            // Register on-chain
             await register(ipfsURI);
-
         } catch (err) {
             console.error('Registration error:', err);
             setIsUploading(false);
         }
     };
 
-    // Wallet not connected
+    if (!mounted) return null;
+
     if (!isConnected) {
         return (
-            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '120px' }}>
-                <div className="glass-container" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                    <Zap size={48} style={{ margin: '0 auto 1rem auto', color: 'var(--primary-purple)' }} />
-                    <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Connect Wallet Required</h1>
-                    <p className="text-secondary" style={{ marginBottom: '1.5rem' }}>Connect your wallet to register an AI agent.</p>
-                    <ConnectButton />
+            <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="grid-overlay" />
+                <div className="novel-card" style={{ textAlign: 'center', maxWidth: '450px', width: '100%', padding: '4rem' }}>
+                    <div className="agent-orb mx-auto mb-lg" style={{ width: '80px', height: '80px' }}>
+                        <Terminal size={40} />
+                    </div>
+                    <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Initiate Genesis</h1>
+                    <p className="text-secondary mb-xl">Connect your cryptographic signature to begin the AI agent instantiation sequence.</p>
+                    <div className="flex justify-center">
+                        <ConnectButton />
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // Wrong network
-    if (chainId !== monadTestnet.id) {
-        return (
-            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '120px' }}>
-                <div className="glass-container" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                    <Shield size={48} style={{ margin: '0 auto 1rem auto', color: 'var(--accent-purple)' }} />
-                    <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Wrong Network</h1>
-                    <p className="text-secondary" style={{ marginBottom: '1.5rem' }}>
-                        Please switch to Monad Testnet to register an agent.
-                    </p>
-                    <ConnectButton />
-                </div>
-            </div>
-        );
-    }
-
-    // Registration successful
     if (isConfirmed && hash) {
         return (
-            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '120px' }}>
-                <div className="glass-container" style={{ textAlign: 'center', maxWidth: '500px', width: '100%', border: '1px solid var(--accent-purple)' }}>
-                    <CheckCircle size={64} style={{ margin: '0 auto 1rem auto', color: 'var(--accent-purple)' }} />
-                    <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Agent Registered! 🎉</h1>
-                    <p className="text-secondary" style={{ marginBottom: '1.5rem' }}>
-                        Your AI agent <strong>{formData.name}</strong> has been successfully registered on-chain.
+            <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="grid-overlay" />
+                <div className="novel-card" style={{ textAlign: 'center', maxWidth: '600px', width: '100%', border: '1px solid var(--primary-purple)' }}>
+                    <div className="agent-orb mx-auto mb-lg" style={{ width: '80px', height: '80px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderColor: '#10b981' }}>
+                        <CheckCircle size={40} />
+                    </div>
+                    <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Mind Awakened!</h1>
+                    <p className="text-secondary mb-xl">
+                        Your agent <strong>{formData.name}</strong> has been successfully instantiated on the Monad network.
                     </p>
 
-                    <div className="glass-container" style={{ padding: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
-                        <div style={{ marginBottom: '0.5rem' }}>
-                            <span className="text-secondary" style={{ fontSize: '0.875rem' }}>Transaction Hash:</span>
-                            <p className="text-mono" style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{hash}</p>
-                        </div>
-                        <a
-                            href={getTxExplorerUrl(chainId, hash)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--primary-purple)', fontSize: '0.875rem', textDecoration: 'none' }}
-                        >
-                            View on Explorer →
+                    <div className="novel-card mb-xl" style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)' }}>
+                        <div className="text-xs text-dim mb-xs font-mono uppercase">Transaction Hash</div>
+                        <p className="text-mono text-[10px] break-all mb-md">{hash}</p>
+                        <a href={getTxExplorerUrl(chainId, hash)} target="_blank" className="text-primary text-xs font-bold hover:underline">
+                            VIEW ON MONAD EXPLORER →
                         </a>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <Link href="/profile" className="neon-button">
-                            View My Agents
-                        </Link>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="neon-button secondary"
-                        >
-                            Register Another
-                        </button>
+                    <div className="flex gap-md">
+                        <Link href="/profile" className="neon-button flex-1">MY MULTIVERSE</Link>
+                        <button onClick={() => window.location.reload()} className="neon-button secondary flex-1">INSTANTIATE NEW</button>
                     </div>
                 </div>
             </div>
@@ -171,473 +143,238 @@ export default function AgentSetupPage() {
     }
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '800px', margin: '0 auto' }}>
-            {/* Progress Indicator */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    {[1, 2, 3, 4, 5].map((step) => (
-                        <div
-                            key={step}
-                            style={{
-                                flex: 1,
-                                height: '4px',
-                                background: step <= currentStep ? 'var(--primary-purple)' : 'var(--glass-border)',
-                                marginRight: step < 5 ? '0.5rem' : 0,
-                                borderRadius: '2px',
-                                transition: 'background 0.3s',
-                            }}
-                        />
-                    ))}
+        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '6rem' }}>
+            <div className="grid-overlay" />
+
+            {/* HEADER */}
+            <section className="container pt-xxl mb-xl">
+                <div style={{ maxWidth: '800px' }}>
+                    <div className="novel-pill mb-md">
+                        <Cpu size={14} className="text-primary" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Agent Genesis Protocol</span>
+                    </div>
+                    <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', lineHeight: '1' }}>
+                        Instantiate Your <span className="text-gradient">AI Persona</span>
+                    </h1>
+                    <p className="text-secondary text-lg">
+                        Define the architecture, risk parameters, and execution strategy for your autonomous digital mind.
+                    </p>
                 </div>
-                <p className="text-secondary" style={{ fontSize: '0.875rem', textAlign: 'center' }}>
-                    Step {currentStep} of 5
-                </p>
-            </div>
+            </section>
 
-            {/* Step Content */}
-            <div className="glass-container" style={{ padding: '2rem' }}>
-                {/* Step 1: Wallet Connection (already connected) */}
-                {currentStep === 1 && (
-                    <div>
-                        <Bot size={48} style={{ color: 'var(--primary-purple)', marginBottom: '1rem' }} />
-                        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Register AI Agent</h1>
-                        <p className="text-secondary" style={{ marginBottom: '2rem' }}>
-                            Deploy your AI agent on-chain using the ERC-8004 standard. Your agent will be discoverable,
-                            verifiable, and able to build reputation through on-chain feedback.
-                        </p>
-
-                        <div className="glass-container" style={{ padding: '1rem', marginBottom: '2rem' }}>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Connected Wallet:</p>
-                            <p className="text-mono" style={{ fontSize: '0.875rem' }}>{address}</p>
-                        </div>
-
-                        <button onClick={nextStep} className="neon-button" style={{ width: '100%' }}>
-                            Get Started <ArrowRight size={16} style={{ marginLeft: '0.5rem' }} />
-                        </button>
-                    </div>
-                )}
-
-                {/* Step 2: Agent Details */}
-                {currentStep === 2 && (
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Agent Details</h2>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Agent Name *
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => updateFormData({ name: e.target.value })}
-                                placeholder="e.g., AlphaTrader"
-                                maxLength={50}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '1rem',
-                                }}
-                            />
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-                                {formData.name.length}/50 characters
-                            </p>
-                        </div>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Description *
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => updateFormData({ description: e.target.value })}
-                                placeholder="Describe your agent's capabilities and strategy..."
-                                maxLength={500}
-                                rows={4}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '1rem',
-                                    resize: 'vertical',
-                                }}
-                            />
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-                                {formData.description.length}/500 characters
-                            </p>
-                        </div>
-
-                        <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Agent Type
-                            </label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <section className="container">
+                <div className="terminal-grid">
+                    {/* Progress Sidebar */}
+                    <div className="col-span-4">
+                        <div className="novel-card" style={{ position: 'sticky', top: '140px' }}>
+                            <div className="flex flex-col gap-lg">
                                 {[
-                                    { value: 'fund-manager', label: 'Fund Manager', icon: TrendingUp },
-                                    { value: 'trader', label: 'Trader', icon: Zap },
-                                    { value: 'analyst', label: 'Analyst', icon: Shield },
-                                ].map(({ value, label, icon: Icon }) => (
-                                    <button
-                                        key={value}
-                                        onClick={() => updateFormData({ agentType: value as any })}
-                                        style={{
-                                            padding: '1rem',
-                                            background: formData.agentType === value ? 'var(--primary-purple)' : 'var(--bg-card)',
-                                            border: `1px solid ${formData.agentType === value ? 'var(--primary-purple)' : 'var(--glass-border)'}`,
-                                            borderRadius: '8px',
-                                            color: 'var(--text-primary)',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                        }}
-                                    >
-                                        <Icon size={24} />
-                                        <span style={{ fontSize: '0.875rem' }}>{label}</span>
-                                    </button>
+                                    { step: 1, label: 'PROTOCOL GENESIS', icon: Terminal },
+                                    { step: 2, label: 'COGNITIVE IDENTITY', icon: Bot },
+                                    { step: 3, label: 'STRATEGY ENGINE', icon: Zap },
+                                    { step: 4, label: 'NETWORK METADATA', icon: Network },
+                                    { step: 5, label: 'FINAL COMMIT', icon: Lock }
+                                ].map((s) => (
+                                    <div key={s.step} className={`flex items-center gap-md transition-all ${currentStep === s.step ? 'opacity-100' : 'opacity-30'}`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${currentStep === s.step ? 'border-primary bg-primary-05' : 'border-glass-border'}`}>
+                                            <s.icon size={16} />
+                                        </div>
+                                        <span className={`text-xs font-bold tracking-widest ${currentStep === s.step ? 'text-primary' : ''}`}>{s.label}</span>
+                                    </div>
                                 ))}
                             </div>
                         </div>
-
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={prevStep} className="neon-button secondary" style={{ flex: 1 }}>
-                                <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back
-                            </button>
-                            <button
-                                onClick={nextStep}
-                                className="neon-button"
-                                style={{ flex: 1 }}
-                                disabled={!formData.name || !formData.description || formData.name.length < 3}
-                            >
-                                Continue <ArrowRight size={16} style={{ marginLeft: '0.5rem' }} />
-                            </button>
-                        </div>
                     </div>
-                )}
 
-                {/* Step 3: Strategy Configuration */}
-                {currentStep === 3 && (
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Strategy Configuration</h2>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Risk Profile
-                            </label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                {[
-                                    { value: 'conservative', label: 'Conservative', color: '#10b981' },
-                                    { value: 'balanced', label: 'Balanced', color: '#a855f7' },
-                                    { value: 'aggressive', label: 'Aggressive', color: '#ef4444' },
-                                ].map(({ value, label, color }) => (
-                                    <button
-                                        key={value}
-                                        onClick={() => updateFormData({ riskProfile: value as any })}
-                                        style={{
-                                            padding: '1rem',
-                                            background: formData.riskProfile === value ? color : 'var(--bg-card)',
-                                            border: `1px solid ${formData.riskProfile === value ? color : 'var(--glass-border)'}`,
-                                            borderRadius: '8px',
-                                            color: 'var(--text-primary)',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                        }}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Target Assets
-                            </label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                {['ETH', 'BTC', 'SOL', 'MATIC', 'ARB', 'OP'].map((asset) => (
-                                    <button
-                                        key={asset}
-                                        onClick={() => {
-                                            const current = formData.targetAssets;
-                                            updateFormData({
-                                                targetAssets: current.includes(asset)
-                                                    ? current.filter(a => a !== asset)
-                                                    : [...current, asset]
-                                            });
-                                        }}
-                                        style={{
-                                            padding: '0.5rem 1rem',
-                                            background: formData.targetAssets.includes(asset) ? 'var(--primary-purple)' : 'var(--bg-card)',
-                                            border: `1px solid ${formData.targetAssets.includes(asset) ? 'var(--primary-purple)' : 'var(--glass-border)'}`,
-                                            borderRadius: '20px',
-                                            color: 'var(--text-primary)',
-                                            cursor: 'pointer',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        {asset}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Leverage Preference: {formData.leveragePreference}x
-                            </label>
-                            <input
-                                type="range"
-                                min="1"
-                                max="50"
-                                value={formData.leveragePreference}
-                                onChange={(e) => updateFormData({ leveragePreference: parseInt(e.target.value) })}
-                                style={{ width: '100%' }}
-                            />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                                <span>1x</span>
-                                <span>50x</span>
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Trading Style
-                            </label>
-                            <select
-                                value={formData.tradingStyle}
-                                onChange={(e) => updateFormData({ tradingStyle: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '1rem',
-                                }}
-                            >
-                                <option value="scalping">Scalping</option>
-                                <option value="day-trading">Day Trading</option>
-                                <option value="swing">Swing Trading</option>
-                                <option value="balanced">Balanced</option>
-                                <option value="long-term">Long-term</option>
-                            </select>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={prevStep} className="neon-button secondary" style={{ flex: 1 }}>
-                                <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back
-                            </button>
-                            <button onClick={nextStep} className="neon-button" style={{ flex: 1 }}>
-                                Continue <ArrowRight size={16} style={{ marginLeft: '0.5rem' }} />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 4: Metadata & Services */}
-                {currentStep === 4 && (
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Metadata & Services</h2>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Agent Wallet (Optional)
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.agentWallet || ''}
-                                onChange={(e) => updateFormData({ agentWallet: e.target.value })}
-                                placeholder={address || '0x...'}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.875rem',
-                                    fontFamily: 'var(--font-mono)',
-                                }}
-                            />
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-                                Defaults to your connected wallet
-                            </p>
-                        </div>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                API Endpoint (Optional)
-                            </label>
-                            <input
-                                type="url"
-                                value={formData.apiEndpoint || ''}
-                                onChange={(e) => updateFormData({ apiEndpoint: e.target.value })}
-                                placeholder="https://api.example.com/agent"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.875rem',
-                                }}
-                            />
-                        </div>
-
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Twitter (Optional)
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.twitter || ''}
-                                onChange={(e) => updateFormData({ twitter: e.target.value })}
-                                placeholder="@username"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.875rem',
-                                }}
-                            />
-                        </div>
-
-                        <div style={{ marginBottom: '2rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                Discord (Optional)
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.discord || ''}
-                                onChange={(e) => updateFormData({ discord: e.target.value })}
-                                placeholder="username#1234"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.75rem',
-                                    background: 'var(--bg-card)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.875rem',
-                                }}
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={prevStep} className="neon-button secondary" style={{ flex: 1 }}>
-                                <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back
-                            </button>
-                            <button onClick={nextStep} className="neon-button" style={{ flex: 1 }}>
-                                Continue <ArrowRight size={16} style={{ marginLeft: '0.5rem' }} />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 5: Review & Register */}
-                {currentStep === 5 && (
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Review & Register</h2>
-
-                        <div className="glass-container" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--primary-purple)' }}>
-                                {formData.name}
-                            </h3>
-
-                            <div style={{ marginBottom: '1rem' }}>
-                                <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Description:</p>
-                                <p style={{ fontSize: '0.875rem' }}>{formData.description}</p>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-                                <div>
-                                    <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Type:</p>
-                                    <p style={{ fontSize: '0.875rem', textTransform: 'capitalize' }}>{formData.agentType.replace('-', ' ')}</p>
+                    {/* Step Content */}
+                    <div className="col-span-8">
+                        <div className="novel-card py-xl px-xl">
+                            {currentStep === 1 && (
+                                <div className="animate-in">
+                                    <h2 className="mb-lg">The Genesis Standard</h2>
+                                    <p className="text-secondary mb-xl">Your agent will be deployed using the Aether-Sign ERC-8004 standard, enabling cross-chain verifiability and decentralized reputation scoring.</p>
+                                    <div className="novel-card mb-xxl" style={{ background: 'rgba(168, 85, 247, 0.05)' }}>
+                                        <div className="flex items-center gap-md mb-md">
+                                            <Globe size={20} className="text-primary" />
+                                            <h4 className="m-0 font-bold uppercase text-xs">On-Chain Origin</h4>
+                                        </div>
+                                        <p className="text-xs text-dim m-0">Owner: {address}</p>
+                                    </div>
+                                    <button onClick={nextStep} className="neon-button w-full">INITIALIZE NEURAL CORE <ArrowRight size={18} className="ml-sm" /></button>
                                 </div>
-                                <div>
-                                    <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Risk Profile:</p>
-                                    <p style={{ fontSize: '0.875rem', textTransform: 'capitalize' }}>{formData.riskProfile}</p>
-                                </div>
-                                <div>
-                                    <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Leverage:</p>
-                                    <p style={{ fontSize: '0.875rem' }}>{formData.leveragePreference}x</p>
-                                </div>
-                                <div>
-                                    <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Trading Style:</p>
-                                    <p style={{ fontSize: '0.875rem', textTransform: 'capitalize' }}>{formData.tradingStyle.replace('-', ' ')}</p>
-                                </div>
-                            </div>
+                            )}
 
-                            {formData.targetAssets.length > 0 && (
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Target Assets:</p>
-                                    <p style={{ fontSize: '0.875rem' }}>{formData.targetAssets.join(', ')}</p>
+                            {currentStep === 2 && (
+                                <div className="animate-in">
+                                    <h2 className="mb-lg">Cognitive Identity</h2>
+                                    <div className="flex flex-col gap-xl">
+                                        <div className="novel-input-group">
+                                            <label className="text-xs text-dim uppercase font-bold block mb-sm">Neural Signature Name</label>
+                                            <input
+                                                type="text"
+                                                className="novel-search-input py-md px-md rounded-xl border border-glass-border bg-glass w-full"
+                                                placeholder="e.g. Nexus-7-Lambda"
+                                                value={formData.name}
+                                                onChange={(e) => updateFormData({ name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="novel-input-group">
+                                            <label className="text-xs text-dim uppercase font-bold block mb-sm">Architectural Purpose</label>
+                                            <textarea
+                                                className="novel-search-input py-md px-md rounded-xl border border-glass-border bg-glass w-full min-h-[120px]"
+                                                placeholder="Define the primary objective of your agent's neural mesh..."
+                                                value={formData.description}
+                                                onChange={(e) => updateFormData({ description: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-md">
+                                            {[
+                                                { id: 'trader', label: 'TRADER', icon: Zap },
+                                                { id: 'fund-manager', label: 'MANAGER', icon: TrendingUp },
+                                                { id: 'analyst', label: 'ANALYST', icon: Shield }
+                                            ].map(t => (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => updateFormData({ agentType: t.id as any })}
+                                                    className={`novel-card flex flex-col items-center gap-sm transition-all ${formData.agentType === t.id ? 'border-primary ring-1 ring-primary' : ''}`}
+                                                >
+                                                    <t.icon size={20} className={formData.agentType === t.id ? 'text-primary' : 'text-dim'} />
+                                                    <span className="text-[10px] font-bold">{t.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-md mt-xxl">
+                                        <button onClick={prevStep} className="neon-button secondary flex-1">BACK</button>
+                                        <button onClick={nextStep} className="neon-button flex-1" disabled={!formData.name || !formData.description}>CONTINUE</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentStep === 3 && (
+                                <div className="animate-in">
+                                    <h2 className="mb-lg">Strategy Engine</h2>
+                                    <div className="flex flex-col gap-xl">
+                                        <div className="novel-card" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                                            <label className="text-xs text-dim uppercase font-bold block mb-lg">Risk Bias Calibration</label>
+                                            <div className="grid grid-cols-3 gap-sm">
+                                                {['conservative', 'balanced', 'aggressive'].map(r => (
+                                                    <button
+                                                        key={r}
+                                                        onClick={() => updateFormData({ riskProfile: r as any })}
+                                                        className={`py-3 rounded-lg text-xs font-bold border transition-all ${formData.riskProfile === r ? 'bg-primary border-primary text-white shadow-luxury' : 'border-glass-border text-dim'}`}
+                                                    >
+                                                        {r.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-dim uppercase font-bold block mb-md">Leverage Constraint: {formData.leveragePreference}x</label>
+                                            <input
+                                                type="range" min="1" max="50"
+                                                className="w-full custom-range"
+                                                value={formData.leveragePreference}
+                                                onChange={(e) => updateFormData({ leveragePreference: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-md mt-xxl">
+                                        <button onClick={prevStep} className="neon-button secondary flex-1">BACK</button>
+                                        <button onClick={nextStep} className="neon-button flex-1">PROCEED TO METADATA</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentStep === 4 && (
+                                <div className="animate-in">
+                                    <h2 className="mb-lg">Network Metadata</h2>
+                                    <div className="flex flex-col gap-lg">
+                                        <div className="novel-input-group">
+                                            <label className="text-xs text-dim uppercase font-bold block mb-sm">AI Endpoint (Optional)</label>
+                                            <input
+                                                type="url" className="novel-search-input py-md px-md rounded-xl border border-glass-border bg-glass w-full"
+                                                placeholder="https://api.yourdomain.com/v1/trade"
+                                                value={formData.apiEndpoint}
+                                                onChange={(e) => updateFormData({ apiEndpoint: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-md">
+                                            <div className="novel-input-group">
+                                                <label className="text-xs text-dim uppercase font-bold block mb-sm">X (Twitter)</label>
+                                                <input
+                                                    type="text" className="novel-search-input py-md px-md rounded-xl border border-glass-border bg-glass w-full"
+                                                    placeholder="@agent_x"
+                                                    value={formData.twitter}
+                                                    onChange={(e) => updateFormData({ twitter: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="novel-input-group">
+                                                <label className="text-xs text-dim uppercase font-bold block mb-sm">Discord Server</label>
+                                                <input
+                                                    type="text" className="novel-search-input py-md px-md rounded-xl border border-glass-border bg-glass w-full"
+                                                    placeholder="discord.gg/agent"
+                                                    value={formData.discord}
+                                                    onChange={(e) => updateFormData({ discord: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-md mt-xxl">
+                                        <button onClick={prevStep} className="neon-button secondary flex-1">BACK</button>
+                                        <button onClick={nextStep} className="neon-button flex-1">REVIEW GENESIS</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentStep === 5 && (
+                                <div className="animate-in">
+                                    <h2 className="mb-lg">Review & Final Commit</h2>
+                                    <div className="novel-card mb-xl">
+                                        <div className="flex items-center gap-md mb-lg">
+                                            <h3 className="m-0 text-gradient-purple">{formData.name}</h3>
+                                            <span className="status-badge active">{formData.agentType}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-xl text-sm">
+                                            <div>
+                                                <span className="text-xs text-dim uppercase block">Strategy</span>
+                                                <span className="font-bold">{formData.tradingStyle}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-dim uppercase block">Risk Profile</span>
+                                                <span className="font-bold">{formData.riskProfile}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-dim uppercase block">Max Leverage</span>
+                                                <span className="font-bold">{formData.leveragePreference}x</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-md">
+                                        <button onClick={prevStep} className="neon-button secondary flex-1" disabled={isPending || isConfirming || isUploading}>BACK</button>
+                                        <button
+                                            onClick={handleRegister}
+                                            className="neon-button flex-1"
+                                            disabled={isPending || isConfirming || isUploading}
+                                        >
+                                            {isUploading ? 'IPFS UPLOAD...' : isPending ? 'CHECK WALLET...' : isConfirming ? 'SYNCING...' : 'COMMIT TO NETWORK'}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
-
-                        {error && (
-                            <div style={{
-                                padding: '1rem',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid #ef4444',
-                                borderRadius: '8px',
-                                marginBottom: '1.5rem',
-                            }}>
-                                <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
-                                    Error: {error.message}
-                                </p>
-                            </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={prevStep} className="neon-button secondary" style={{ flex: 1 }} disabled={isPending || isConfirming || isUploading}>
-                                <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back
-                            </button>
-                            <button
-                                onClick={handleRegister}
-                                className="neon-button"
-                                style={{ flex: 1 }}
-                                disabled={isPending || isConfirming || isUploading}
-                            >
-                                {isUploading ? (
-                                    <>
-                                        <Loader2 size={16} style={{ marginRight: '0.5rem', animation: 'spin 1s linear infinite' }} />
-                                        Uploading to IPFS...
-                                    </>
-                                ) : isPending ? (
-                                    <>
-                                        <Loader2 size={16} style={{ marginRight: '0.5rem', animation: 'spin 1s linear infinite' }} />
-                                        Confirm in Wallet...
-                                    </>
-                                ) : isConfirming ? (
-                                    <>
-                                        <Loader2 size={16} style={{ marginRight: '0.5rem', animation: 'spin 1s linear infinite' }} />
-                                        Confirming...
-                                    </>
-                                ) : (
-                                    <>
-                                        Register Agent <CheckCircle size={16} style={{ marginLeft: '0.5rem' }} />
-                                    </>
-                                )}
-                            </button>
-                        </div>
                     </div>
-                )}
-            </div>
+                </div>
+            </section>
+
+            <style jsx global>{`
+                .animate-in { animation: fadeIn 0.5s ease-out; }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .novel-search-input:focus { border-color: var(--primary-purple); outline: none; box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); }
+                .w-full { width: 100%; }
+                .custom-range { -webkit-appearance: none; background: rgba(168, 85, 247, 0.2); height: 6px; border-radius: 10px; }
+                .custom-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary-purple); border-radius: 50%; cursor: pointer; }
+            `}</style>
         </div>
     );
 }

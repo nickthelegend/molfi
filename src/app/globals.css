@@ -618,9 +618,120 @@ h3 {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.text-gradient-purple {
-  background: linear-gradient(to right, #a855f7, #c084fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Section Spacing */
+.py-xxl {
+  padding: 120px 0;
+}
+
+.pt-xxl {
+  padding-top: 120px;
+}
+
+.mb-xxl {
+  margin-bottom: 4rem;
+}
+
+/* Novel Elements */
+.novel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 40px;
+  box-shadow: var(--glass-glow);
+}
+
+.hover-lift {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+}
+
+.text-dim {
+  color: var(--text-dim) !important;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 700px;
+}
+
+/* Animations */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-content-smooth {
+  display: inline-flex;
+  animation: ticker-scroll 40s linear infinite;
+}
+
+.ticker-content-smooth:hover {
+  animation-play-state: paused;
+}
+
+/* Asset Tag */
+.asset-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* Agent Orb */
+.agent-orb {
+  width: 48px;
+  height: 48px;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--glass-glow);
+  color: var(--primary-purple);
+}
+
+/* Scroll Indicators */
+.scroll-indicator {
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(to bottom, var(--primary-purple), transparent);
+  margin: 2rem auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 3rem;
+  }
+
+  .container {
+    padding: 0 1.5rem;
+  }
 }
