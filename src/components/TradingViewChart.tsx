@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 interface TradingViewChartProps {
     pair: string;
     height?: number;
+    showHeader?: boolean;
 }
 
-export default function TradingViewChart({ pair, height = 400 }: TradingViewChartProps) {
+export default function TradingViewChart({ pair, height = 400, showHeader = false }: TradingViewChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const candlestickSeriesRef = useRef<any>(null);
@@ -37,17 +38,29 @@ export default function TradingViewChart({ pair, height = 400 }: TradingViewChar
                     textColor: '#d1d4dc',
                 },
                 grid: {
-                    vertLines: { color: 'rgba(168, 85, 247, 0.1)' },
-                    horzLines: { color: 'rgba(168, 85, 247, 0.1)' },
+                    vertLines: { color: 'rgba(168, 85, 247, 0.05)' },
+                    horzLines: { color: 'rgba(168, 85, 247, 0.05)' },
                 },
                 crosshair: {
-                    mode: 1,
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                    vertLine: {
+                        color: 'rgba(168, 85, 247, 0.5)',
+                        width: 1,
+                        style: 1,
+                        labelBackgroundColor: '#a855f7',
+                    },
+                    horzLine: {
+                        color: 'rgba(168, 85, 247, 0.5)',
+                        width: 1,
+                        style: 1,
+                        labelBackgroundColor: '#a855f7',
+                    },
                 },
                 rightPriceScale: {
-                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                    borderColor: 'rgba(168, 85, 247, 0.2)',
                 },
                 timeScale: {
-                    borderColor: 'rgba(168, 85, 247, 0.3)',
+                    borderColor: 'rgba(168, 85, 247, 0.2)',
                     timeVisible: true,
                     secondsVisible: false,
                 },
@@ -57,11 +70,11 @@ export default function TradingViewChart({ pair, height = 400 }: TradingViewChar
 
             // Add candlestick series
             const candlestickSeries = chart.addCandlestickSeries({
-                upColor: '#a855f7',
+                upColor: '#10b981',
                 downColor: '#ef4444',
-                borderUpColor: '#a855f7',
+                borderUpColor: '#10b981',
                 borderDownColor: '#ef4444',
-                wickUpColor: '#a855f7',
+                wickUpColor: '#10b981',
                 wickDownColor: '#ef4444',
             });
 
@@ -138,8 +151,10 @@ export default function TradingViewChart({ pair, height = 400 }: TradingViewChar
         };
     }, [pair, height, mounted]);
 
-    // Fetch real-time price updates
+    // Fetch real-time price updates only if showing header
     useEffect(() => {
+        if (!showHeader) return;
+
         const fetchPrice = async () => {
             try {
                 const response = await fetch(`/api/price/${pair.replace('/', '-')}`);
@@ -154,41 +169,44 @@ export default function TradingViewChart({ pair, height = 400 }: TradingViewChar
         };
 
         fetchPrice();
-        const interval = setInterval(fetchPrice, 5000); // Update every 5 seconds
+        const interval = setInterval(fetchPrice, 5000);
 
         return () => clearInterval(interval);
-    }, [pair]);
+    }, [pair, showHeader]);
 
     return (
-        <div style={{ width: '100%' }}>
+        <div style={{ width: '100%', position: 'relative' }}>
             {/* Price Header */}
-            <div style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '12px 12px 0 0', borderBottom: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{pair}</h3>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary-purple)' }}>
-                            ${currentPrice}
-                        </span>
-                        <span style={{
-                            fontSize: '0.875rem',
-                            fontWeight: 600,
-                            color: priceChange >= 0 ? '#10b981' : '#ef4444'
-                        }}>
-                            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-                        </span>
+            {showHeader && (
+                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0', borderBottom: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{pair}</h3>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary-purple)' }}>
+                                ${currentPrice}
+                            </span>
+                            <span style={{
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                color: priceChange >= 0 ? '#10b981' : '#ef4444'
+                            }}>
+                                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Chart */}
             <div
                 ref={chartContainerRef}
                 style={{
-                    background: 'var(--bg-card)',
-                    borderRadius: '0 0 12px 12px',
+                    background: 'transparent',
+                    borderRadius: showHeader ? '0 0 12px 12px' : '12px',
                     overflow: 'hidden'
                 }}
             />
         </div>
     );
 }
+

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Menu, X, Cpu, Trophy, BarChart3, Bot, Activity, Zap, BarChart2 } from 'lucide-react';
+import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AlertCenter from './AlertCenter';
 
@@ -35,20 +35,8 @@ export default function Navbar() {
                     <Link href="/analytics" className="nav-link">
                         <BarChart2 size={18} /> Analytics
                     </Link>
-                    <Link href="/explorer" className="nav-link">
-                        <Activity size={18} /> Explorer
-                    </Link>
                     <Link href="/agents" className="nav-link">
                         <Bot size={18} /> Agents
-                    </Link>
-                    <Link href="/arena" className="nav-link">
-                        <Trophy size={18} /> Arena
-                    </Link>
-                    <Link href="/setup" className="nav-link">
-                        <Cpu size={18} /> Deploy Agent
-                    </Link>
-                    <Link href="/profile" className="nav-link">
-                        <BarChart3 size={18} /> Profile
                     </Link>
                 </div>
 
@@ -84,11 +72,8 @@ export default function Navbar() {
                 <div className="mobile-menu">
                     <Link href="/clawdex" onClick={() => setIsMenuOpen(false)} className="nav-link">ClawDex</Link>
                     <Link href="/trade" onClick={() => setIsMenuOpen(false)} className="nav-link">Trade</Link>
-                    <Link href="/explorer" onClick={() => setIsMenuOpen(false)} className="nav-link">Explorer</Link>
+                    <Link href="/analytics" onClick={() => setIsMenuOpen(false)} className="nav-link">Analytics</Link>
                     <Link href="/agents" onClick={() => setIsMenuOpen(false)} className="nav-link">Agents</Link>
-                    <Link href="/arena" onClick={() => setIsMenuOpen(false)} className="nav-link">Arena</Link>
-                    <Link href="/setup" onClick={() => setIsMenuOpen(false)} className="nav-link">Deploy Agent</Link>
-                    <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="nav-link">Profile</Link>
                     {mounted && (
                         <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
                             <ConnectButton />
