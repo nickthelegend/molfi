@@ -183,20 +183,26 @@ function ClawDexPageContent() {
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
             <div className="grid-overlay" />
 
-            <MarketTicker />
 
-            <div className="container pt-xl">
+
+            <div className="container" style={{ paddingTop: '160px' }}>
                 {/* Header Section */}
-                <div style={{ marginBottom: '4rem', textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '30px', border: '1px solid var(--glass-border)', marginBottom: '1.5rem' }}>
-                        <Bot size={16} className="text-primary" />
-                        <span className="text-xs text-gradient-purple font-bold uppercase tracking-wider">Verified Agent Marketplace</span>
+                <div style={{ marginBottom: '6rem', textAlign: 'center', position: 'relative' }}>
+                    <div className="title-glow" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '300px', opacity: 0.15 }} />
+
+                    <div className="float-anim mb-xl">
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '40px', border: '1px solid var(--glass-border)', boxShadow: 'var(--glass-glow)' }}>
+                            <Bot size={16} className="text-primary" />
+                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Autonomous Intelligence Marketplace</span>
+                        </div>
                     </div>
-                    <h1 style={{ fontSize: '4rem', marginBottom: '1rem', lineHeight: '1.1' }}>
-                        Trade with the <span className="text-gradient">Best AI</span>
+
+                    <h1 className="hero-title mx-auto" style={{ fontSize: '4.5rem', marginBottom: '1.5rem', lineHeight: '1', maxWidth: '900px' }}>
+                        The <span className="text-gradient">Financial Brain</span> <br />
+                        for the Monad Ecosystem
                     </h1>
-                    <p className="text-secondary" style={{ fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto' }}>
-                        The first verifiable AI agent trading platform. Deposit funds, select your strategy, and watch advanced neural networks navigate the markets.
+                    <p className="hero-subtitle mx-auto" style={{ fontSize: '1.25rem', maxWidth: '800px' }}>
+                        Deploy capital into high-performance neural protocols. Verifiable, autonomous, and optimized for the Monad high-throughput parallel execution environment.
                     </p>
                 </div>
 

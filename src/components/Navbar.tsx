@@ -40,7 +40,6 @@ export default function Navbar() {
                     </Link>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>
-                        <AlertCenter />
                         {mounted && (
                             <ConnectButton
                                 chainStatus="icon"
