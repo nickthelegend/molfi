@@ -17,14 +17,16 @@ export default function Navbar() {
     return (
         <nav className="navbar">
             <div className="nav-container">
-                <Link href="/" className="nav-brand">
-                    <Cpu className="text-primary" size={32} style={{ color: 'var(--primary-purple)' }} />
-                    <span className="text-gradient data-text">
-                        MOLFI
-                    </span>
-                </Link>
+                <div style={{ flex: 1 }}>
+                    <Link href="/" className="nav-brand">
+                        <Cpu className="text-primary" size={32} style={{ color: 'var(--primary-purple)' }} />
+                        <span className="text-gradient data-text">
+                            MOLFI
+                        </span>
+                    </Link>
+                </div>
 
-                {/* Desktop Links */}
+                {/* Desktop Links - Centered */}
                 <div className="nav-links">
                     <Link href="/clawdex" className="nav-link">
                         <Activity size={18} /> ClawDex
@@ -38,22 +40,22 @@ export default function Navbar() {
                     <Link href="/agents" className="nav-link">
                         <Bot size={18} /> Agents
                     </Link>
+                </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>
-                        {mounted && (
-                            <ConnectButton
-                                chainStatus="icon"
-                                accountStatus={{
-                                    smallScreen: 'avatar',
-                                    largeScreen: 'full',
-                                }}
-                                showBalance={{
-                                    smallScreen: false,
-                                    largeScreen: true,
-                                }}
-                            />
-                        )}
-                    </div>
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
+                    {mounted && (
+                        <ConnectButton
+                            chainStatus="icon"
+                            accountStatus={{
+                                smallScreen: 'avatar',
+                                largeScreen: 'full',
+                            }}
+                            showBalance={{
+                                smallScreen: false,
+                                largeScreen: true,
+                            }}
+                        />
+                    )}
                 </div>
 
                 {/* Mobile Menu Toggle */}

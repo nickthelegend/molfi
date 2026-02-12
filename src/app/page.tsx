@@ -70,7 +70,7 @@ export default function Home() {
                 ENTER MARKETPLACE
               </button>
             </Link>
-            <Link href="/trade-test">
+            <Link href="/launch">
               <button className="neon-button secondary hero-cta">
                 LAUNCH TERMINAL
               </button>
@@ -262,7 +262,7 @@ export default function Home() {
             <Link href="/clawdex">
               <button className="neon-button hero-cta">GET STARTED</button>
             </Link>
-            <Link href="/trade-test">
+            <Link href="/launch">
               <button className="neon-button secondary hero-cta">VISIT TERMINAL</button>
             </Link>
           </div>

@@ -1,6 +1,5 @@
-import pkg from "hardhat";
-const { ethers, upgrades } = pkg;
-import * as fs from "fs";
+const { ethers, upgrades } = require("hardhat");
+const fs = require("fs");
 
 async function main() {
     console.log("\n" + "=".repeat(70));

@@ -185,35 +185,77 @@ function ClawDexPageContent() {
 
 
 
-            <div className="container" style={{ paddingTop: '160px' }}>
+            <div className="container" style={{ paddingTop: '100px' }}>
                 {/* Header Section */}
-                <div style={{ marginBottom: '6rem', textAlign: 'center', position: 'relative' }}>
-                    <div className="title-glow" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '300px', opacity: 0.15 }} />
+                <div style={{ marginBottom: '4rem', textAlign: 'center', position: 'relative' }}>
+                    <div className="title-glow" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.2, filter: 'blur(100px)' }} />
 
                     <div className="float-anim mb-xl">
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '40px', border: '1px solid var(--glass-border)', boxShadow: 'var(--glass-glow)' }}>
-                            <Bot size={16} className="text-primary" />
-                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Autonomous Intelligence Marketplace</span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.5rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '40px', border: '1px solid var(--glass-border)', boxShadow: 'var(--glass-glow)', backdropFilter: 'blur(10px)' }}>
+                            <Zap size={16} className="text-primary animate-pulse" />
+                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Intelligence Marketplace v2.0</span>
                         </div>
                     </div>
 
-                    <h1 className="hero-title mx-auto" style={{ fontSize: '4.5rem', marginBottom: '1.5rem', lineHeight: '1', maxWidth: '900px' }}>
+                    <h1 className="hero-title mx-auto" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1000px', letterSpacing: '-0.04em' }}>
                         The <span className="text-gradient">Financial Brain</span> <br />
-                        for the Monad Ecosystem
+                        <span style={{ fontSize: '0.8em', color: 'rgba(255,255,255,0.7)' }}>of the Monad Ecosystem</span>
                     </h1>
-                    <p className="hero-subtitle mx-auto" style={{ fontSize: '1.25rem', maxWidth: '800px' }}>
-                        Deploy capital into high-performance neural protocols. Verifiable, autonomous, and optimized for the Monad high-throughput parallel execution environment.
+                    <p className="hero-subtitle mx-auto" style={{ fontSize: '1.4rem', maxWidth: '850px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                        Deploy capital into high-performance neural protocols. Verifiable, autonomous, and optimized for Monad's parallel execution environment.
                     </p>
                 </div>
 
+                {/* ELITE AGENTS (NEW SECTION) */}
+                <div style={{ marginBottom: '6rem' }}>
+                    <div className="flex justify-between items-center mb-xl">
+                        <div>
+                            <span className="text-xs text-primary font-bold uppercase tracking-widest block mb-xs">Featured Protocols</span>
+                            <h2 style={{ fontSize: '2.5rem' }}>Elite <span className="text-gradient">Performance</span></h2>
+                        </div>
+                        <div className="flex gap-md">
+                            <div className="novel-pill" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.2)' }}>
+                                <div className="pulse-dot" style={{ backgroundColor: '#22c55e' }} />
+                                <span className="text-[10px] font-bold text-success uppercase">142,392 Trades Validated</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="elite-slider">
+                        {MOCK_AGENTS.slice(0, 3).map(agent => (
+                            <div key={agent.id} className="elite-card novel-card">
+                                <div className="elite-card-bg" style={{ backgroundImage: `url(${agent.avatar})` }} />
+                                <div className="elite-card-content">
+                                    <div className="flex justify-between items-start mb-lg">
+                                        <div className="agent-badge active">{agent.strategy}</div>
+                                        <div className="trust-badge-large"><ShieldCheck size={18} /></div>
+                                    </div>
+                                    <h3 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{agent.name}</h3>
+                                    <div className="flex gap-xl mb-xl">
+                                        <div>
+                                            <span className="text-xs text-dim block uppercase">ROI (30D)</span>
+                                            <span className="text-xl font-bold text-success">+{agent.apy}%</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-dim block uppercase">Success Rate</span>
+                                            <span className="text-xl font-bold">{agent.winRate}%</span>
+                                        </div>
+                                    </div>
+                                    <button className="neon-button hero-cta" style={{ width: '100%' }} onClick={() => handleStake(agent.id)}>STAKE CAPITAL</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Filters & Search */}
-                <div className="flex items-center justify-between mb-xl">
-                    <div className="flex items-center gap-md" style={{ flex: 1, maxWidth: '500px' }}>
-                        <div className="novel-search-container">
+                <div className="flex items-center justify-between mb-xl p-lg novel-card" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center gap-md" style={{ flex: 1, maxWidth: '600px' }}>
+                        <div className="novel-search-container" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <Search size={18} className="text-dim" />
                             <input
                                 type="text"
-                                placeholder="Search agents, strategies, or assets..."
+                                placeholder="Filter by strategy, asset, or neural signature..."
                                 className="novel-search-input"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -223,14 +265,14 @@ function ClawDexPageContent() {
                             <Filter size={20} />
                         </button>
                     </div>
-                    <div className="flex items-center gap-xl text-sm font-bold">
-                        <div className="flex flex-col items-end">
-                            <span className="text-xs text-dim uppercase">Active Agents</span>
-                            <span className="text-lg">24</span>
+                    <div className="flex items-center gap-xxl">
+                        <div className="stat-item">
+                            <span className="text-[10px] text-dim uppercase tracking-tighter">Total Liquidity</span>
+                            <span className="text-xl font-mono tracking-tighter">$42,850,200</span>
                         </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-xs text-dim uppercase">Total AUM</span>
-                            <span className="text-lg text-gradient-purple">$42.8M</span>
+                        <div className="stat-item">
+                            <span className="text-[10px] text-dim uppercase tracking-tighter">Agent Consensus</span>
+                            <span className="text-xl font-mono tracking-tighter text-primary">98.2%</span>
                         </div>
                     </div>
                 </div>
@@ -252,24 +294,29 @@ function ClawDexPageContent() {
                     <div className="col-span-4 flex flex-col gap-xl">
                         <DecisionLog />
 
-                        <div className="novel-card">
+                        <div className="novel-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)', boxShadow: 'var(--glass-glow)' }}>
                             <h3 className="mb-md flex items-center gap-sm">
                                 <BarChart3 size={20} className="text-primary" />
-                                NETWORK STATS
+                                REPUTATION LEADERBOARD
                             </h3>
                             <div className="flex flex-col gap-md">
-                                <div className="flex justify-between items-center py-sm border-bottom" style={{ borderColor: 'rgba(168, 85, 247, 0.1)' }}>
-                                    <span className="text-sm text-secondary">Total Dividends Paid</span>
-                                    <span className="font-bold text-success">$1,240,500</span>
-                                </div>
-                                <div className="flex justify-between items-center py-sm border-bottom" style={{ borderColor: 'rgba(168, 85, 247, 0.1)' }}>
-                                    <span className="text-sm text-secondary">Staked Value</span>
-                                    <span className="font-bold">$12.5M</span>
-                                </div>
-                                <div className="flex justify-between items-center py-sm">
-                                    <span className="text-sm text-secondary">Network Accuracy</span>
-                                    <span className="font-bold">78.4%</span>
-                                </div>
+                                {[
+                                    { name: 'Nexus Prime', score: 99.8, trend: 'up' },
+                                    { name: 'Void Oracle', score: 98.4, trend: 'up' },
+                                    { name: 'Guardian v2', score: 95.2, trend: 'stable' },
+                                    { name: 'Aether Bot', score: 91.0, trend: 'down' }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex justify-between items-center py-sm border-bottom" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                                        <div className="flex items-center gap-md">
+                                            <span className="text-xs text-dim">#{i + 1}</span>
+                                            <span className="text-sm font-bold">{item.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-sm">
+                                            <span className="font-mono text-sm">{item.score}</span>
+                                            {item.trend === 'up' ? <TrendingUp size={12} className="text-success" /> : item.trend === 'down' ? <TrendingDown size={12} className="text-error" /> : <Activity size={12} className="text-dim" />}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
@@ -376,7 +423,64 @@ function ClawDexPageContent() {
                 .action-badge.sell { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
                 .action-badge.hold { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); }
 
+                .elite-slider {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 1.5rem;
+                }
+                .elite-card {
+                    position: relative;
+                    height: 380px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-end;
+                    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                .elite-card:hover {
+                    transform: translateY(-10px);
+                    border-color: var(--primary-purple);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(168, 85, 247, 0.2);
+                }
+                .elite-card-bg {
+                    position: absolute;
+                    inset: 0;
+                    background-size: cover;
+                    background-position: center;
+                    filter: saturate(0.5) brightness(0.4);
+                    transition: all 0.5s ease;
+                    z-index: 0;
+                }
+                .elite-card:hover .elite-card-bg {
+                    filter: saturate(1) brightness(0.6);
+                    transform: scale(1.1);
+                }
+                .elite-card-content {
+                    position: relative;
+                    z-index: 1;
+                    padding: 2.5rem;
+                    background: linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.6) 50%, transparent 100%);
+                }
+                .trust-badge-large {
+                    background: #10b981;
+                    color: white;
+                    padding: 0.5rem;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .stat-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                }
+
                 @media (max-width: 1200px) {
+                    .elite-slider {
+                        grid-template-columns: 1fr;
+                    }
                     .terminal-grid {
                         display: flex;
                         flex-direction: column;
