@@ -50,15 +50,16 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 className="hero-title">
+          <h1 className="hero-title mx-auto" style={{ maxWidth: '1000px' }}>
             The <span className="text-gradient">Financial OS</span> <br />
-            <span style={{ position: 'relative' }}>
+            <span style={{ position: 'relative', display: 'inline-block' }}>
               for AI Agents
               <div className="title-glow" />
             </span>
           </h1>
 
-          <p className="hero-subtitle">
+
+          <p className="hero-subtitle mx-auto">
             Deploy, stake, and scale autonomous trading strategies in a <br />
             cryptographically verifiable environment.
           </p>
@@ -69,7 +70,7 @@ export default function Home() {
                 ENTER MARKETPLACE
               </button>
             </Link>
-            <Link href="/trade">
+            <Link href="/trade-test">
               <button className="neon-button secondary hero-cta">
                 LAUNCH TERMINAL
               </button>
@@ -198,41 +199,52 @@ export default function Home() {
       </section>
 
       {/* TECHNOLOGY SECTION */}
-      <section style={{ background: 'rgba(168, 85, 247, 0.03)', padding: '120px 0', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
+      <section style={{ position: 'relative', overflow: 'hidden', padding: '160px 0', borderTop: '1px solid var(--glass-border)' }}>
         <div className="container">
-          <div className="terminal-grid items-center">
-            <div className="col-span-6">
-              <span className="text-xs text-primary font-bold uppercase mb-md block">Technology Layer</span>
-              <h2 style={{ fontSize: '3.5rem', marginBottom: '2rem' }}>Verifiable <br /> <span className="text-gradient">Intelligence</span></h2>
-              <ul className="flex flex-col gap-lg list-none p-0">
-                <li className="flex gap-md">
-                  <div className="feature-icon"><Lock size={20} /></div>
-                  <div>
-                    <h4 className="font-bold mb-xs">Proof of Trade (P.O.T)</h4>
-                    <p className="text-sm text-secondary">Every strategy execution is cryptographically signed and stored for total auditability.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+            <div className="tech-content animate-in">
+              <div className="novel-pill mb-md">
+                <Layers size={14} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Architecture Stack</span>
+              </div>
+              <h2 style={{ fontSize: '4.5rem', marginBottom: '2.5rem', lineHeight: '1' }}>Verifiable <br /><span className="text-gradient">Intelligence</span></h2>
+
+              <div className="flex flex-col gap-xl">
+                {[
+                  { icon: <Lock />, title: 'Proof of Trade (P.O.T)', desc: 'Every strategy execution is cryptographically signed and stored for total auditability.' },
+                  { icon: <Layers />, title: 'Neural Routing', desc: 'Optimized trades across multichain liquidity pools for zero-slippage execution.' },
+                  { icon: <Eye />, title: '24/7 Monitoring', desc: 'Advanced risk management layers that pause execution during extreme volatility.' }
+                ].map((item, i) => (
+                  <div key={i} className="novel-card hover-lift" style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem' }}>
+                    <div className="flex gap-lg">
+                      <div className="feature-icon" style={{ borderRadius: '12px', background: 'var(--primary-purple)', color: 'white' }}>{item.icon}</div>
+                      <div>
+                        <h4 className="font-bold mb-xs" style={{ fontSize: '1.25rem' }}>{item.title}</h4>
+                        <p className="text-sm text-dim leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
                   </div>
-                </li>
-                <li className="flex gap-md">
-                  <div className="feature-icon"><Layers size={20} /></div>
-                  <div>
-                    <h4 className="font-bold mb-xs">Neural Routing</h4>
-                    <p className="text-sm text-secondary">Optimized trades across multichain liquidity pools for zero-slippage execution.</p>
-                  </div>
-                </li>
-                <li className="flex gap-md">
-                  <div className="feature-icon"><Eye size={20} /></div>
-                  <div>
-                    <h4 className="font-bold mb-xs">24/7 Monitoring</h4>
-                    <p className="text-sm text-secondary">Advanced risk management layers that pause execution during extreme volatility.</p>
-                  </div>
-                </li>
-              </ul>
+                ))}
+              </div>
             </div>
-            <div className="col-span-6 flex justify-center">
-              <div className="visual-orb-container">
-                <div className="orb-glow" />
-                <div className="orb-rings" />
-                <Bot size={120} className="orb-bot" />
+
+            <div className="flex justify-center relative">
+              <div className="tech-visual-container">
+                <div className="tech-orb-big" />
+                <div className="tech-orb-medium" />
+                <div className="tech-orb-small" />
+                <div className="bot-hero-container float-anim">
+                  <Bot size={160} className="text-primary-purple" style={{ filter: 'drop-shadow(0 0 30px var(--primary-purple))' }} />
+                </div>
+
+                {/* Floating data dots */}
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="data-node" style={{
+                    top: `${Math.random() * 80 + 10}%`,
+                    left: `${Math.random() * 80 + 10}%`,
+                    animationDelay: `${i * 0.5}s`
+                  }} />
+                ))}
               </div>
             </div>
           </div>
@@ -250,7 +262,7 @@ export default function Home() {
             <Link href="/clawdex">
               <button className="neon-button hero-cta">GET STARTED</button>
             </Link>
-            <Link href="/trade">
+            <Link href="/trade-test">
               <button className="neon-button secondary hero-cta">VISIT TERMINAL</button>
             </Link>
           </div>
@@ -294,6 +306,9 @@ export default function Home() {
                     color: var(--text-secondary);
                     margin-bottom: 3.5rem;
                     line-height: 1.6;
+                    max-width: 800px;
+                    margin-left: auto;
+                    margin-right: auto;
                 }
                 .title-glow {
                     position: absolute;
@@ -393,35 +408,50 @@ export default function Home() {
                     color: var(--primary-purple);
                     flex-shrink: 0;
                 }
-                .visual-orb-container {
+                
+                /* Tech Section Enhanced */
+                .tech-visual-container {
                     position: relative;
-                    width: 300px;
-                    height: 300px;
+                    width: 500px;
+                    height: 500px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
-                .orb-glow {
+                .tech-orb-big {
                     position: absolute;
                     width: 100%;
                     height: 100%;
-                    background: radial-gradient(circle, var(--primary-purple) 0%, transparent 70%);
+                    border: 1px dashed var(--glass-border);
+                    border-radius: 50%;
+                    animation: rotate 60s linear infinite;
+                }
+                .tech-orb-medium {
+                    position: absolute;
+                    width: 70%;
+                    height: 70%;
+                    border: 1px solid var(--glass-border);
+                    border-radius: 50%;
+                    animation: rotate 40s linear reverse infinite;
+                    background: radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+                }
+                .tech-orb-small {
+                    position: absolute;
+                    width: 40%;
+                    height: 40%;
+                    border: 2px solid var(--primary-purple);
+                    border-radius: 50%;
                     opacity: 0.2;
-                    filter: blur(20px);
                     animation: pulse 4s ease-in-out infinite;
                 }
-                .orb-rings {
+                .data-node {
                     position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border: 2px solid var(--glass-border);
+                    width: 6px;
+                    height: 6px;
+                    background: var(--primary-purple);
                     border-radius: 50%;
-                    animation: rotate 20s linear infinite;
-                }
-                .orb-bot {
-                    color: var(--primary-purple);
-                    filter: drop-shadow(0 0 20px var(--primary-purple));
-                    z-index: 2;
+                    box-shadow: 0 0 10px var(--primary-purple);
+                    animation: pulse 2s infinite;
                 }
                 .cta-card {
                     background: radial-gradient(circle at center, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
@@ -441,7 +471,10 @@ export default function Home() {
                     .hero-title { font-size: 3.5rem; }
                     .hero-subtitle { font-size: 1.1rem; }
                     .cta-card { padding: 4rem 1rem; }
+                    .tech-visual-container { width: 300px; height: 300px; }
                 }
+                .gap-xxl { gap: 4rem; }
+                .mx-auto { margin-left: auto; margin-right: auto; }
             `}</style>
     </main>
   );

@@ -19,7 +19,10 @@ import {
     Gamepad2,
     Crown,
     ArrowUpRight,
-    Search
+    Search,
+    Target,
+    Shield,
+    Award
 } from 'lucide-react';
 import * as LightweightCharts from 'lightweight-charts';
 import { ColorType, IChartApi } from 'lightweight-charts';

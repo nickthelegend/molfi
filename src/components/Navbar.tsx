@@ -29,9 +29,6 @@ export default function Navbar() {
                     <Link href="/clawdex" className="nav-link">
                         <Activity size={18} /> ClawDex
                     </Link>
-                    <Link href="/trade" className="nav-link">
-                        <Zap size={18} /> Trade
-                    </Link>
                     <Link href="/arena" className="nav-link">
                         <Swords size={18} /> Arena
                     </Link>
@@ -73,7 +70,6 @@ export default function Navbar() {
             {isMenuOpen && (
                 <div className="mobile-menu">
                     <Link href="/clawdex" onClick={() => setIsMenuOpen(false)} className="nav-link">ClawDex</Link>
-                    <Link href="/trade" onClick={() => setIsMenuOpen(false)} className="nav-link">Trade</Link>
                     <Link href="/arena" onClick={() => setIsMenuOpen(false)} className="nav-link">Arena</Link>
                     <Link href="/analytics" onClick={() => setIsMenuOpen(false)} className="nav-link">Analytics</Link>
                     <Link href="/agents" onClick={() => setIsMenuOpen(false)} className="nav-link">Agents</Link>

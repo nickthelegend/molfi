@@ -13,6 +13,7 @@ import {
     LayoutGrid,
     History,
     Wallet,
+    Terminal,
     Info
 } from 'lucide-react';
 import TradingViewChart from '@/components/TradingViewChart';
@@ -98,45 +99,59 @@ function TradePageContent() {
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
             <div className="grid-overlay" />
 
-            <div className="container" style={{ paddingTop: '120px', maxWidth: '1600px' }}>
-                {/* Header with Stats */}
-                <div className="flex items-center justify-between mb-xl">
-                    <div className="flex items-center gap-xl">
-                        <div className="flex items-center gap-md">
-                            <div className="glass-icon-button" style={{ borderRadius: '50%' }}>
-                                <Zap size={24} className="text-primary" />
+            <div className="container" style={{ paddingTop: '100px', maxWidth: '1600px' }}>
+                {/* ADVANCED TERMINAL HEADER */}
+                <div className="novel-card mb-xl px-xl py-lg" style={{ borderLeft: '4px solid var(--primary-purple)', borderRadius: '12px' }}>
+                    <div className="flex flex-wrap items-center justify-between gap-xl">
+                        <div className="flex items-center gap-lg">
+                            <div className="flex items-center gap-md">
+                                <div className="agent-orb" style={{ width: '40px', height: '40px' }}>
+                                    <Terminal size={20} />
+                                </div>
+                                <h1 style={{ fontSize: '1.75rem', marginBottom: '0', letterSpacing: '-0.02em' }}>
+                                    TERMINAL <span className="text-dim">v2.4.0</span>
+                                </h1>
                             </div>
-                            <h1 style={{ fontSize: '2.5rem', marginBottom: '0' }}>Perpetuals</h1>
-                        </div>
-                        <div className="flex items-center gap-xl ml-xl" style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '2rem' }}>
-                            <div
-                                className={`cursor-pointer px-4 py-2 rounded-lg transition-all ${selectedPair === 'BTC/USDT' ? 'bg-primary-05 border-primary' : 'hover:bg-glass-hover'}`}
-                                style={{ border: selectedPair === 'BTC/USDT' ? '1px solid var(--primary-purple)' : '1px solid transparent' }}
-                                onClick={() => setSelectedPair('BTC/USDT')}
-                            >
-                                <span className="text-xs text-dim block">BTC / USDT</span>
-                                <span className="font-bold font-mono">
-                                    ${prices.get('BTC/USDT')?.price.toLocaleString() || '45,250.00'}
-                                </span>
-                            </div>
-                            <div
-                                className={`cursor-pointer px-4 py-2 rounded-lg transition-all ${selectedPair === 'ETH/USDT' ? 'bg-primary-05 border-primary' : 'hover:bg-glass-hover'}`}
-                                style={{ border: selectedPair === 'ETH/USDT' ? '1px solid var(--primary-purple)' : '1px solid transparent' }}
-                                onClick={() => setSelectedPair('ETH/USDT')}
-                            >
-                                <span className="text-xs text-dim block">ETH / USDT</span>
-                                <span className="font-bold font-mono">
-                                    ${prices.get('ETH/USDT')?.price.toLocaleString() || '2,480.20'}
-                                </span>
+
+                            <div className="flex items-center gap-md ml-xl pl-xl border-l border-glass-border">
+                                {(['BTC/USDT', 'ETH/USDT'] as const).map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setSelectedPair(p)}
+                                        className={`flex flex-col items-start px-4 py-1.5 rounded-lg transition-all ${selectedPair === p ? 'bg-primary-05 ring-1 ring-primary' : 'hover:bg-glass-hover'}`}
+                                    >
+                                        <span className="text-[10px] text-dim uppercase font-bold tracking-tighter">{p.replace('/', ' / ')}</span>
+                                        <div className="flex items-center gap-xs">
+                                            <span className="font-mono font-bold text-sm">
+                                                ${prices.get(p)?.price.toLocaleString() || (p === 'BTC/USDT' ? '45,250' : '2,480')}
+                                            </span>
+                                            <span className="text-[10px] text-success">+2.4%</span>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-md">
-                        <div className="novel-card" style={{ padding: '0.5rem 1rem' }}>
-                            <span className="text-xs text-dim mr-md">FUNDING RATE</span>
-                            <span className="text-success font-mono font-bold">0.0125%</span>
+
+                        <div className="flex items-center gap-xl">
+                            <div className="flex gap-lg">
+                                <div>
+                                    <span className="text-[10px] text-dim block uppercase font-bold">24h Volume</span>
+                                    <span className="font-mono text-sm">$1.2B</span>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-dim block uppercase font-bold">Open Interest</span>
+                                    <span className="font-mono text-sm">$420.5M</span>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-dim block uppercase font-bold">Funding Rate</span>
+                                    <span className="font-mono text-sm text-success">0.0125%</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-md">
+                                <div className="status-badge active text-[10px]">NETWORK: MONAD_TESTNET</div>
+                                <ConnectButton />
+                            </div>
                         </div>
-                        <ConnectButton />
                     </div>
                 </div>
 
@@ -157,8 +172,8 @@ function TradePageContent() {
                                     ))}
                                 </div>
                             </div>
-                            <div style={{ padding: '1rem' }}>
-                                <TradingViewChart pair={selectedPair} height={500} />
+                            <div style={{ minHeight: '500px', background: '#0a0a0f' }}>
+                                <TradingViewChart pair={selectedPair} height={500} showHeader />
                             </div>
                         </div>
 
@@ -265,12 +280,13 @@ function TradePageContent() {
                                             <label className="text-xs text-dim font-bold uppercase">Limit Price</label>
                                             <span className="text-xs text-primary font-mono cursor-pointer">LAST: ${currentLivePrice.toFixed(2)}</span>
                                         </div>
-                                        <div className="novel-search-container">
-                                            <span className="font-bold text-dim">$</span>
+                                        <div style={{ position: 'relative' }}>
+                                            <span className="font-bold text-dim" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>$</span>
                                             <input
                                                 type="number"
                                                 className="novel-search-input"
                                                 placeholder={currentLivePrice.toFixed(2)}
+                                                style={{ paddingLeft: '2.5rem', width: '100%', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', padding: '0.875rem 0.875rem 0.875rem 2.5rem' }}
                                                 value={limitPrice}
                                                 onChange={(e) => setLimitPrice(e.target.value)}
                                             />
@@ -283,11 +299,12 @@ function TradePageContent() {
                                         <label className="text-xs text-dim font-bold uppercase">Size (USDT)</label>
                                         <span className="text-xs text-primary font-mono cursor-pointer">MAX PAY: ${collateral}</span>
                                     </div>
-                                    <div className="novel-search-container">
-                                        <span className="font-bold text-dim">$</span>
+                                    <div style={{ position: 'relative' }}>
+                                        <span className="font-bold text-dim" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>$</span>
                                         <input
                                             type="number"
                                             className="novel-search-input"
+                                            style={{ paddingLeft: '2.5rem', width: '100%', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', padding: '0.875rem 0.875rem 0.875rem 2.5rem' }}
                                             value={size}
                                             onChange={(e) => setSize(e.target.value)}
                                         />

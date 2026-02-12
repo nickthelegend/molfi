@@ -142,16 +142,19 @@ export default function AlertCenter() {
 
                     {/* Panel */}
                     <div
-                        className="glass-container"
+                        className="novel-card"
                         style={{
                             position: 'absolute',
-                            top: 'calc(100% + 0.5rem)',
-                            right: 0,
-                            width: '400px',
-                            maxHeight: '500px',
+                            top: 'calc(100% + 0.75rem)',
+                            right: '-10px',
+                            width: '360px',
+                            maxHeight: '600px',
                             overflow: 'hidden',
-                            zIndex: 999,
+                            zIndex: 1100,
                             padding: 0,
+                            background: 'rgba(10, 10, 15, 0.99)',
+                            boxShadow: '0 20px 80px rgba(0, 0, 0, 0.9), var(--glow-purple)',
+                            border: '1px solid var(--primary-purple)',
                         }}
                     >
                         {/* Header */}

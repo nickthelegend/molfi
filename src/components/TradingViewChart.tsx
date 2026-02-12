@@ -34,7 +34,7 @@ export default function TradingViewChart({ pair, height = 400, showHeader = fals
                 width: chartContainerRef.current.clientWidth,
                 height,
                 layout: {
-                    background: { type: LightweightCharts.ColorType.Solid, color: 'transparent' },
+                    background: { type: LightweightCharts.ColorType.Solid, color: '#0a0a0f' },
                     textColor: '#d1d4dc',
                 },
                 grid: {
