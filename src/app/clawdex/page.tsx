@@ -194,7 +194,7 @@ function ClawDexPageContent() {
             <div style={{ position: 'fixed', top: '-10%', left: '-10%', width: '50%', height: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
             <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
 
-            <div className="container" style={{ paddingTop: '80px' }}>
+            <div className="container" style={{ paddingTop: '120px' }}>
                 {/* Header Section */}
                 <div style={{ marginBottom: '4rem', textAlign: 'center', position: 'relative' }}>
                     <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
