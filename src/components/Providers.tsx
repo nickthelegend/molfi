@@ -21,10 +21,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
         return <>{children}</>;
     }
 
+    const CustomAvatar = ({ address, size }: { address: string; size: number }) => {
+        return (
+            <img
+                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${address}`}
+                width={size}
+                height={size}
+                alt="User Avatar"
+                style={{ borderRadius: '25%' }}
+            />
+        );
+    };
+
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
                 <RainbowKitProvider
+                    avatar={CustomAvatar}
                     theme={darkTheme({
                         accentColor: '#a855f7',
                         accentColorForeground: '#ffffff',

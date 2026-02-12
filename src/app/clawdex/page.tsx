@@ -63,7 +63,10 @@ const AgentCard = ({ agent, onStake }: { agent: AIAgent; onStake: (agentId: stri
                     </div>
                     <div>
                         <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{agent.name}</h3>
-                        <span className="status-badge active">{agent.strategy}</span>
+                        <div className="flex gap-sm items-center">
+                            <span className="status-badge active">{agent.strategy}</span>
+                            <span className="text-[10px]" style={{ background: 'rgba(168, 85, 247, 0.2)', color: 'var(--primary-purple)', padding: '0.125rem 0.5rem', borderRadius: '9999px', fontWeight: 'bold', border: '1px solid rgba(168, 85, 247, 0.3)' }}>CLAW_BOT SYNCED</span>
+                        </div>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -158,7 +161,7 @@ export default function ClawDexPage() {
     if (!mounted) return (
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
             <div className="grid-overlay" />
-            <div className="container" style={{ paddingTop: '120px', textAlign: 'center' }}>
+            <div className="container" style={{ paddingTop: '80px', textAlign: 'center' }}>
                 <p className="text-secondary">Loading Molfi Agents...</p>
             </div>
         </div>
@@ -182,22 +185,19 @@ function ClawDexPageContent() {
     return (
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
             <div className="grid-overlay" />
-
-
-
-            <div className="container" style={{ paddingTop: '100px' }}>
+            <div className="container" style={{ paddingTop: '60px' }}>
                 {/* Header Section */}
-                <div style={{ marginBottom: '4rem', textAlign: 'center', position: 'relative' }}>
-                    <div className="title-glow" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.2, filter: 'blur(100px)' }} />
+                <div style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
+                    <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.2, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
 
-                    <div className="float-anim mb-xl">
+                    <div className="float-anim mb-md">
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.5rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '40px', border: '1px solid var(--glass-border)', boxShadow: 'var(--glass-glow)', backdropFilter: 'blur(10px)' }}>
                             <Zap size={16} className="text-primary animate-pulse" />
                             <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Intelligence Marketplace v2.0</span>
                         </div>
                     </div>
 
-                    <h1 className="hero-title mx-auto" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1000px', letterSpacing: '-0.04em' }}>
+                    <h1 className="hero-title mx-auto" style={{ fontSize: '5rem', marginBottom: '0.75rem', lineHeight: '0.9', maxWidth: '1000px', letterSpacing: '-0.04em' }}>
                         The <span className="text-gradient">Financial Brain</span> <br />
                         <span style={{ fontSize: '0.8em', color: 'rgba(255,255,255,0.7)' }}>of the Monad Ecosystem</span>
                     </h1>
@@ -207,8 +207,8 @@ function ClawDexPageContent() {
                 </div>
 
                 {/* ELITE AGENTS (NEW SECTION) */}
-                <div style={{ marginBottom: '6rem' }}>
-                    <div className="flex justify-between items-center mb-xl">
+                <div style={{ marginBottom: '3rem' }}>
+                    <div className="flex justify-between items-center mb-lg">
                         <div>
                             <span className="text-xs text-primary font-bold uppercase tracking-widest block mb-xs">Featured Protocols</span>
                             <h2 style={{ fontSize: '2.5rem' }}>Elite <span className="text-gradient">Performance</span></h2>
@@ -249,7 +249,7 @@ function ClawDexPageContent() {
                 </div>
 
                 {/* Filters & Search */}
-                <div className="flex items-center justify-between mb-xl p-lg novel-card" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center justify-between mb-lg p-md novel-card" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}>
                     <div className="flex items-center gap-md" style={{ flex: 1, maxWidth: '600px' }}>
                         <div className="novel-search-container" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <Search size={18} className="text-dim" />
