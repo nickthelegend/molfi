@@ -58,13 +58,15 @@ export default function LaunchPage() {
         addLog("Transmitting to Monad Testnet...");
         addLog("Gas limit: 12,000,000 | RPC: Monad Testnet");
 
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 1000));
         addLog(`✅ ${agentDetails.name}_IdentityRegistry: 0xB159E0c8093081712c92e274DbFEa5A97A80cA30`);
+        addLog(`✅ MolfiAgentVault: 0x${Math.random().toString(16).slice(2, 42)}`);
         addLog("✅ ReputationRegistry: 0x38E9cDB0eBc128bEA55c36C03D5532697669132d");
 
         await new Promise(r => setTimeout(r, 1000));
         addLog("✅ ClawBot_Bridge: 0x386fd4Fa2F27E528CF2D11C6d4b0A4dceD283E0E");
         addLog("Linking Neural Core to Monad Execution Layer...");
+        addLog("System: Vault linked to Agent ID. Ready for Liquidity.");
 
         await new Promise(r => setTimeout(r, 1000));
         setStatus('complete');

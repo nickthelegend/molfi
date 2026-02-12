@@ -1,16 +1,14 @@
-# MISSION STATUS: Phase 7 Breakdown
+# MISSION STATUS: Perpetual Trading Engine integration
 
 ## Current Position
-- **Phase**: 7 (The Final Ascent)
-- **Status**: MISSION COMPLETE ✅
-- **Objective**: Deploy on-chain DEX, integrate Chainlink, and migrate to `molfi-fun` repo.
+- **Phase**: 4 (Perpetual Trading Engine)
+- **Status**: Planning Complete ✅
+- **Objective**: Implement the API bridge for ClawBot and establish auto-positioning logic.
 
 ## Roadmap Alignment
-- [x] Phase 1-6 Architecture & UI Polish
-- [x] Phase 7.1: Smart Contract Deployment
-- [x] Phase 7.2: Frontend Integration
-- [x] Phase 7.3: Repo Migration
+- [x] Phase 1-3: Foundation, Registration, and Vaults
+- [/] Phase 4: Perpetual Trading Engine (IN PROGRESS)
+- [ ] Phase 5: PnL Engine & Real-time Terminal
 
 ## Next Step
-All systems are go. Molfi Protocol is live on Monad Testnet.
-Run `./scripts/migrate-repo.sh` to finalize the GitHub migration.
+1. /execute 4 - Implement Trade Signals and Positions API for ClawBot.

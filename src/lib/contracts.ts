@@ -13,6 +13,7 @@ export const CONTRACTS = {
         validationRegistry: process.env.NEXT_PUBLIC_VALIDATION_REGISTRY || '',
         perpDex: process.env.NEXT_PUBLIC_PERP_DEX || '',
         chainlinkOracle: process.env.NEXT_PUBLIC_CHAINLINK_ORACLE || '',
+        vaultFactory: process.env.NEXT_PUBLIC_VAULT_FACTORY || '',
     },
 
     // Ethereum Sepolia (Chain ID: 11155111)
@@ -22,6 +23,7 @@ export const CONTRACTS = {
         validationRegistry: '',
         perpDex: '',
         chainlinkOracle: '',
+        vaultFactory: '',
     },
 
     // Base Sepolia (Chain ID: 84532)
@@ -31,6 +33,7 @@ export const CONTRACTS = {
         validationRegistry: '',
         perpDex: '',
         chainlinkOracle: '',
+        vaultFactory: '',
     },
 } as const;
 

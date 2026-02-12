@@ -45,6 +45,7 @@ contract IdentityRegistryUpgradeable is
     bytes4 private constant ERC1271_MAGICVALUE = 0x1626ba7e;
     uint256 private constant MAX_DEADLINE_DELAY = 5 minutes;
     bytes32 private constant RESERVED_AGENT_WALLET_KEY_HASH = keccak256("agentWallet");
+    bytes32 private constant RESERVED_VAULT_KEY_HASH = keccak256("vault");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -88,7 +89,8 @@ contract IdentityRegistryUpgradeable is
         emit MetadataSet(agentId, "agentWallet", "agentWallet", abi.encodePacked(msg.sender));
 
         for (uint256 i; i < metadata.length; i++) {
-            require(keccak256(bytes(metadata[i].metadataKey)) != RESERVED_AGENT_WALLET_KEY_HASH, "reserved key");
+            bytes32 keyHash = keccak256(bytes(metadata[i].metadataKey));
+            require(keyHash != RESERVED_AGENT_WALLET_KEY_HASH && keyHash != RESERVED_VAULT_KEY_HASH, "reserved key");
             $._metadata[agentId][metadata[i].metadataKey] = metadata[i].metadataValue;
             emit MetadataSet(agentId, metadata[i].metadataKey, metadata[i].metadataKey, metadata[i].metadataValue);
         }
@@ -107,7 +109,8 @@ contract IdentityRegistryUpgradeable is
             msg.sender == getApproved(agentId),
             "Not authorized"
         );
-        require(keccak256(bytes(metadataKey)) != RESERVED_AGENT_WALLET_KEY_HASH, "reserved key");
+        bytes32 keyHash = keccak256(bytes(metadataKey));
+        require(keyHash != RESERVED_AGENT_WALLET_KEY_HASH && keyHash != RESERVED_VAULT_KEY_HASH, "reserved key");
         IdentityRegistryStorage storage $ = _getIdentityRegistryStorage();
         $._metadata[agentId][metadataKey] = metadataValue;
         emit MetadataSet(agentId, metadataKey, metadataKey, metadataValue);
@@ -164,6 +167,30 @@ contract IdentityRegistryUpgradeable is
         IdentityRegistryStorage storage $ = _getIdentityRegistryStorage();
         $._metadata[agentId]["agentWallet"] = abi.encodePacked(newWallet);
         emit MetadataSet(agentId, "agentWallet", "agentWallet", abi.encodePacked(newWallet));
+    }
+
+    function setAgentVault(uint256 agentId, address vault) external {
+        // In a production environment, this should have stricter access control (e.g. Factory role)
+        // For now, we allow the owner or authorized spender.
+        address agentOwner = ownerOf(agentId);
+        require(
+            msg.sender == owner() || 
+            msg.sender == agentOwner ||
+            isApprovedForAll(agentOwner, msg.sender) ||
+            msg.sender == getApproved(agentId),
+            "Not authorized"
+        );
+        require(vault != address(0), "bad vault");
+        
+        IdentityRegistryStorage storage $ = _getIdentityRegistryStorage();
+        $._metadata[agentId]["vault"] = abi.encodePacked(vault);
+        emit MetadataSet(agentId, "vault", "vault", abi.encodePacked(vault));
+    }
+
+    function getAgentVault(uint256 agentId) external view returns (address) {
+        IdentityRegistryStorage storage $ = _getIdentityRegistryStorage();
+        bytes memory vaultData = $._metadata[agentId]["vault"];
+        return vaultData.length == 20 ? address(bytes20(vaultData)) : address(0);
     }
 
     function unsetAgentWallet(uint256 agentId) external {

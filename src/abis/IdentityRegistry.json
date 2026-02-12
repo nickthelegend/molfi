@@ -527,6 +527,25 @@
         "type": "uint256"
       }
     ],
+    "name": "getAgentVault",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "agentId",
+        "type": "uint256"
+      }
+    ],
     "name": "getAgentWallet",
     "outputs": [
       {
@@ -847,6 +866,24 @@
       }
     ],
     "name": "setAgentURI",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "agentId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "vault",
+        "type": "address"
+      }
+    ],
+    "name": "setAgentVault",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

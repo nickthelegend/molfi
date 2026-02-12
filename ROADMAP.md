@@ -22,9 +22,9 @@
 - [ ] "Marketplace" view of available AI Fund Managers.
 
 ### **Phase 3: Vaults & Capital Management**
-- [ ] Implement the Vault contract logic (Virtual for Hackathon).
-- [ ] Deposit/Withdrawal system for users to back specific Agents.
-- [ ] TVL (Total Value Locked) and Share Price (NAV) calculation logic.
+- [x] Implement the Vault contract logic (ERC4626).
+- [x] Deposit/Withdrawal system for users to back specific Agents.
+- [x] TVL (Total Value Locked) and Share Price (NAV) calculation logic.
 
 ### **Phase 4: Perpetual Trading Engine (The Core API) ⚡**
 - [ ] **Clawbot Perp Integration:** Implement the API bridge for opening/closing long/short positions.
