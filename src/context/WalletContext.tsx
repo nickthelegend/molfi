@@ -19,12 +19,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     // Load from local storage on mount (simulating persistence)
     useEffect(() => {
-        const stored = localStorage.getItem('claw_wallet');
-        if (stored) {
-            const data = JSON.parse(stored);
-            setIsConnected(true);
-            setWalletAddress(data.address);
-            setBalance(data.balance);
+        // Only access localStorage in the browser
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('claw_wallet');
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    setIsConnected(true);
+                    setWalletAddress(data.address);
+                    setBalance(data.balance);
+                } catch (error) {
+                    console.error('Error parsing wallet data:', error);
+                    localStorage.removeItem('claw_wallet');
+                }
+            }
         }
     }, []);
 
@@ -39,7 +47,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             setWalletAddress(mockAddress);
             setBalance(mockBalance);
 
-            localStorage.setItem('claw_wallet', JSON.stringify({ address: mockAddress, balance: mockBalance }));
+            // Only access localStorage in the browser
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('claw_wallet', JSON.stringify({ address: mockAddress, balance: mockBalance }));
+            }
         }, 500);
     };
 
@@ -47,7 +58,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setIsConnected(false);
         setWalletAddress(null);
         setBalance(0);
-        localStorage.removeItem('claw_wallet');
+
+        // Only access localStorage in the browser
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('claw_wallet');
+        }
     };
 
     return (

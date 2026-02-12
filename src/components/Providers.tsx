@@ -10,6 +10,17 @@ import { config } from '@/lib/wagmi';
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Prevent SSR rendering to avoid localStorage errors
+    if (!mounted) {
+        return <>{children}</>;
+    }
+
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
