@@ -18,6 +18,8 @@ import {
 import TradingViewChart from '@/components/TradingViewChart';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useLivePrices } from '@/lib/useLivePrices';
+import { useTrade, useTraderPositions } from '@/hooks/useTrade';
+import { Loader2 } from 'lucide-react';
 
 export default function TradePage() {
     const [mounted, setMounted] = useState(false);
@@ -43,6 +45,27 @@ function TradePageContent() {
 
     const prices = useLivePrices();
     const currentLivePrice = prices.get(selectedPair)?.price || (selectedPair === 'BTC/USDT' ? 45250 : 2480);
+
+    const { openPosition, closePosition, isPending: isTradePending, isConfirming: isTradeConfirming } = useTrade();
+    const { data: positionIds, refetch: refetchPositions } = useTraderPositions(address as string);
+
+    const handleOpenPosition = async () => {
+        try {
+            // Mock agent for now if none selected, in production we'd select from user's agents
+            const mockAgent = "0x8004A818BFB912233c491871b3d84c89A494BD9e";
+
+            await openPosition(
+                mockAgent,
+                selectedPair,
+                parseFloat(size),
+                parseFloat(collateral),
+                leverage,
+                side === 'long'
+            );
+        } catch (err) {
+            console.error("Trade failed:", err);
+        }
+    };
 
     const calculateLiquidationPrice = () => {
         const entryPrice = currentLivePrice;
@@ -155,8 +178,30 @@ function TradePageContent() {
                                     </span>
                                 </div>
                             </div>
-                            <div style={{ padding: '3rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--glass-border)' }}>
-                                <span className="text-dim">No active perpetual contracts found for this address.</span>
+                            <div className="flex flex-col gap-md">
+                                {Array.isArray(positionIds) && positionIds.length > 0 ? (
+                                    (positionIds as bigint[]).map((id: bigint) => (
+                                        <div key={id.toString()} className="novel-card" style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)' }}>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex gap-md">
+                                                    <span className="text-primary font-bold">#{id.toString()}</span>
+                                                    <span className="font-mono">{selectedPair}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => closePosition(Number(id))}
+                                                    className="novel-pill"
+                                                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none' }}
+                                                >
+                                                    CLOSE
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ padding: '3rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--glass-border)' }}>
+                                        <span className="text-dim">No active perpetual contracts found for this address.</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -294,11 +339,29 @@ function TradePageContent() {
                             </div>
 
                             <button
+                                onClick={handleOpenPosition}
+                                disabled={isTradePending || isTradeConfirming}
                                 className="neon-button mt-xl"
-                                style={{ width: '100%', background: side === 'long' ? '#10b981' : '#ef4444', border: 'none' }}
-                                onClick={() => alert(`${side.toUpperCase()} ${orderType.toUpperCase()} order submitted via P.O.T protocol.`)}
+                                style={{
+                                    width: '100%',
+                                    background: side === 'long' ? '#10b981' : '#ef4444',
+                                    border: 'none',
+                                    opacity: (isTradePending || isTradeConfirming) ? 0.7 : 1,
+                                    cursor: (isTradePending || isTradeConfirming) ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}
                             >
-                                {side === 'long' ? 'OPEN LONG' : 'OPEN SHORT'}
+                                {(isTradePending || isTradeConfirming) ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" />
+                                        {isTradeConfirming ? 'CONFIRMING...' : 'OPENING...'}
+                                    </>
+                                ) : (
+                                    side === 'long' ? 'OPEN LONG' : 'OPEN SHORT'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -331,6 +394,6 @@ function TradePageContent() {
                     box-shadow: var(--glow-purple);
                 }
             `}</style>
-        </div>
+        </div >
     );
 }

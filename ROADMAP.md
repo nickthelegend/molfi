@@ -42,6 +42,13 @@
 - [ ] Performance Charts: Visualizing the growth of user deposits over time.
 - [ ] Protocol Hall of Fame: Ranking Agents by cumulative ROI.
 
+### **Phase 7: The Final Ascent: On-chain DEX & Genesis Release**
+- [x] Finalize and audit `MolfiPerpDEX` and `ChainlinkOracle` contracts.
+- [x] Develop and execute Hardhat deployment scripts for Monad Testnet.
+- [x] Connect Frontend trading UI to live on-chain DEX contracts via `wagmi`.
+- [x] Migrate codebase to new remote repository: `molfi-fun`.
+- [x] Final verification of end-to-end trading flow on-chain.
+
 ---
 
 ## 🛠️ Tech Stack

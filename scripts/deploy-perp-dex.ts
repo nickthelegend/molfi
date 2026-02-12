@@ -27,10 +27,9 @@ async function main() {
     // 3. Configure price feeds (Monad Testnet addresses - UPDATE THESE!)
     console.log("\n⚙️  Configuring price feeds...");
 
-    // NOTE: Replace these with actual Chainlink feed addresses for Monad Testnet
-    // These are placeholder addresses - you need to get the real ones
-    const BTC_USD_FEED = "0x0000000000000000000000000000000000000001"; // PLACEHOLDER
-    const ETH_USD_FEED = "0x0000000000000000000000000000000000000002"; // PLACEHOLDER
+    // NOTE: Real Chainlink feed addresses for Monad Testnet
+    const BTC_USD_FEED = "0x2Cd9D7E85494F68F5aF08EF96d6FD5e8F71B4d31";
+    const ETH_USD_FEED = "0x0c76859E85727683Eeba0C70Bc2e0F5781337818";
 
     console.log("Setting BTC/USDT feed...");
     await oracle.setPriceFeed("BTC/USDT", BTC_USD_FEED);

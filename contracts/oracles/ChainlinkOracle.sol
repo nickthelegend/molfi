@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title ChainlinkOracle
@@ -67,8 +67,6 @@ contract ChainlinkOracle {
         
         // Convert from 8 decimals to 18 decimals
         uint256 priceScaled = uint256(price) * 1e10;
-        
-        emit PriceFetched(pair, priceScaled, block.timestamp);
         
         return priceScaled;
     }

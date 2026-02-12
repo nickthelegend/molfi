@@ -11,20 +11,26 @@ export const CONTRACTS = {
         identityRegistry: process.env.NEXT_PUBLIC_IDENTITY_REGISTRY || '',
         reputationRegistry: process.env.NEXT_PUBLIC_REPUTATION_REGISTRY || '',
         validationRegistry: process.env.NEXT_PUBLIC_VALIDATION_REGISTRY || '',
+        perpDex: process.env.NEXT_PUBLIC_PERP_DEX || '',
+        chainlinkOracle: process.env.NEXT_PUBLIC_CHAINLINK_ORACLE || '',
     },
 
     // Ethereum Sepolia (Chain ID: 11155111)
     sepolia: {
         identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
         reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-        validationRegistry: '', // Add if needed
+        validationRegistry: '',
+        perpDex: '',
+        chainlinkOracle: '',
     },
 
     // Base Sepolia (Chain ID: 84532)
     baseSepolia: {
         identityRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
         reputationRegistry: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
-        validationRegistry: '', // Add if needed
+        validationRegistry: '',
+        perpDex: '',
+        chainlinkOracle: '',
     },
 } as const;
 
@@ -37,7 +43,7 @@ export const CONTRACTS = {
  */
 export function getContractAddress(
     chainId: number,
-    contract: 'identityRegistry' | 'reputationRegistry' | 'validationRegistry'
+    contract: keyof typeof CONTRACTS.monadTestnet
 ): string {
     switch (chainId) {
         case 41454: // Monad Testnet
