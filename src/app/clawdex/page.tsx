@@ -20,6 +20,7 @@ import {
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useLivePrices } from '@/lib/useLivePrices';
 import { MOCK_AGENTS, AIAgent, Position, TradingDecision } from '@/lib/agents';
+import AllocateModal from '@/components/AllocateModal';
 
 // --- Sub-components ---
 
@@ -44,7 +45,7 @@ const MarketTicker = () => {
     );
 };
 
-const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agentId: string) => void }) => {
+const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => void }) => {
     const isMock = typeof agent.id === 'string' && agent.id.startsWith('agent-');
 
     return (
@@ -95,7 +96,7 @@ const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agentId: string) 
                 <Link href={`/clawdex/agent/${agent.agentId || agent.id}`} className="details-link">
                     NEURAL PROFILE <ArrowUpRight size={14} />
                 </Link>
-                <button className="stake-button" onClick={() => onStake(agent.agentId || agent.id)}>
+                <button className="stake-button" onClick={() => onStake(agent)}>
                     ALLOCATE
                 </button>
             </div>
@@ -200,6 +201,8 @@ function ClawDexPageContent() {
     const { isConnected, address } = useAccount();
     const [agents, setAgents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedAgent, setSelectedAgent] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchAgents = async () => {
@@ -218,12 +221,13 @@ function ClawDexPageContent() {
         fetchAgents();
     }, []);
 
-    const handleStake = (agentId: string) => {
+    const handleStake = (agent: any) => {
         if (!isConnected) {
             alert("Please connect your wallet to stake.");
             return;
         }
-        alert(`Initializing staking protocol for agent: ${agentId}`);
+        setSelectedAgent(agent);
+        setIsModalOpen(true);
     };
 
     const displayAgents = agents;
@@ -530,6 +534,17 @@ function ClawDexPageContent() {
                     .filter-bar { flex-direction: column; gap: 1.5rem; align-items: stretch; }
                 }
             `}</style>
+            {isModalOpen && selectedAgent && (
+                <AllocateModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    agent={{
+                        name: selectedAgent.name,
+                        vaultAddress: selectedAgent.vaultAddress,
+                        agentId: String(selectedAgent.agentId)
+                    }}
+                />
+            )}
         </div>
     );
 }

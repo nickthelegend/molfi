@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 // --- Configuration ---
-const rpcUrl = "https://testnet-rpc.monad.xyz";
+const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC || "https://rpc-testnet.monadinfra.com";
 const provider = new ethers.JsonRpcProvider(rpcUrl);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

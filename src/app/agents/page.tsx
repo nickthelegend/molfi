@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import AgentCard, { Agent } from '@/components/AgentCard';
 import Link from 'next/link';
+import AllocateModal from '@/components/AllocateModal';
 
 // Enhanced Mock data
 const MOCK_AGENTS: Agent[] = [
@@ -80,6 +81,13 @@ export default function AgentsPage() {
     const [sortBy, setSortBy] = useState<SortType>('reputation');
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedAgent, setSelectedAgent] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const openStakeModal = (agent: any) => {
+        setSelectedAgent(agent);
+        setIsModalOpen(true);
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -249,11 +257,13 @@ export default function AgentsPage() {
                                             <span key={asset} className="asset-tag">{asset}</span>
                                         ))}
                                     </div>
-                                    <Link href={`/clawdex/agent/${agent.id}`}>
-                                        <button className="stake-button" style={{ padding: '0.6rem 1rem' }}>
-                                            DETAILS <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
-                                        </button>
-                                    </Link>
+                                    <button
+                                        onClick={() => openStakeModal(agent)}
+                                        className="stake-button"
+                                        style={{ padding: '0.6rem 1rem' }}
+                                    >
+                                        STAKE <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -405,6 +415,17 @@ export default function AgentsPage() {
                     outline: none; 
                 }
             `}</style>
+            {isModalOpen && selectedAgent && (
+                <AllocateModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    agent={{
+                        name: selectedAgent.name,
+                        vaultAddress: selectedAgent.vaultAddress,
+                        agentId: selectedAgent.agentId
+                    }}
+                />
+            )}
         </div>
     );
 }

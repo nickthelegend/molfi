@@ -2,7 +2,7 @@ const { ethers } = require("ethers");
 require("dotenv").config({ path: ".env.local" });
 
 async function main() {
-    const rpc = "https://testnet-rpc.monad.xyz";
+    const rpc = process.env.NEXT_PUBLIC_MONAD_RPC || "https://rpc-testnet.monadinfra.com";
     const provider = new ethers.JsonRpcProvider(rpc);
     const registryAddress = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY;
 

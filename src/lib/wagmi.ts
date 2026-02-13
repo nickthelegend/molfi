@@ -13,8 +13,20 @@ export const monadTestnet = defineChain({
         symbol: 'MON',
     },
     rpcUrls: {
-        default: { http: ['https://testnet.monad.xyz'] },
-        public: { http: ['https://testnet.monad.xyz'] },
+        default: {
+            http: [
+                'https://rpc-testnet.monadinfra.com',
+                'https://testnet-rpc2.monad.xyz',
+                'https://testnet-rpc.monad.xyz',
+            ]
+        },
+        public: {
+            http: [
+                'https://rpc-testnet.monadinfra.com',
+                'https://testnet-rpc2.monad.xyz',
+                'https://testnet-rpc.monad.xyz',
+            ]
+        },
     },
     blockExplorers: {
         default: {

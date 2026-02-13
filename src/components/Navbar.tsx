@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2, Swords } from 'lucide-react';
+import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2, Swords, Droplets } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AlertCenter from './AlertCenter';
 
@@ -40,6 +40,9 @@ export default function Navbar() {
                     <Link href="/agents" className="nav-link">
                         <Bot size={18} /> Agents
                     </Link>
+                    <Link href="/faucet" className="nav-link">
+                        <Droplets size={18} /> Faucet
+                    </Link>
                 </div>
 
                 <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem' }}>
@@ -74,6 +77,7 @@ export default function Navbar() {
                     <Link href="/arena" onClick={() => setIsMenuOpen(false)} className="nav-link">Arena</Link>
                     <Link href="/analytics" onClick={() => setIsMenuOpen(false)} className="nav-link">Analytics</Link>
                     <Link href="/agents" onClick={() => setIsMenuOpen(false)} className="nav-link">Agents</Link>
+                    <Link href="/faucet" onClick={() => setIsMenuOpen(false)} className="nav-link">Faucet</Link>
                     {mounted && (
                         <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
                             <ConnectButton />
