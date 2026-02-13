@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
+import { useAccount, useReadContract } from "wagmi";
+import { formatUnits } from "viem";
 import {
     Zap,
     ShieldCheck,
@@ -10,7 +10,6 @@ import {
     ArrowRight,
     CheckCircle2,
     AlertCircle,
-    Wallet,
     Database,
     ExternalLink,
     Search
@@ -18,7 +17,6 @@ import {
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
 const USDC_ABI = [
-    { "inputs": [{ "name": "to", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "mint", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
     { "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
     { "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" }
 ] as const;
@@ -27,13 +25,9 @@ export default function FaucetPage() {
     const { address, isConnected } = useAccount();
     const [isMinting, setIsMinting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [txHash, setTxHash] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
     const [mounted, setMounted] = useState(false);
-
-    const { writeContractAsync, data: hash } = useWriteContract();
-
-    const { isLoading: isWaitingForReceipt, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-        hash,
-    });
 
     const { data: balance, refetch: refetchBalance } = useReadContract({
         address: USDC_ADDRESS,
@@ -52,29 +46,36 @@ export default function FaucetPage() {
         setMounted(true);
     }, []);
 
-    useEffect(() => {
-        if (isConfirmed) {
-            refetchBalance();
-            setIsMinting(false);
-        }
-    }, [isConfirmed, refetchBalance]);
-
     const requestTokens = async () => {
         if (!address) return;
 
         setIsMinting(true);
         setError(null);
+        setSuccess(false);
+        setTxHash(null);
 
         try {
-            await writeContractAsync({
-                address: USDC_ADDRESS,
-                abi: USDC_ABI,
-                functionName: "mint",
-                args: [address, parseUnits("1000", decimals || 18)],
+            const res = await fetch("/api/faucet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address }),
             });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Minting failed");
+            }
+
+            setTxHash(data.txHash);
+            setSuccess(true);
+
+            // Refresh balance after a short delay
+            setTimeout(() => refetchBalance(), 3000);
         } catch (err: any) {
             console.error(err);
-            setError(err.shortMessage || err.message || "Minting failed. Please try again.");
+            setError(err.message || "Failed to request tokens. Please try again.");
+        } finally {
             setIsMinting(false);
         }
     };
@@ -85,7 +86,7 @@ export default function FaucetPage() {
         ? Number(formatUnits(balance, decimals || 18)).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
         : "0.0";
 
-    const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    const shortenAddr = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
     return (
         <div className="faucet-page">
@@ -98,7 +99,7 @@ export default function FaucetPage() {
                     <h1 className="faucet-title text-glow">mUSD.dev Faucet</h1>
                     <p className="faucet-subtitle">
                         Receive 1,000 test mUSD.dev tokens to test features on the Monad ecosystem.
-                        Tokens are distributed instantly to your connected wallet.
+                        Tokens are minted server-side — no gas required from your wallet.
                     </p>
                 </header>
 
@@ -127,7 +128,7 @@ export default function FaucetPage() {
                                     <span>WALLET ADDRESS</span>
                                 </div>
                                 <div className={`stat-value ${!isConnected ? 'dim' : ''}`}>
-                                    {isConnected ? shortenAddress(address!) : "NOT CONNECTED"}
+                                    {isConnected ? shortenAddr(address!) : "NOT CONNECTED"}
                                 </div>
                             </div>
                             <div className="stat-card border-purple">
@@ -149,19 +150,19 @@ export default function FaucetPage() {
                             </div>
 
                             <button
-                                className={`request-btn ${(isMinting || isWaitingForReceipt) ? 'loading' : ''}`}
+                                className={`request-btn ${isMinting ? 'loading' : ''} ${success ? 'success' : ''}`}
                                 onClick={requestTokens}
-                                disabled={isMinting || isWaitingForReceipt || !isConnected}
+                                disabled={isMinting || !isConnected}
                             >
-                                {(isMinting || isWaitingForReceipt) ? (
+                                {isMinting ? (
                                     <>
                                         <Loader2 size={18} className="animate-spin" />
-                                        <span>PROCESSING...</span>
+                                        <span>MINTING ON-CHAIN...</span>
                                     </>
-                                ) : isConfirmed ? (
+                                ) : success ? (
                                     <>
                                         <CheckCircle2 size={18} />
-                                        <span>TOKENS DISTRIBUTED</span>
+                                        <span>TOKENS DISTRIBUTED ✓</span>
                                     </>
                                 ) : (
                                     <>
@@ -179,10 +180,10 @@ export default function FaucetPage() {
                             </div>
                         )}
 
-                        {hash && isConfirmed && (
+                        {txHash && success && (
                             <div className="success-footer animate-in">
                                 <a
-                                    href={`https://monad-testnet.socialscan.io/tx/${hash}`}
+                                    href={`https://monad-testnet.socialscan.io/tx/${txHash}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="explorer-link"
@@ -198,9 +199,9 @@ export default function FaucetPage() {
                     <div className="flex items-center justify-center gap-xl text-[10px] font-bold tracking-widest text-dim uppercase">
                         <span>L1 Layer: Monad Testnet</span>
                         <div className="dot-separator" />
-                        <span>Instant Settlement</span>
+                        <span>Gasless Minting</span>
                         <div className="dot-separator" />
-                        <span>Gated by Neural Registry</span>
+                        <span>Server-Side Distribution</span>
                     </div>
                 </footer>
             </div>
@@ -467,8 +468,15 @@ export default function FaucetPage() {
                 }
                 
                 .request-btn.loading {
-                    background: rgba(255, 255, 255, 0.03);
+                    background: rgba(168, 85, 247, 0.1);
+                    border-color: rgba(168, 85, 247, 0.3);
                     color: white;
+                }
+
+                .request-btn.success {
+                    background: rgba(16, 185, 129, 0.1);
+                    border-color: rgba(16, 185, 129, 0.3);
+                    color: #10b981;
                 }
 
                 .error-box {
