@@ -189,7 +189,14 @@ export default function AgentsPage() {
                         />
                     </div>
 
-                    <div className="flex gap-md" style={{ marginLeft: '2rem' }}>
+                    <div className="flex gap-md" style={{ marginLeft: '2rem', display: 'flex', alignItems: 'center' }}>
+                        <Link href="/my-agents">
+                            <button className="type-chip" style={{ border: '1px solid var(--primary-purple)', color: 'var(--primary-purple)', background: 'rgba(168, 85, 247, 0.05)' }}>
+                                <Bot size={12} style={{ display: 'inline', marginRight: '6px' }} />
+                                MY AGENTS
+                            </button>
+                        </Link>
+                        <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', margin: '0 0.5rem' }} />
                         {[
                             { id: 'all', label: 'ALL MINDS' },
                             { id: 'trader', label: 'TRADERS' },

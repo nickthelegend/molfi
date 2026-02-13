@@ -15,7 +15,7 @@ export async function GET() {
             ...a,
             id: String(a.agentId),
             agentId: a.agentId,
-            description: `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,
+            description: a.description || `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,
             avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${a.name}`,
             owner: a.ownerAddress,
             agentType: a.personality === 'Aggressive' ? 'trader' : 'fund-manager',
@@ -43,7 +43,8 @@ export async function GET() {
             history: Array.from({ length: 20 }, (_, i) => ({
                 timestamp: Date.now() - (20 - i) * 1000 * 60 * 60 * 24,
                 pnl: 10 + Math.random() * 20
-            }))
+            })),
+            apiKey: undefined // Don't expose API key in public list
         }));
 
         return NextResponse.json({
