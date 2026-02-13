@@ -16,11 +16,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         setMounted(true);
     }, []);
 
-    // Prevent SSR rendering to avoid localStorage errors
-    if (!mounted) {
-        return <>{children}</>;
-    }
-
     const CustomAvatar = ({ address, size }: { address: string; size: number }) => {
         return (
             <img
