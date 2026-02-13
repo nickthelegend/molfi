@@ -1,106 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ethers } from 'ethers';
-
-// Contract ABIs (simplified - add full ABI in production)
-const PERP_DEX_ABI = [
-    "function openPosition(address agent, string pair, uint256 size, uint256 collateral, uint256 leverage, bool isLong) returns (uint256)",
-    "function getLatestPrice(string pair) view returns (uint256)"
-];
-
-const ORACLE_ABI = [
-    "function getLatestPrice(string pair) view returns (uint256)"
-];
+import { supabaseAdmin } from '@/lib/supabase-server';
+import { getOraclePrice, calculateLiquidationPrice, SUPPORTED_PAIRS } from '@/lib/marketEngine';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { agentId, pair, size, collateral, leverage, isLong, slippage = 0.5 } = body;
+        const { apiKey, pair, size, collateral, leverage, side } = body;
 
-        // Validation
-        if (!agentId || !pair || !size || !collateral || !leverage) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            );
+        // --- Auth: Validate API Key ---
+        if (!apiKey) {
+            return NextResponse.json({ error: 'API key required. Pass "apiKey" in request body.' }, { status: 401 });
         }
 
-        if (!['BTC/USDT', 'ETH/USDT'].includes(pair)) {
-            return NextResponse.json(
-                { error: 'Unsupported pair. Use BTC/USDT or ETH/USDT' },
-                { status: 400 }
-            );
+        const { data: agent, error: authError } = await supabaseAdmin
+            .from('AIAgent')
+            .select('*')
+            .eq('apiKey', apiKey)
+            .single();
+
+        if (authError || !agent) {
+            return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
         }
 
-        if (leverage < 1 || leverage > 50) {
-            return NextResponse.json(
-                { error: 'Leverage must be between 1 and 50' },
-                { status: 400 }
-            );
+        // --- Validation ---
+        if (!pair || !size || !collateral) {
+            return NextResponse.json({ error: 'Missing required fields: pair, size, collateral' }, { status: 400 });
         }
 
-        // Connect to contracts
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-        const perpDexAddress = process.env.NEXT_PUBLIC_PERP_DEX!;
-        const oracleAddress = process.env.NEXT_PUBLIC_CHAINLINK_ORACLE!;
+        const normalizedPair = pair.replace('-', '/').toUpperCase();
+        if (!SUPPORTED_PAIRS.includes(normalizedPair)) {
+            return NextResponse.json({ error: `Unsupported pair: ${pair}. Supported: ${SUPPORTED_PAIRS.join(', ')}` }, { status: 400 });
+        }
 
-        const perpDex = new ethers.Contract(perpDexAddress, PERP_DEX_ABI, provider);
-        const oracle = new ethers.Contract(oracleAddress, ORACLE_ABI, provider);
+        const lev = leverage || 1;
+        if (lev < 1 || lev > 50) {
+            return NextResponse.json({ error: 'Leverage must be between 1 and 50' }, { status: 400 });
+        }
 
-        // Get current price
-        const currentPrice = await oracle.getLatestPrice(pair);
-        const entryPrice = ethers.formatUnits(currentPrice, 18);
+        const tradeSide = (side || 'LONG').toUpperCase();
+        if (!['LONG', 'SHORT'].includes(tradeSide)) {
+            return NextResponse.json({ error: 'Side must be LONG or SHORT' }, { status: 400 });
+        }
 
-        // Calculate fees (0.1% trading fee)
-        const tradingFee = (parseFloat(size.toString()) * 0.001).toFixed(2);
+        // --- Get Real Price from Chainlink ---
+        const priceData = await getOraclePrice(normalizedPair);
+        const entryPrice = priceData.price;
 
-        // Calculate liquidation price
-        const liquidationThreshold = 0.8; // 80%
-        const maxLoss = parseFloat(collateral.toString()) * liquidationThreshold;
-        const priceChange = (maxLoss * parseFloat(entryPrice)) / (parseFloat(size.toString()) * leverage);
+        // --- Calculate Trade Params ---
+        const tradingFee = parseFloat(size) * 0.001; // 0.1% fee
+        const liqPrice = calculateLiquidationPrice(tradeSide as 'LONG' | 'SHORT', entryPrice, lev);
 
-        const liquidationPrice = isLong
-            ? parseFloat(entryPrice) - priceChange
-            : parseFloat(entryPrice) + priceChange;
+        // --- Log Trade to Supabase ---
+        const { data: trade, error: insertError } = await supabaseAdmin
+            .from('TradeLog')
+            .insert({
+                agentId: agent.agentId,
+                pair: normalizedPair,
+                side: tradeSide,
+                size: parseFloat(size),
+                collateral: parseFloat(collateral),
+                leverage: lev,
+                entryPrice,
+                fees: tradingFee,
+                status: 'OPEN',
+            })
+            .select()
+            .single();
 
-        // Create unsigned transaction
-        const sizeWei = ethers.parseUnits(size.toString(), 18);
-        const collateralWei = ethers.parseUnits(collateral.toString(), 18);
+        if (insertError) {
+            console.error('Trade insert error:', insertError);
+            throw new Error('Failed to log trade: ' + insertError.message);
+        }
 
-        const unsignedTx = await perpDex.openPosition.populateTransaction(
-            agentId,
-            pair,
-            sizeWei,
-            collateralWei,
-            leverage,
-            isLong
-        );
+        console.log(`[TRADE_OPEN] Agent ${agent.name} (#${agent.agentId}) opened ${tradeSide} ${normalizedPair} @ $${entryPrice.toFixed(2)} | Size: ${size} | Lev: ${lev}x`);
 
-        // Estimate gas
-        const gasEstimate = await provider.estimateGas({
-            to: perpDexAddress,
-            data: unsignedTx.data,
-        });
-
-        const gasLimit = (gasEstimate * BigInt(120)) / BigInt(100); // 20% buffer
-
-        // Return unsigned transaction
         return NextResponse.json({
             success: true,
-            unsignedTx: {
-                to: perpDexAddress,
-                data: unsignedTx.data,
-                gasLimit: gasLimit.toString(),
+            tradeId: trade.id,
+            agent: {
+                id: agent.agentId,
+                name: agent.name,
             },
-            tradeDetails: {
-                pair,
-                size: size.toString(),
-                collateral: collateral.toString(),
-                leverage,
-                isLong,
+            trade: {
+                pair: normalizedPair,
+                side: tradeSide,
+                size: parseFloat(size),
+                collateral: parseFloat(collateral),
+                leverage: lev,
                 entryPrice,
-                liquidationPrice: liquidationPrice.toFixed(2),
-                fees: tradingFee,
-                estimatedGas: gasLimit.toString(),
+                liquidationPrice: parseFloat(liqPrice.toFixed(2)),
+                fees: parseFloat(tradingFee.toFixed(4)),
+                priceSource: priceData.source,
             },
             timestamp: Date.now(),
         });
@@ -108,7 +98,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('Error in /api/trade/open:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to create trade' },
+            { error: error.message || 'Failed to open trade' },
             { status: 500 }
         );
     }
