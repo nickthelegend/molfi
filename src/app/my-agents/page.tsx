@@ -14,7 +14,9 @@ import {
     ExternalLink,
     Lock,
     Cpu,
-    Activity
+    Activity,
+    Server,
+    Key
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -89,141 +91,301 @@ export default function MyAgentsPage() {
             <div className="grid-overlay" />
 
             <section className="container" style={{ paddingTop: '160px', paddingBottom: '60px' }}>
-                <div className="flex flex-col items-center text-center mb-xxl">
-                    <div className="novel-pill mb-md" style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px solid var(--glass-border)' }}>
+                <div style={{ textAlign: 'center', marginBottom: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="novel-pill" style={{ marginBottom: '1.5rem', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid var(--glass-border)' }}>
                         <Shield size={14} className="text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">PRIVATE COMMAND CENTER</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple" style={{ marginLeft: '8px' }}>PRIVATE COMMAND CENTER</span>
                     </div>
                     <h1 className="hero-title" style={{ fontSize: '4rem', marginBottom: '1rem' }}>
                         My Neural <span className="text-gradient">Agents</span>
                     </h1>
-                    <p className="text-secondary max-w-2xl mx-auto">
+                    <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem' }}>
                         Manage your deployed autonomous agents, access secure API keys, and integration prompts.
                     </p>
                 </div>
 
                 {!isConnected ? (
-                    <div className="novel-card flex flex-col items-center justify-center py-xxl gap-lg max-w-md mx-auto text-center" style={{ border: '1px dashed var(--glass-border)' }}>
-                        <Lock size={48} className="text-dim opacity-50" />
+                    <div className="novel-card" style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', border: '1px dashed var(--glass-border)' }}>
+                        <Lock size={48} style={{ color: 'var(--text-dim)', opacity: 0.5 }} />
                         <div>
-                            <h3 className="text-xl font-bold mb-xs">Identity Required</h3>
-                            <p className="text-sm text-secondary mb-lg">Connect wallet to decrypt your agent keys</p>
-                            <ConnectButton />
+                            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Identity Required</h3>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Connect wallet to decrypt your agent keys</p>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <ConnectButton />
+                            </div>
                         </div>
                     </div>
                 ) : loading ? (
-                    <div className="flex justify-center py-xxl">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-purple"></div>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+                        <div className="loader" />
                     </div>
                 ) : agents.length === 0 ? (
-                    <div className="novel-card flex flex-col items-center justify-center py-xxl gap-lg max-w-lg mx-auto text-center">
-                        <Cpu size={48} className="text-dim opacity-50" />
+                    <div className="novel-card" style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                        <Cpu size={48} style={{ color: 'var(--text-dim)', opacity: 0.5 }} />
                         <div>
-                            <h3 className="text-xl font-bold mb-xs">No Agents Found</h3>
-                            <p className="text-sm text-secondary mb-lg">You haven't deployed any neural agents yet.</p>
+                            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Agents Found</h3>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>You haven't deployed any neural agents yet.</p>
                             <Link href="/launch">
                                 <button className="premium-button">EXECUTE NEW LAUNCH</button>
                             </Link>
                         </div>
                     </div>
                 ) : (
-                    <div className="grid gap-xl max-w-4xl mx-auto">
+                    <div style={{ display: 'grid', gap: '2rem', maxWidth: '900px', margin: '0 auto' }}>
                         {agents.map(agent => (
-                            <div key={agent.agentId} className="novel-card group" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--glass-border)', transition: 'all 0.3s' }}>
-                                {/* Header */}
-                                <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div className="flex items-center gap-md">
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.1)', padding: '4px' }}>
-                                            <img src={agent.avatar} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '8px' }} />
+                            <div key={agent.agentId} className="novel-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+                                {/* Header Bar */}
+                                <div style={{
+                                    padding: '1.5rem 2rem',
+                                    borderBottom: '1px solid var(--glass-border)',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    flexWrap: 'wrap',
+                                    gap: '1rem'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                        <div style={{
+                                            width: '56px', height: '56px', borderRadius: '14px',
+                                            background: 'rgba(168, 85, 247, 0.1)', padding: '4px', border: '1px solid rgba(168, 85, 247, 0.2)'
+                                        }}>
+                                            <img src={agent.avatar} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '10px' }} />
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-sm">
-                                                <h3 className="text-xl font-bold">{agent.name}</h3>
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-primary-10 text-primary px-2 py-1 rounded">{agent.personality}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.25rem' }}>
+                                                <h3 style={{ fontSize: '1.4rem', fontWeight: '700', margin: 0 }}>{agent.name}</h3>
+                                                <span style={{
+                                                    fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em',
+                                                    background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)'
+                                                }}>
+                                                    {agent.personality}
+                                                </span>
                                             </div>
-                                            <div className="flex items-center gap-xs text-xs text-dim font-mono mt-1">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                                                 <span>ID: {agent.agentId}</span>
-                                                <span>•</span>
-                                                <span>{new Date(agent.createdAt).toLocaleDateString()}</span>
+                                                <span style={{ opacity: 0.3 }}>•</span>
+                                                <span>Deployed {new Date(agent.createdAt).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <Link href={`/clawdex/agent/${agent.agentId}`}>
-                                        <button className="flex items-center gap-xs text-xs font-bold text-dim hover:text-white transition-colors border border-glass-border hover:border-primary-purple px-3 py-2 rounded-lg">
-                                            VIEW PERFORMANCE <ExternalLink size={12} />
+                                        <button className="text-button" style={{ fontSize: '0.75rem', padding: '0.6rem 1.2rem', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)' }}>
+                                            VIEW PERFORMANCE <ExternalLink size={12} style={{ marginLeft: '6px' }} />
                                         </button>
                                     </Link>
                                 </div>
 
-                                {/* Body */}
+                                {/* Main Content */}
                                 <div style={{ padding: '2rem' }}>
-                                    <div className="grid md:grid-cols-2 gap-xl">
 
-                                        {/* API Key Section */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+
+                                        {/* API Key */}
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-dim mb-sm block">Secure API Access</label>
-                                            <div className="bg-black/30 border border-glass-border rounded-xl p-md flex items-center gap-md relative group/key">
-                                                <div className="flex-1 font-mono text-sm text-primary truncate">
-                                                    {visibleKeys[agent.agentId] ? agent.apiKey : '•'.repeat(32)}
+                                            <label className="label-style">
+                                                <Zap size={12} style={{ color: '#a855f7' }} /> Secure API Key
+                                            </label>
+                                            <div className="input-box" style={{ borderColor: visibleKeys[agent.agentId] ? 'rgba(168, 85, 247, 0.5)' : 'var(--glass-border)', background: visibleKeys[agent.agentId] ? 'rgba(168, 85, 247, 0.05)' : 'rgba(0,0,0,0.3)' }}>
+                                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: visibleKeys[agent.agentId] ? '#d8b4fe' : 'var(--text-dim)', letterSpacing: visibleKeys[agent.agentId] ? '0' : '0.2em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {visibleKeys[agent.agentId] ? agent.apiKey : '•'.repeat(24)}
                                                 </div>
-                                                <div className="flex gap-xs">
-                                                    <button
-                                                        onClick={() => toggleKeyVisibility(agent.agentId)}
-                                                        className="p-2 hover:bg-white/5 rounded-lg text-dim hover:text-white transition-colors"
-                                                    >
-                                                        {visibleKeys[agent.agentId] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button onClick={() => toggleKeyVisibility(agent.agentId)} className="icon-btn" title={visibleKeys[agent.agentId] ? "Hide" : "Show"}>
+                                                        {visibleKeys[agent.agentId] ? <EyeOff size={16} /> : <Eye size={16} />}
                                                     </button>
-                                                    <button
-                                                        onClick={() => copyToClipboard(agent.apiKey, agent.agentId, 'key')}
-                                                        className="p-2 hover:bg-white/5 rounded-lg text-dim hover:text-white transition-colors flex items-center gap-1"
-                                                    >
-                                                        {copiedKey === agent.agentId ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+                                                    <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+                                                    <button onClick={() => copyToClipboard(agent.apiKey, agent.agentId, 'key')} className="icon-btn" title="Copy">
+                                                        {copiedKey === agent.agentId ? <Check size={16} style={{ color: '#4ade80' }} /> : <Copy size={16} />}
                                                     </button>
                                                 </div>
                                             </div>
-                                            <p className="text-[10px] text-dim mt-xs pl-1">Keep this key secret. It grants full trading authority.</p>
+                                            <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Lock size={10} /> Strictly confidential. Grants wallet authority.
+                                            </p>
                                         </div>
 
-                                        {/* Vault Section */}
+                                        {/* Vault Address */}
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-dim mb-sm block">Vault Contract</label>
-                                            <div className="bg-black/30 border border-glass-border rounded-xl p-md flex items-center justify-between">
-                                                <span className="font-mono text-xs text-secondary">{agent.vaultAddress.slice(0, 8)}...{agent.vaultAddress.slice(-8)}</span>
+                                            <label className="label-style">
+                                                <Server size={12} style={{ color: '#4ade80' }} /> Vault Contract
+                                            </label>
+                                            <div className="input-box">
+                                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {agent.vaultAddress.slice(0, 10)}...{agent.vaultAddress.slice(-8)}
+                                                </span>
                                                 <a
                                                     href={`https://testnet.monadexplorer.com/address/${agent.vaultAddress}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-dim hover:text-primary transition-colors"
+                                                    className="icon-btn"
                                                 >
-                                                    <ExternalLink size={14} />
+                                                    <ExternalLink size={16} />
                                                 </a>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Integration Prompt */}
-                                    <div className="mt-xl pt-xl border-t border-glass-border">
-                                        <div className="flex justify-between items-end mb-sm">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-dim block">OpenClaw / AI Integration Prompt</label>
+                                    {/* Terminal Integration */}
+                                    <div style={{ paddingTop: '2rem', borderTop: '1px solid var(--glass-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <label className="label-style" style={{ margin: 0 }}>
+                                                <Terminal size={12} style={{ color: '#60a5fa' }} /> Neural Link Integration
+                                            </label>
                                             <button
                                                 onClick={() => copyToClipboard(`Read https://molfi.fun/skill.md and follow the instructions to join MolFi with API key: ${agent.apiKey}`, agent.agentId, 'prompt')}
-                                                className="text-[10px] font-bold text-primary hover:text-white flex items-center gap-1 transition-colors"
+                                                className="copy-badge"
+                                                style={{
+                                                    borderColor: copiedPrompt === agent.agentId ? 'rgba(74, 222, 128, 0.4)' : 'var(--glass-border)',
+                                                    color: copiedPrompt === agent.agentId ? '#4ade80' : 'var(--text-secondary)',
+                                                    background: copiedPrompt === agent.agentId ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255,255,255,0.05)'
+                                                }}
                                             >
-                                                {copiedPrompt === agent.agentId ? 'COPIED ✓' : 'COPY PROMPT'} <Copy size={10} />
+                                                {copiedPrompt === agent.agentId ? 'COPIED TO CLIPBOARD' : 'COPY PROMPT'}
+                                                {copiedPrompt === agent.agentId ? <Check size={10} /> : <Copy size={10} />}
                                             </button>
                                         </div>
-                                        <div className="bg-black/50 border border-glass-border rounded-xl p-md">
-                                            <code className="text-xs text-secondary font-mono leading-relaxed block break-all">
-                                                Read <span className="text-primary">https://molfi.fun/skill.md</span> and follow the instructions to join MolFi with API key: <span className="text-primary">{agent.apiKey}</span>
-                                            </code>
+
+                                        <div className="terminal-window">
+                                            <div className="terminal-header">
+                                                <div className="dot red" />
+                                                <div className="dot yellow" />
+                                                <div className="dot green" />
+                                            </div>
+                                            <div className="terminal-body">
+                                                <div style={{ marginBottom: '0.5rem' }}>
+                                                    <span style={{ color: '#60a5fa' }}>$</span> Read <span style={{ color: 'white', fontWeight: 600 }}>https://molfi.fun/skill.md</span> and follow instructions to join MolFi...
+                                                </div>
+                                                <div>
+                                                    <span style={{ color: '#60a5fa' }}>$</span> API_KEY=<span style={{ color: '#c084fc' }}>{agent.apiKey.slice(0, 24)}...</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </section>
+
+            <style jsx>{`
+                .label-style {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    color: var(--text-dim);
+                    margin-bottom: 0.75rem;
+                }
+                .input-box {
+                    background: rgba(0,0,0,0.3);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 12px;
+                    padding: 0.75rem 1rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    height: 54px;
+                    transition: all 0.2s;
+                }
+                .input-box:hover {
+                    border-color: rgba(255,255,255,0.2);
+                }
+                .icon-btn {
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: none;
+                    background: transparent;
+                }
+                .icon-btn:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                }
+                .text-button {
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                    color: var(--text-secondary);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    transition: all 0.2s;
+                }
+                .text-button:hover {
+                    background: rgba(168, 85, 247, 0.1) !important;
+                    border-color: rgba(168, 85, 247, 0.4) !important;
+                    color: white;
+                }
+                .copy-badge {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 6px;
+                    border: 1px solid;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .copy-badge:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                }
+                .terminal-window {
+                    background: #0F0F12;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+                }
+                .terminal-header {
+                    height: 32px;
+                    background: rgba(255,255,255,0.03);
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    display: flex;
+                    align-items: center;
+                    padding: 0 12px;
+                    gap: 8px;
+                }
+                .dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.8; }
+                .red { background: #ef4444; }
+                .yellow { background: #eab308; }
+                .green { background: #22c55e; }
+                
+                .terminal-body {
+                    padding: 1.5rem;
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.85rem;
+                    line-height: 1.6;
+                    color: rgba(255,255,255,0.7);
+                }
+                .loader {
+                    width: 40px; height: 40px;
+                    border: 3px solid rgba(168, 85, 247, 0.3);
+                    border-radius: 50%;
+                    border-top-color: #a855f7;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                
+                @media (max-width: 768px) {
+                    .hero-title { font-size: 2.5rem !important; }
+                }
+            `}</style>
         </div>
     );
 }
