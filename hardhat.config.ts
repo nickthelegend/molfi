@@ -21,8 +21,8 @@ const config: HardhatUserConfig = {
             chainId: 31337,
         },
         monadTestnet: {
-            url: "https://monad-testnet.api.onfinality.io/public",
-            chainId: 10143,
+            url: "https://testnet-rpc.monad.xyz",
+            chainId: 41454,
             accounts: process.env.DEPLOYER_PRIVATE_KEY
                 ? [process.env.DEPLOYER_PRIVATE_KEY]
                 : [],
@@ -51,7 +51,7 @@ const config: HardhatUserConfig = {
         customChains: [
             {
                 network: "monadTestnet",
-                chainId: 10143,
+                chainId: 41454,
                 urls: {
                     apiURL: "https://monad-testnet.socialscan.io/api",
                     browserURL: "https://monad-testnet.socialscan.io",

@@ -125,7 +125,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                         </div>
                         <div>
                             <h2 className="modal-title">ALLOCATE CAPITAL</h2>
-                            <p className="modal-subtitle">Deploy USDT into this agent's strategy.</p>
+                            <p className="modal-subtitle">Deploy mUSD.dev into this agent's strategy.</p>
                         </div>
                     </div>
                     <button className="close-btn" onClick={onClose}>
@@ -151,14 +151,14 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                 {/* Input Section */}
                 <div className="input-section">
                     <div className="flex justify-between items-center mb-xs">
-                        <label className="input-label">Amount (USDT)</label>
+                        <label className="input-label">Amount (mUSD.dev)</label>
                         <div className="flex items-center gap-xs">
                             <Wallet size={10} className="text-dim" />
                             <span className="text-[10px] text-dim font-bold uppercase tracking-tighter hover:text-white transition-colors cursor-pointer" onClick={handleMax}>
-                                BAL: {Number(formattedBalance).toLocaleString()}
+                                BAL: {Number(formattedBalance).toLocaleString()} mUSD.dev
                             </span>
                             <span className="text-[10px] text-primary font-bold uppercase tracking-tighter hover:text-white transition-colors cursor-pointer ml-xs" onClick={() => window.open('/faucet', '_blank')}>
-                                [GET TEST USDC]
+                                [GET TEST mUSD.dev]
                             </span>
                         </div>
                     </div>
