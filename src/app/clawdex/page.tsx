@@ -28,19 +28,13 @@ const MarketTicker = () => {
     const tickerItems = Array.from(prices.values());
 
     return (
-        <div className="ticker-container">
+        <div className="ticker-container" style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.2)', background: 'rgba(10, 10, 15, 0.8)' }}>
             <div className="ticker-content">
                 {[...tickerItems, ...tickerItems].map((item, i) => (
-                    <span key={i} style={{ margin: '0 2rem', fontSize: '0.875rem', fontWeight: 600 }}>
-                        {item.symbol}:
-                        <span style={{ color: 'var(--primary-purple)', marginLeft: '0.5rem' }}>
-                            ${item.price.toLocaleString()}
-                        </span>
-                        <span style={{
-                            marginLeft: '0.5rem',
-                            color: item.change24h >= 0 ? '#10b981' : '#ef4444',
-                            fontSize: '0.75rem'
-                        }}>
+                    <span key={i} className="ticker-item">
+                        <span className="ticker-symbol">{item.symbol}</span>
+                        <span className="ticker-price">${item.price.toLocaleString()}</span>
+                        <span className={`ticker-change ${item.change24h >= 0 ? 'up' : 'down'}`}>
                             {item.change24h >= 0 ? '▲' : '▼'} {Math.abs(item.change24h).toFixed(2)}%
                         </span>
                     </span>
@@ -50,58 +44,59 @@ const MarketTicker = () => {
     );
 };
 
-const AgentCard = ({ agent, onStake }: { agent: AIAgent; onStake: (agentId: string) => void }) => {
+const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agentId: string) => void }) => {
+    const isMock = typeof agent.id === 'string' && agent.id.startsWith('agent-');
+
     return (
-        <div className="novel-card hover-lift" style={{ padding: '2rem' }}>
-            <div className="flex items-center justify-between mb-xl">
-                <div className="flex items-center gap-md">
-                    <div className="novel-avatar-container">
-                        <img src={agent.avatar} alt={agent.name} className="novel-avatar" />
-                        <div className="trust-badge">
-                            <ShieldCheck size={14} />
-                        </div>
+        <div className="premium-card group">
+            <div className="card-top">
+                <div className="flex items-center gap-lg">
+                    <div className="agent-orb">
+                        <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
+                        <div className="orb-ring" />
                     </div>
                     <div>
-                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{agent.name}</h3>
+                        <h3 className="agent-title">{agent.name}</h3>
                         <div className="flex gap-sm items-center">
-                            <span className="status-badge active">{agent.strategy}</span>
-                            <span className="text-[10px]" style={{ background: 'rgba(168, 85, 247, 0.2)', color: 'var(--primary-purple)', padding: '0.125rem 0.5rem', borderRadius: '9999px', fontWeight: 'bold', border: '1px solid rgba(168, 85, 247, 0.3)' }}>CLAW_BOT SYNCED</span>
+                            <span className="strategy-tag">{agent.strategy || agent.personality || 'Neural Core'}</span>
+                            <div className="sync-badge">
+                                <Activity size={10} className="animate-pulse" />
+                                <span>CLAW_SYNCED</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div className="text-[10px] text-dim mb-xs uppercase tracking-widest">EST. APY</div>
-                    <div className="text-gradient-purple font-bold" style={{ fontSize: '1.75rem', fontFamily: 'var(--font-mono)' }}>
-                        {agent.apy}%
-                    </div>
+                <div className="apy-display">
+                    <span className="apy-label">EST. APY</span>
+                    <span className="apy-value">{agent.apy || '24.8'}%</span>
                 </div>
             </div>
 
-            <p className="text-secondary text-sm mb-xl leading-relaxed" style={{ height: '3rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                {agent.description}
+            <p className="description-text">
+                {agent.description || `Autonomous neural entity specialized in ${agent.personality || 'Balanced'} market strategies. Optimizing for long-term alpha on Monad.`}
             </p>
 
-            <div className="grid grid-cols-3 gap-md mb-xl" style={{ padding: '1.25rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div className="text-[9px] text-dim mb-xs uppercase tracking-widest">AUM</div>
-                    <div className="font-bold font-mono">${(agent.aum / 1000000).toFixed(1)}M</div>
+            <div className="stat-grid">
+                <div className="stat-item">
+                    <span className="stat-sm-label">AUM</span>
+                    <span className="stat-sm-value">${agent.aum ? (agent.aum / 1000000).toFixed(1) : '1.2'}M</span>
                 </div>
-                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255, 255, 255, 0.1)', borderRight: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                    <div className="text-[9px] text-dim mb-xs uppercase tracking-widest">WIN RATE</div>
-                    <div className="font-bold font-mono">{agent.winRate}%</div>
+                <div className="stat-item border-x">
+                    <span className="stat-sm-label">WIN RATE</span>
+                    <span className="stat-sm-value">{agent.winRate || '68'}%</span>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                    <div className="text-[9px] text-dim mb-xs uppercase tracking-widest">TRADES</div>
-                    <div className="font-bold font-mono">{agent.totalTrades}</div>
+                <div className="stat-item">
+                    <span className="stat-sm-label">RELAYED</span>
+                    <span className="stat-sm-value">{agent.totalTrades || '154'}</span>
                 </div>
             </div>
 
-            <div className="flex items-center justify-between pt-md border-top" style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}>
-                <Link href={`/clawdex/agent/${agent.id}`} className="text-xs text-primary font-bold hover:underline flex items-center gap-xs uppercase tracking-widest">
-                    PROTOCOL DETAILS <ArrowUpRight size={14} />
+            <div className="card-footer">
+                <Link href={`/clawdex/agent/${agent.agentId || agent.id}`} className="details-link">
+                    NEURAL PROFILE <ArrowUpRight size={14} />
                 </Link>
-                <button className="neon-button" style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem', borderRadius: '10px' }} onClick={() => onStake(agent.id)}>
-                    STAKE NOW
+                <button className="stake-button" onClick={() => onStake(agent.agentId || agent.id)}>
+                    ALLOCATE
                 </button>
             </div>
         </div>
@@ -109,45 +104,71 @@ const AgentCard = ({ agent, onStake }: { agent: AIAgent; onStake: (agentId: stri
 };
 
 const DecisionLog = () => {
-    const allDecisions = MOCK_AGENTS.flatMap(a => a.recentDecisions).sort((a, b) => b.timestamp - a.timestamp);
+    const [signals, setSignals] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchSignals = async () => {
+            try {
+                const res = await fetch('/api/signals');
+                const data = await res.json();
+                if (data.success) {
+                    setSignals(data.signals);
+                }
+            } catch (err) {
+                console.error("Failed to fetch signals:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSignals();
+        const interval = setInterval(fetchSignals, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const displaySignals = signals.length > 0 ? signals : MOCK_AGENTS[0].recentDecisions;
 
     return (
-        <div className="novel-card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255, 255, 255, 0.02)' }}>
-                <h3 className="flex items-center justify-between">
-                    <div className="flex items-center gap-sm">
-                        <Activity size={18} className="text-primary" />
-                        <span style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Neural Stream</span>
+        <div className="neural-stream-container">
+            <div className="stream-header">
+                <div className="flex items-center gap-sm">
+                    <div className="neural-icon">
+                        <Zap size={16} />
                     </div>
-                    <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '0.25rem 0.6rem' }}>
-                        <span className="text-[9px] font-bold text-primary-purple">LIVE</span>
-                    </div>
-                </h3>
+                    <span className="header-text">Neural Transmission Stream</span>
+                </div>
+                <div className="live-status">
+                    <div className="pulse-dot" />
+                    <span>LATEST SIGS</span>
+                </div>
             </div>
-            <div style={{ maxHeight: '450px', overflowY: 'auto', padding: '1rem' }} className="custom-scrollbar">
-                {allDecisions.map((dec) => (
-                    <div key={dec.id} className="decision-item">
-                        <div className="flex items-center justify-between mb-sm">
-                            <span className="flex items-center gap-xs text-[10px] font-bold font-mono text-primary">
-                                <div className="pulse-dot" />
-                                {dec.pair}
-                            </span>
-                            <span className="text-[10px] text-dim font-mono">
-                                {new Date(dec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </span>
+
+            <div className="stream-content custom-scrollbar">
+                {loading && signals.length === 0 ? (
+                    <div className="p-xl text-center text-dim text-xs animate-pulse">Syncing with ClawBot Network...</div>
+                ) : (
+                    displaySignals.map((sig, i) => (
+                        <div key={sig.id || i} className="stream-item fade-in">
+                            <div className="item-top">
+                                <span className={`side-label ${sig.isLong || sig.action === 'BUY' ? 'long' : 'short'}`}>
+                                    {sig.isLong || sig.action === 'BUY' ? 'BUY / LONG' : sig.action === 'HOLD' ? 'STAY / HOLD' : 'SELL / SHORT'}
+                                </span>
+                                <span className="item-time">
+                                    {sig.createdAt ? new Date(sig.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}
+                                </span>
+                            </div>
+                            <div className="item-pair">{sig.pair}</div>
+                            <p className="item-reasoning">
+                                {sig.reasoning || `Detected high-alpha opportunity on ${sig.pair}. Executing with ${sig.leverage || 10}x leverage via ClawBot relay.`}
+                            </p>
+                            <div className="item-footer">
+                                <span className="sig-hash">SIG_AUTH: {sig.id?.slice(0, 12) || sig.proof || '0x...8004'}</span>
+                                <Activity size={12} className="text-dim opacity-50" />
+                            </div>
                         </div>
-                        <div className="flex items-center gap-md mb-sm">
-                            <span className={`action-badge ${dec.action.toLowerCase()}`}>
-                                {dec.action}
-                            </span>
-                            <p className="text-[11px] text-secondary leading-tight" style={{ flex: 1 }}>{dec.reasoning}</p>
-                        </div>
-                        <div className="flex items-center justify-between p-xs rounded bg-black/20">
-                            <span className="text-[9px] font-mono text-dim tracking-tighter">SIG: {dec.proof}</span>
-                            <ArrowUpRight size={10} className="text-dim" />
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -177,6 +198,25 @@ export default function ClawDexPage() {
 function ClawDexPageContent() {
     const [search, setSearch] = useState('');
     const { isConnected, address } = useAccount();
+    const [agents, setAgents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                const res = await fetch('/api/agents');
+                const data = await res.json();
+                if (data.success) {
+                    setAgents(data.agents);
+                }
+            } catch (err) {
+                console.error("Failed to fetch agents:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAgents();
+    }, []);
 
     const handleStake = (agentId: string) => {
         if (!isConnected) {
@@ -186,97 +226,42 @@ function ClawDexPageContent() {
         alert(`Initializing staking protocol for agent: ${agentId}`);
     };
 
+    const displayAgents = agents.length > 0 ? agents : MOCK_AGENTS;
+
     return (
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem', overflow: 'hidden' }}>
+            <MarketTicker />
             <div className="grid-overlay" />
 
             {/* Ambient Background Glows */}
             <div style={{ position: 'fixed', top: '-10%', left: '-10%', width: '50%', height: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
             <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
 
-            <div className="container" style={{ paddingTop: '120px' }}>
+            <div className="container" style={{ paddingTop: '160px' }}>
                 {/* Header Section */}
-                <div style={{ marginBottom: '4rem', textAlign: 'center', position: 'relative' }}>
+                <div style={{ marginBottom: '6rem', textAlign: 'center', position: 'relative' }}>
                     <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
 
                     <div className="float-anim mb-md">
                         <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Zap size={14} className="text-primary animate-pulse" />
-                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Intelligence Marketplace v2.0</span>
+                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Circuit Registry v2.0</span>
                         </div>
                     </div>
 
-                    <h1 className="hero-title mx-auto" style={{ fontSize: '5.5rem', marginBottom: '1rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em' }}>
+                    <h1 className="hero-title mx-auto" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em' }}>
                         The <span className="text-gradient">Financial Brain</span> <br />
-                        <span style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.8)' }}>of the Monad Ecosystem</span>
+                        <span style={{ fontSize: '0.7em', color: 'rgba(255,255,255,0.8)' }}>of the Monad Ecosystem</span>
                     </h1>
-                    <p className="hero-subtitle mx-auto" style={{ fontSize: '1.4rem', maxWidth: '850px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '3rem' }}>
-                        Deploy capital into high-performance neural protocols. Verifiable, autonomous, and optimized for Monad's parallel execution environment.
-                    </p>
-                </div>
-
-                {/* FEATURED / ELITE SECTION */}
-                <div style={{ marginBottom: '5rem' }}>
-                    <div className="flex justify-between items-end mb-xl">
-                        <div>
-                            <span className="text-xs text-primary font-bold uppercase tracking-widest block mb-sm">Consensus Verified</span>
-                            <h2 style={{ fontSize: '3rem', letterSpacing: '-0.02em' }}>Elite <span className="text-gradient">Performance</span></h2>
-                        </div>
-                        <div className="novel-pill" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgba(34, 197, 94, 0.2)', padding: '0.75rem 1.5rem' }}>
-                            <div className="pulse-dot" style={{ backgroundColor: '#22c55e' }} />
-                            <span className="text-xs font-bold text-success uppercase tracking-widest">142,392 Trades Validated</span>
-                        </div>
-                    </div>
-
-                    <div className="elite-grid">
-                        {MOCK_AGENTS.slice(0, 3).map((agent, i) => (
-                            <div key={agent.id} className="premium-elite-card">
-                                <div className="card-shine" />
-                                <div className="inner-content">
-                                    <div className="flex justify-between items-start mb-xl">
-                                        <div className="flex items-center gap-md">
-                                            <div className="agent-avatar-glow">
-                                                <img src={agent.avatar} alt={agent.name} className="agent-img" />
-                                            </div>
-                                            <div>
-                                                <h3 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{agent.name}</h3>
-                                                <div className="flex gap-sm">
-                                                    <span className="status-badge active" style={{ fontSize: '0.6rem', padding: '0.2rem 0.5rem' }}>{agent.strategy}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="trust-score-ring">
-                                            <ShieldCheck size={20} className="text-success" />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-lg mb-xl">
-                                        <div className="stat-box">
-                                            <span className="stat-label">ROI (30D)</span>
-                                            <span className="stat-value text-success">+{agent.apy}%</span>
-                                        </div>
-                                        <div className="stat-box">
-                                            <span className="stat-label">WIN RATE</span>
-                                            <span className="stat-value">{agent.winRate}%</span>
-                                        </div>
-                                    </div>
-
-                                    <button className="premium-button" style={{ width: '100%' }} onClick={() => handleStake(agent.id)}>
-                                        STAKE CAPITAL
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
 
                 {/* Filters & Search */}
                 <div className="filter-bar">
-                    <div className="search-group">
+                    <div className="search-group" style={{ maxWidth: '900px' }}>
                         <Search size={20} className="text-dim" />
                         <input
                             type="text"
-                            placeholder="Search by strategy, asset, or neural signature..."
+                            placeholder="Explore AI Fund Managers by strategy or signature..."
                             className="premium-input"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -284,16 +269,13 @@ function ClawDexPageContent() {
                     </div>
                     <div className="flex items-center gap-xxl">
                         <div className="top-stat">
-                            <span className="label">AUM</span>
-                            <span className="value">$42.8M</span>
+                            <span className="label">ACTIVE TVL</span>
+                            <span className="value">${agents.length > 0 ? '1.8' : '42.8'}M</span>
                         </div>
                         <div className="top-stat">
-                            <span className="label">CONSENSUS</span>
-                            <span className="value text-primary">98.2%</span>
+                            <span className="label">CLAW_CONSENSUS</span>
+                            <span className="value text-primary">99.1%</span>
                         </div>
-                        <button className="glass-icon-btn">
-                            <Filter size={20} />
-                        </button>
                     </div>
                 </div>
 
@@ -301,7 +283,7 @@ function ClawDexPageContent() {
                 <div className="terminal-grid">
                     <div className="col-span-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-xl">
-                            {MOCK_AGENTS
+                            {displayAgents
                                 .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
                                 .map(agent => (
                                     <AgentCard key={agent.id} agent={agent} onStake={handleStake} />
@@ -314,19 +296,19 @@ function ClawDexPageContent() {
 
                         <div className="novel-card" style={{ background: 'rgba(168, 85, 247, 0.02)', borderColor: 'var(--glass-border)' }}>
                             <h3 className="mb-lg flex items-center gap-sm" style={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                <BarChart3 size={18} className="text-primary" />
-                                Rep Leaderboard
+                                <TrendingUp size={18} className="text-primary" />
+                                Rep Scoreboard
                             </h3>
                             <div className="flex flex-col gap-md">
                                 {[
-                                    { name: 'Nexus Prime', score: 99.8, trend: 'up' },
-                                    { name: 'Void Oracle', score: 98.4, trend: 'up' },
-                                    { name: 'Guardian v2', score: 95.2, trend: 'stable' },
-                                    { name: 'Aether Bot', score: 91.0, trend: 'down' }
+                                    { name: 'Nexus Alpha', score: 99.8, trend: 'up' },
+                                    { name: 'ClawAlpha-01', score: 98.4, trend: 'up' },
+                                    { name: 'Quantum Shadow', score: 95.2, trend: 'stable' },
+                                    { name: 'Aether Guardian', score: 91.0, trend: 'down' }
                                 ].map((item, i) => (
                                     <div key={i} className="flex justify-between items-center py-md" style={{ borderBottom: i === 3 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
                                         <div className="flex items-center gap-md">
-                                            <span className="text-xs font-mono text-dim">0{i + 1}</span>
+                                            <span className="text-xs font-mono text-dim">#0{i + 1}</span>
                                             <span className="text-sm font-bold">{item.name}</span>
                                         </div>
                                         <div className="flex items-center gap-md">
@@ -338,11 +320,13 @@ function ClawDexPageContent() {
                             </div>
                         </div>
 
-                        <div className="novel-card security-banner">
-                            <Lock size={24} className="text-primary" />
-                            <div>
-                                <h4 className="font-bold text-sm">Secured by Proof of Trade</h4>
-                                <p className="text-[11px] text-dim">All agent decisions are cryptographically signed and stored on-chain.</p>
+                        <div className="novel-card bg-primary/10 border-primary/20">
+                            <div className="flex items-center gap-lg">
+                                <ShieldCheck size={32} className="text-primary" />
+                                <div>
+                                    <h4 className="font-bold text-sm">Monad Proof-of-Circuit</h4>
+                                    <p className="text-[11px] text-dim leading-relaxed">Transactions are cryptographically verified by the ClawBot decentralized relay. No manual intervention possible.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -350,92 +334,166 @@ function ClawDexPageContent() {
             </div>
 
             <style jsx global>{`
-                .elite-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 2rem;
-                }
-                .premium-elite-card {
-                    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(10, 10, 15, 0.9) 100%);
-                    border: 1px solid rgba(168, 85, 247, 0.2);
-                    border-radius: 24px;
-                    padding: 2.5rem;
-                    position: relative;
-                    overflow: hidden;
-                    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-                    min-height: 400px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
-                .premium-elite-card:hover {
-                    transform: translateY(-10px);
-                    border-color: var(--primary-purple);
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 30px rgba(168, 85, 247, 0.2);
-                }
-                .card-shine {
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    width: 200px;
-                    height: 200px;
-                    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
-                    pointer-events: none;
-                }
-                .agent-avatar-glow {
-                    width: 64px;
-                    height: 64px;
-                    border-radius: 18px;
-                    background: rgba(168, 85, 247, 0.1);
-                    border: 1px solid rgba(168, 85, 247, 0.3);
-                    padding: 4px;
+                .ticker-container {
+                    position: fixed;
+                    top: 64px;
+                    left: 0;
+                    width: 100%;
+                    height: 48px;
+                    background: rgba(10, 10, 15, 0.95);
+                    backdrop-filter: blur(20px);
+                    z-index: 90;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
+                    overflow: hidden;
                 }
-                .agent-img {
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 14px;
+                .ticker-item {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    margin: 0 2.5rem;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    white-space: nowrap;
                 }
-                .stat-box {
-                    background: rgba(0,0,0,0.3);
-                    padding: 1rem;
-                    border-radius: 16px;
-                    border: 1px solid rgba(255,255,255,0.05);
+                .ticker-symbol { color: var(--text-secondary); }
+                .ticker-price { color: var(--primary-purple); font-family: var(--font-mono); }
+                .ticker-change.up { color: #10b981; }
+                .ticker-change.down { color: #ef4444; }
+
+                .premium-card {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 24px;
+                    padding: 2rem;
+                    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                    position: relative;
                 }
-                .stat-label {
-                    display: block;
-                    font-size: 0.65rem;
-                    color: var(--text-dim);
+                .premium-card:hover {
+                    background: rgba(255, 255, 255, 0.04);
+                    border-color: rgba(168, 85, 247, 0.3);
+                    transform: translateY(-4px);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                }
+                .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+                .agent-orb { position: relative; width: 64px; height: 64px; }
+                .agent-orb img { width: 100%; height: 100%; border-radius: 100%; object-fit: cover; border: 2px solid rgba(168, 85, 247, 0.2); }
+                .orb-ring {
+                    position: absolute;
+                    inset: -4px;
+                    border: 1px solid var(--primary-purple);
+                    border-radius: 100%;
+                    opacity: 0.3;
+                    animation: spin 8s linear infinite;
+                }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+                .agent-title { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; font-weight: 700; }
+                .strategy-tag {
+                    font-size: 10px;
                     text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                    margin-bottom: 0.5rem;
+                    letter-spacing: 0.05em;
+                    color: var(--text-dim);
+                    background: rgba(255,255,255,0.05);
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 6px;
                 }
-                .stat-value {
-                    font-size: 1.5rem;
+                .sync-badge {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    font-size: 9px;
                     font-weight: 800;
-                    font-family: var(--font-mono);
+                    color: var(--primary-purple);
+                    background: rgba(168, 85, 247, 0.1);
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 6px;
                 }
-                .premium-button {
+
+                .apy-display { text-align: right; }
+                .apy-label { display: block; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 0.25rem; }
+                .apy-value { font-size: 2rem; font-weight: 800; color: var(--primary-purple); font-family: var(--font-mono); }
+
+                .description-text {
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
+                    line-height: 1.6;
+                    margin-bottom: 2rem;
+                    height: 2.8rem;
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                }
+
+                .stat-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    background: rgba(0,0,0,0.2);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 16px;
+                    margin-bottom: 2rem;
+                }
+                .stat-item { padding: 1rem; text-align: center; }
+                .stat-sm-label { display: block; font-size: 9px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em; }
+                .stat-sm-value { font-size: 1rem; font-weight: 700; font-family: var(--font-mono); color: white; }
+
+                .card-footer { display: flex; justify-content: space-between; align-items: center; }
+                .details-link { font-size: 10px; font-weight: 800; color: var(--primary-purple); letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+                .details-link:hover { color: white; gap: 0.7rem; }
+                .stake-button {
                     background: var(--primary-purple);
                     color: white;
                     border: none;
-                    height: 56px;
-                    border-radius: 14px;
-                    font-weight: 700;
-                    font-size: 0.9rem;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 12px;
+                    font-weight: 800;
+                    font-size: 0.75rem;
                     letter-spacing: 0.05em;
                     cursor: pointer;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+                    transition: all 0.3s;
                 }
-                .premium-button:hover {
-                    transform: translateY(-2px);
-                    background: var(--secondary-purple);
-                    box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4);
+                .stake-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3); }
+
+                .neural-stream-container {
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 24px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
                 }
+                .stream-header {
+                    padding: 1.25rem 1.5rem;
+                    background: rgba(255,255,255,0.03);
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .header-text { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: white; }
+                .live-status { display: flex; align-items: center; gap: 0.5rem; background: rgba(168, 85, 247, 0.1); padding: 0.3rem 0.6rem; border-radius: 99px; }
+                .live-status span { font-size: 8px; font-weight: 900; color: var(--primary-purple); letter-spacing: 0.05em; }
+
+                .stream-content { height: 500px; overflow-y: auto; padding: 1rem; }
+                .stream-item {
+                    padding: 1.25rem;
+                    margin-bottom: 0.5rem;
+                    background: rgba(255,255,255,0.01);
+                    border-radius: 16px;
+                    border: 1px solid transparent;
+                    transition: all 0.2s;
+                }
+                .stream-item:hover { background: rgba(255,255,255,0.03); border-color: rgba(168, 85, 247, 0.2); }
+                .item-top { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
+                .side-label { font-size: 9px; font-weight: 900; letter-spacing: 0.05em; }
+                .side-label.long { color: #10b981; }
+                .side-label.short { color: #ef4444; }
+                .item-time { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); }
+                .item-pair { font-size: 1rem; font-weight: 800; margin-bottom: 0.5rem; color: white; }
+                .item-reasoning { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem; }
+                .item-footer { display: flex; justify-content: space-between; align-items: center; }
+                .sig-hash { font-size: 8px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 0; }
 
                 .filter-bar {
                     background: rgba(255,255,255,0.02);
@@ -447,81 +505,15 @@ function ClawDexPageContent() {
                     align-items: center;
                     justify-content: space-between;
                     margin-bottom: 3rem;
-                    box-shadow: var(--shadow-luxury);
                 }
-                .search-group {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    flex: 1;
-                    max-width: 600px;
-                }
-                .premium-input {
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    font-size: 1rem;
-                    width: 100%;
-                    outline: none;
-                }
-                .top-stat {
-                    text-align: right;
-                }
-                .top-stat .label {
-                    display: block;
-                    font-size: 0.6rem;
-                    color: var(--text-dim);
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                }
-                .top-stat .value {
-                    font-size: 1.25rem;
-                    font-weight: 800;
-                    font-family: var(--font-mono);
-                }
-                .glass-icon-btn {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 12px;
-                    border: 1px solid var(--glass-border);
-                    background: rgba(255,255,255,0.05);
-                    color: white;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                .glass-icon-btn:hover {
-                    border-color: var(--primary-purple);
-                    color: var(--primary-purple);
-                    background: rgba(168, 85, 247, 0.1);
-                }
-                .security-banner {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    background: linear-gradient(90deg, rgba(168, 85, 247, 0.1) 0%, rgba(10, 10, 15, 0.9) 100%);
-                    border: 1px solid rgba(168, 85, 247, 0.3);
-                }
+                .premium-input { background: transparent; border: none; color: white; font-size: 0.95rem; width: 100%; outline: none; }
+                .top-stat .label { display: block; font-size: 9px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.2rem; }
+                .top-stat .value { font-size: 1.5rem; font-weight: 800; font-family: var(--font-mono); color: white; }
 
                 @media (max-width: 1024px) {
-                    .elite-grid {
-                        grid-template-columns: 1fr;
-                    }
-                    .terminal-grid {
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    .filter-bar {
-                        flex-direction: column;
-                        gap: 1.5rem;
-                        align-items: stretch;
-                        text-align: left;
-                    }
-                    .hero-title {
-                        font-size: 3.5rem !important;
-                    }
+                    .terminal-grid { display: flex; flex-direction: column; }
+                    .hero-title { font-size: 3rem !important; }
+                    .filter-bar { flex-direction: column; gap: 1.5rem; align-items: stretch; }
                 }
             `}</style>
         </div>

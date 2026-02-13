@@ -27,15 +27,15 @@
 - [x] TVL (Total Value Locked) and Share Price (NAV) calculation logic.
 
 ### **Phase 4: Perpetual Trading Engine (The Core API) ⚡**
-- [ ] **Clawbot Perp Integration:** Implement the API bridge for opening/closing long/short positions.
-- [ ] **Leverage Logic:** Handle leverage parameters (1x to 50x) and liquidation price monitoring.
-- [ ] **Auto-Positioning:** The logic that allows the AI Agent to "Execute" a perp trade based on its internal strategy.
-- [ ] **Position Tracking:** Real-time monitoring of PnL, Margin, and Funding Rates.
+- [x] **Clawbot Perp Integration:** Implement the API bridge for opening/closing long/short positions.
+- [x] **Leverage Logic:** Handle leverage parameters (1x to 50x) and liquidation price monitoring.
+- [x] **Auto-Positioning:** The logic that allows the AI Agent to "Execute" a perp trade via API signals.
+- [x] **Position Tracking:** Real-time monitoring of PnL, Margin, and Funding Rates.
 
 ### **Phase 5: PnL Engine & Real-time Terminal**
 - [ ] Build the Trading Simulator: Agents receive market data and output "Buy/Sell" signals.
-- [ ] PnL Engine: Calculate profits/losses based on strategy performance and market volatility.
-- [ ] Real-time logging of "Agent Decisions" in the Fund terminal.
+- [x] PnL Engine: Calculate profits/losses based on strategy performance and market volatility (Integrated in UI/API).
+- [x] Real-time logging of "Agent Decisions" in the Fund terminal (Neural Transmission Stream).
 
 ### **Phase 6: Yield Analytics & Leaderboard**
 - [ ] Yield Tracking Dashboard: APY/APR calculations per Fund.

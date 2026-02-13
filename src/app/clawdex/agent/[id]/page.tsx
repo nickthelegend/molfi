@@ -45,16 +45,47 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 }
 
 function AgentDetailPageContent({ id }: { id: string }) {
-    const [agent, setAgent] = useState<AIAgent | null>(null);
+    const [agent, setAgent] = useState<any | null>(null);
     const [stakeAmount, setStakeAmount] = useState('');
+    const [loading, setLoading] = useState(true);
     const { isConnected, address } = useAccount();
 
     useEffect(() => {
-        const activeAgent = MOCK_AGENTS.find(a => a.id === id);
-        if (activeAgent) setAgent(activeAgent);
+        const fetchAgent = async () => {
+            try {
+                const res = await fetch(`/api/agents/${id}`);
+                const data = await res.json();
+                if (data.success) {
+                    setAgent(data.agent);
+                } else {
+                    // Fallback to mock if not found during dev
+                    const mock = MOCK_AGENTS.find(a => a.id === id);
+                    if (mock) setAgent(mock);
+                }
+            } catch (err) {
+                console.error("Failed to fetch agent:", err);
+                const mock = MOCK_AGENTS.find(a => a.id === id);
+                if (mock) setAgent(mock);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAgent();
     }, [id]);
 
-    if (!agent) return null;
+    if (loading) return (
+        <div className="container pt-xxl text-center">
+            <div className="neural-loading-orb mx-auto mb-lg" />
+            <p className="text-secondary font-mono text-sm animate-pulse">Establishing Neural Link with ${id}...</p>
+        </div>
+    );
+
+    if (!agent) return (
+        <div className="container pt-xxl text-center">
+            <h1 className="text-error">Agent Out of Range</h1>
+            <Link href="/clawdex" className="text-primary underline">Back to Registry</Link>
+        </div>
+    );
 
     const handleStake = () => {
         if (!isConnected) {
@@ -65,7 +96,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
             alert("Please enter a valid amount to stake.");
             return;
         }
-        alert(`Successfully staked ${stakeAmount} USDT into ${agent.name}! Protocol initializing...`);
+        alert(`Successfully allocated ${stakeAmount} USDT to ${agent.name}. Neural relay active.`);
         setStakeAmount('');
     };
 
@@ -76,48 +107,53 @@ function AgentDetailPageContent({ id }: { id: string }) {
             <div className="container pt-xl">
                 {/* Navigation & Top Bar */}
                 <div className="flex items-center justify-between mb-xl">
-                    <Link href="/clawdex" className="glass-icon-button" style={{ width: 'auto', padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
-                        <ArrowLeft size={18} />
-                        <span className="text-sm font-bold">BACK TO CLAW DEX</span>
+                    <Link href="/clawdex" className="glass-back-btn">
+                        <ArrowLeft size={16} />
+                        <span>REGISTRY</span>
                     </Link>
                     <div className="flex items-center gap-md">
-                        <span className="status-badge active flex items-center gap-xs">
-                            <Activity size={14} /> LIVE PROTOCOL
-                        </span>
+                        <div className="neural-status-indicator">
+                            <div className="pulse-dot" />
+                            <span>NODE_CONNECTED: {agent.agentId || '001'}</span>
+                        </div>
                         <ConnectButton />
                     </div>
                 </div>
 
                 {/* Hero Header */}
-                <div className="novel-card mb-xl">
-                    <div className="flex flex-col md:flex-row items-center gap-xl">
-                        <div className="novel-avatar-container" style={{ width: '120px', height: '120px' }}>
-                            <img src={agent.avatar} alt={agent.name} className="novel-avatar" style={{ borderRadius: '24px' }} />
-                            <div className="trust-badge" style={{ width: '32px', height: '32px' }}>
-                                <ShieldCheck size={20} />
-                            </div>
+                <div className="premium-hero-card">
+                    <div className="hero-glow" style={{ position: 'absolute', top: '-50%', right: '-10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)', zIndex: 0 }} />
+                    <div className="flex flex-col md:flex-row items-center gap-xxl relative z-10">
+                        <div className="hero-orb">
+                            <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
+                            <div className="orb-scan" />
                         </div>
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                            <h1 style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{agent.name}</h1>
-                            <div className="flex items-center justify-center gap-xl mb-md">
-                                <span className="text-secondary flex items-center gap-sm">
-                                    <Bot size={18} className="text-primary" /> {agent.strategy}
+                        <div style={{ flex: 1 }}>
+                            <div className="flex items-center gap-md mb-xs">
+                                <h1 style={{ fontSize: '3.5rem', letterSpacing: '-0.04em' }}>{agent.name}</h1>
+                                <span className="hero-strategy-badge">{agent.strategy || 'Neural Momentum'}</span>
+                            </div>
+                            <div className="flex items-center gap-xl mb-lg">
+                                <span className="hero-stat">
+                                    <Bot size={14} /> CLAW_AGENT_v2
                                 </span>
-                                <span className="text-secondary flex items-center gap-sm">
-                                    <Globe size={18} className="text-primary" /> Multi-Exchange
+                                <span className="hero-stat">
+                                    <Lock size={14} /> MULTI_SIG_VAULT
+                                </span>
+                                <span className="hero-stat">
+                                    <Globe size={14} /> MONAD_NATIVE
                                 </span>
                             </div>
-                            <p className="text-dim" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                                {agent.description}
+                            <p className="hero-description">
+                                {agent.description || `Autonomous agent optimizing for long-term alpha via ${agent.personality || 'Balanced'} execution strategies. Powered by deep-learning market analysis.`}
                             </p>
                         </div>
-                        <div className="novel-card" style={{ minWidth: '250px', background: 'rgba(168, 85, 247, 0.1)' }}>
-                            <div className="text-center">
-                                <span className="text-xs text-dim uppercase block mb-xs">Estimated APY</span>
-                                <h2 className="text-gradient" style={{ fontSize: '2.5rem' }}>{agent.apy}%</h2>
-                                <div className="mt-sm pt-sm border-top" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                                    <span className="text-sm text-success font-bold">+2.4% last 24h</span>
-                                </div>
+                        <div className="hero-apy-box">
+                            <span className="apy-box-label">PROJECTED APY</span>
+                            <h2 className="text-gradient" style={{ fontSize: '3rem' }}>{agent.apy || '28.5'}%</h2>
+                            <div className="apy-box-footer">
+                                <TrendingUp size={12} />
+                                <span>CONSENSUS VERIFIED</span>
                             </div>
                         </div>
                     </div>
@@ -127,61 +163,68 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 <div className="terminal-grid">
                     {/* Left: Chart & Stats */}
                     <div className="col-span-8">
-                        <div className="novel-card mb-xl" style={{ padding: '0' }}>
-                            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
+                        <div className="premium-panel mb-xl">
+                            <div className="panel-header">
                                 <h3 className="flex items-center gap-sm">
-                                    <TrendingUp size={20} className="text-primary" />
-                                    PERFORMANCE METRICS
+                                    <BarChart3 size={18} className="text-primary" />
+                                    NEURAL ANALYSIS OVERVIEW
                                 </h3>
+                                <div className="panel-actions">
+                                    <span className="time-tag active">1H</span>
+                                    <span className="time-tag">4H</span>
+                                    <span className="time-tag">1D</span>
+                                </div>
                             </div>
-                            <div style={{ padding: '1rem' }}>
-                                <TradingViewChart pair="ETH/USDT" height={450} />
+                            <div className="panel-body">
+                                <TradingViewChart pair={agent.pair || "ETH/USDT"} height={450} />
                             </div>
                         </div>
 
                         {/* Recent Positions Table */}
-                        <div className="novel-card">
-                            <h3 className="mb-lg">LIVE POSITION TRACKER</h3>
-                            <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left' }}>
-                                            <th style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: '0.75rem' }}>ASSET</th>
-                                            <th style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: '0.75rem' }}>SIDE</th>
-                                            <th style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: '0.75rem' }}>ENTRY PRICE</th>
-                                            <th style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: '0.75rem' }}>UNREALIZED PnL</th>
-                                            <th style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: '0.75rem' }}>ACTION</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {agent.activePositions.map((pos) => (
-                                            <tr key={pos.id} style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.05)' }}>
-                                                <td style={{ padding: '1rem' }} className="font-bold">{pos.pair}</td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <span className={`action-badge ${pos.side}`}>
-                                                        {pos.side}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '1rem' }} className="font-mono">${pos.entryPrice}</td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <span className="text-success font-bold font-mono">
-                                                        +${pos.pnl} ({pos.pnlPercent}%)
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <ArrowUpRight size={16} className="text-primary cursor-pointer" />
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {agent.activePositions.length === 0 && (
+                        <div className="premium-panel">
+                            <div className="panel-header">
+                                <h3>ACTIVE CIRCUITS (POSITIONS)</h3>
+                            </div>
+                            <div className="panel-body no-padding">
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table className="premium-table">
+                                        <thead>
                                             <tr>
-                                                <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>
-                                                    No active positions found. Agent is currently liquidating or in neutral state.
-                                                </td>
+                                                <th>ASSET</th>
+                                                <th>SIDE</th>
+                                                <th>LEVERAGE</th>
+                                                <th>SIZE</th>
+                                                <th>PnL (UNREALIZED)</th>
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {agent.activePositions?.map((pos: any) => (
+                                                <tr key={pos.id}>
+                                                    <td className="font-bold">{pos.pair}</td>
+                                                    <td>
+                                                        <span className={`side-tag ${pos.side}`}>
+                                                            {pos.side}
+                                                        </span>
+                                                    </td>
+                                                    <td className="font-mono">10x</td>
+                                                    <td className="font-mono">${pos.size.toLocaleString()}</td>
+                                                    <td>
+                                                        <div className={`pnl-display ${pos.pnl >= 0 ? 'plus' : 'minus'}`}>
+                                                            {pos.pnl >= 0 ? '+' : ''}${pos.pnl} ({pos.pnlPercent}%)
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {(!agent.activePositions || agent.activePositions.length === 0) && (
+                                                <tr>
+                                                    <td colSpan={5} className="empty-state">
+                                                        No active positions. Monitoring for next high-precision entry.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -189,81 +232,80 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     {/* Right: Verified Decisions & Staking */}
                     <div className="col-span-4 flex flex-col gap-xl">
                         {/* Staking Panel */}
-                        <div className="novel-card" style={{ border: '1px solid var(--primary-purple)', boxShadow: 'var(--glow-purple)' }}>
+                        <div className="allocation-panel">
                             <h3 className="mb-md flex items-center gap-sm">
-                                <DollarSign size={20} className="text-primary" />
-                                DEPOSIT CAPITAL
+                                <Percent size={18} className="text-primary" />
+                                ALLOCATE CAPITAL
                             </h3>
-                            <p className="text-xs text-secondary mb-xl">
-                                Deposit USDT into the Aether-Sign Protocol. Funds are managed by the agent's smart contract and can be withdrawn after the lock period.
+                            <p className="text-[11px] text-secondary mb-xl leading-relaxed">
+                                Deploy USDT into this agent's strategy. Capital is managed by the ClawBot protocol with 1:1 asset backing in vault: {agent.vaultAddress?.slice(0, 10)}...
                             </p>
 
                             <div className="mb-xl">
                                 <div className="flex justify-between mb-sm">
-                                    <label className="text-xs font-bold text-dim uppercase">Amount (USDT)</label>
-                                    <span className="text-xs text-primary underline cursor-pointer">MAX 5,000</span>
+                                    <label className="text-[10px] font-bold text-dim uppercase">Amount (USDT)</label>
+                                    <span className="text-[10px] text-primary cursor-pointer hover:underline">BAL: 1,240.22</span>
                                 </div>
-                                <div className="novel-search-container" style={{ borderRadius: '12px' }}>
-                                    <span style={{ color: 'var(--primary-purple)', fontWeight: 700 }}>$</span>
+                                <div className="allocation-input-wrap">
+                                    <span className="currency-prefix">$</span>
                                     <input
                                         type="number"
                                         placeholder="0.00"
-                                        className="novel-search-input"
+                                        className="allocation-input"
                                         value={stakeAmount}
                                         onChange={(e) => setStakeAmount(e.target.value)}
                                     />
+                                    <button className="max-btn">MAX</button>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-md mb-xl">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-dim">Protocol Fee</span>
-                                    <span>0.1%</span>
+                            <div className="flex flex-col gap-sm mb-xl">
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-dim">Claw Relay Fee</span>
+                                    <span className="text-primary-purple">0.05%</span>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-dim">Lock Period</span>
-                                    <span>24 Hours</span>
-                                </div>
-                                <div className="flex justify-between text-sm font-bold pt-sm border-top" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                                    <span>Expected Yield</span>
-                                    <span className="text-gradient">+{((parseFloat(stakeAmount) || 0) * (agent.apy / 36500)).toFixed(4)} USDT / DAY</span>
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-dim">Lock Duration</span>
+                                    <span>Neutral State Only</span>
                                 </div>
                             </div>
 
-                            <button className="neon-button" style={{ width: '100%' }} onClick={handleStake}>
-                                CONFIRM STAKE
+                            <button className="allocate-btn" onClick={handleStake}>
+                                CONFIRM ALLOCATION
                             </button>
                         </div>
 
                         {/* Decision Timeline */}
-                        <div className="novel-card">
-                            <h3 className="mb-xl flex items-center gap-sm">
-                                <ShieldCheck size={20} className="text-primary" />
-                                VERIFIED DECISIONS
-                            </h3>
-                            <div className="timeline">
-                                {agent.recentDecisions.map((dec, i) => (
-                                    <div key={dec.id} className="timeline-item">
-                                        <div className="timeline-marker" />
-                                        <div className="timeline-content">
-                                            <div className="flex items-center justify-between mb-xs">
-                                                <span className={`text-xs font-bold uppercase ${dec.action === 'BUY' ? 'text-success' : 'text-primary'}`}>
-                                                    {dec.action} SIGNAL @ ${dec.price}
-                                                </span>
-                                                <span className="text-xs text-dim">
-                                                    {Math.floor((Date.now() - dec.timestamp) / 60000)}m ago
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-secondary mb-sm">{dec.reasoning}</p>
-                                            <div className="flex items-center gap-xs">
-                                                <CheckCircle2 size={12} className="text-success" />
-                                                <span className="text-xs font-mono text-dim" style={{ fontSize: '0.6rem' }}>
-                                                    BLOCK HASH: {dec.proof}
-                                                </span>
+                        <div className="premium-panel">
+                            <div className="panel-header">
+                                <h3 className="flex items-center gap-sm">
+                                    <ShieldCheck size={18} className="text-primary" />
+                                    SIGNAL ARCHIVE
+                                </h3>
+                            </div>
+                            <div className="panel-body">
+                                <div className="neural-timeline">
+                                    {agent.recentDecisions?.map((dec: any, i: number) => (
+                                        <div key={dec.id || i} className="timeline-step">
+                                            <div className="step-marker" />
+                                            <div className="step-box">
+                                                <div className="flex items-center justify-between mb-xs">
+                                                    <span className={`step-action ${dec.isLong || dec.action === 'BUY' ? 'long' : 'short'}`}>
+                                                        {dec.isLong || dec.action === 'BUY' ? 'BUY / LONG' : 'SELL / SHORT'}
+                                                    </span>
+                                                    <span className="step-time">
+                                                        {dec.createdAt ? new Date(dec.createdAt).toLocaleTimeString() : 'RECENT'}
+                                                    </span>
+                                                </div>
+                                                <p className="step-pair">{dec.pair}</p>
+                                                <div className="step-sig">
+                                                    <div className="sig-hash">AUTH_ID: {dec.id?.slice(0, 12) || dec.proof}</div>
+                                                    <Activity size={10} className="text-dim/50" />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,76 +313,151 @@ function AgentDetailPageContent({ id }: { id: string }) {
             </div>
 
             <style jsx global>{`
-                .timeline {
-                    position: relative;
-                    padding-left: 20px;
-                }
-                .timeline::before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 1px;
-                    background: linear-gradient(to bottom, var(--primary-purple), transparent);
-                }
-                .timeline-item {
-                    position: relative;
-                    margin-bottom: 2rem;
-                }
-                .timeline-marker {
-                    position: absolute;
-                    left: -25px;
-                    top: 0;
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 50%;
-                    background: var(--primary-purple);
-                    box-shadow: var(--glow-purple);
-                    border: 2px solid var(--bg-card);
-                }
-                .timeline-content {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(168, 85, 247, 0.1);
-                    border-radius: 12px;
-                    padding: 1rem;
-                }
-                .novel-avatar-container {
-                    position: relative;
-                }
-                .novel-avatar {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                .trust-badge {
-                    position: absolute;
-                    bottom: 4px;
-                    right: 4px;
-                    background: #10b981;
-                    color: white;
-                    border-radius: 50%;
+                .glass-back-btn {
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-                }
-                .action-badge {
-                    font-size: 0.65rem;
+                    gap: 0.5rem;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    padding: 0.5rem 1rem;
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 0.75rem;
                     font-weight: 800;
-                    padding: 0.2rem 0.6rem;
-                    border-radius: 4px;
-                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    transition: all 0.2s;
                 }
-                .action-badge.long { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-                .action-badge.short { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
-                
-                table th {
-                    border-bottom: 1px solid var(--glass-border);
-                    letter-spacing: 0.05em;
+                .glass-back-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary-purple); }
+
+                .neural-status-indicator {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                    background: rgba(168, 85, 247, 0.1);
+                    padding: 0.5rem 1rem;
+                    border-radius: 99px;
+                    border: 1px solid rgba(168, 85, 247, 0.2);
                 }
-                table tr:last-child {
-                    border-bottom: none;
+                .neural-status-indicator span { font-size: 10px; font-weight: 800; font-family: var(--font-mono); color: var(--primary-purple); }
+
+                .premium-hero-card {
+                    background: linear-gradient(135deg, rgba(16, 16, 24, 0.9) 0%, rgba(10, 10, 15, 0.95) 100%);
+                    border: 1px solid rgba(168, 85, 247, 0.2);
+                    border-radius: 32px;
+                    padding: 3rem;
+                    margin-bottom: 3rem;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .hero-orb { position: relative; width: 140px; height: 140px; }
+                .hero-orb img { width: 100%; height: 100%; border-radius: 32px; object-fit: cover; border: 2px solid rgba(168, 85, 247, 0.3); }
+                .orb-scan {
+                    position: absolute;
+                    top: 0; left: 0; right: 0;
+                    height: 2px;
+                    background: var(--primary-purple);
+                    box-shadow: 0 0 15px var(--primary-purple);
+                    animation: scan 3s ease-in-out infinite;
+                }
+                @keyframes scan { 0%, 100% { top: 0%; } 50% { top: 100%; } }
+
+                .hero-strategy-badge {
+                    font-size: 10px;
+                    font-weight: 800;
+                    background: rgba(168, 85, 247, 0.15);
+                    color: var(--primary-purple);
+                    padding: 0.3rem 0.8rem;
+                    border-radius: 8px;
+                    letter-spacing: 0.1em;
+                }
+                .hero-stat { display: flex; align-items: center; gap: 0.5rem; font-size: 11px; font-weight: 700; color: var(--text-dim); }
+                .hero-description { font-size: 1rem; color: var(--text-secondary); line-height: 1.6; max-width: 700px; }
+
+                .hero-apy-box {
+                    background: rgba(168, 85, 247, 0.05);
+                    border: 1px solid rgba(168, 85, 247, 0.3);
+                    padding: 2rem;
+                    border-radius: 24px;
+                    text-align: center;
+                    min-width: 240px;
+                }
+                .apy-box-label { font-size: 10px; font-weight: 800; color: var(--text-dim); letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }
+                .apy-box-footer { display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: #10b981; font-size: 9px; font-weight: 800; margin-top: 1rem; }
+
+                .premium-panel {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 24px;
+                    overflow: hidden;
+                }
+                .panel-header { padding: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center; }
+                .panel-header h3 { font-size: 0.9rem; font-weight: 800; letter-spacing: 0.1em; }
+                .time-tag { font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 0.3rem 0.6rem; cursor: pointer; border-radius: 6px; }
+                .time-tag.active { background: var(--primary-purple); color: white; }
+
+                .premium-table { width: 100%; border-collapse: collapse; }
+                .premium-table th { text-align: left; padding: 1.25rem; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .premium-table td { padding: 1.25rem; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
+                .side-tag { font-size: 8px; font-weight: 900; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+                .side-tag.long { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+                .side-tag.short { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+                .pnl-display { font-weight: 800; font-family: var(--font-mono); }
+                .pnl-display.plus { color: #10b981; }
+                .pnl-display.minus { color: #ef4444; }
+
+                .allocation-panel {
+                    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(10, 10, 15, 0.9) 100%);
+                    border: 1px solid var(--primary-purple);
+                    border-radius: 24px;
+                    padding: 2rem;
+                    box-shadow: 0 10px 40px rgba(168, 85, 247, 0.1);
+                }
+                .allocation-input-wrap {
+                    background: rgba(0,0,0,0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    padding: 0.75rem 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .currency-prefix { font-weight: 800; color: var(--primary-purple); }
+                .allocation-input { background: transparent; border: none; color: white; font-weight: 700; font-size: 1.25rem; width: 100%; outline: none; }
+                .max-btn { background: rgba(168, 85, 247, 0.2); color: var(--primary-purple); border: none; font-size: 10px; font-weight: 800; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; }
+
+                .allocate-btn {
+                    width: 100%;
+                    background: var(--primary-purple);
+                    color: white;
+                    border: none;
+                    height: 54px;
+                    border-radius: 14px;
+                    font-weight: 800;
+                    letter-spacing: 0.1em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+                .allocate-btn:hover { background: var(--secondary-purple); transform: translateY(-2px); box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4); }
+
+                .neural-timeline { position: relative; padding-left: 24px; }
+                .neural-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: rgba(168, 85, 247, 0.2); }
+                .timeline-step { position: relative; margin-bottom: 2rem; }
+                .step-marker { position: absolute; left: -28px; top: 0; width: 7px; height: 7px; border-radius: 100%; background: var(--primary-purple); box-shadow: 0 0 10px var(--primary-purple); }
+                .step-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 12px; padding: 1rem; }
+                .step-action { font-size: 8px; font-weight: 900; }
+                .step-action.long { color: #10b981; }
+                .step-action.short { color: #ef4444; }
+                .step-time { font-size: 8px; color: var(--text-dim); }
+                .step-pair { font-size: 0.9rem; font-weight: 800; color: white; margin-top: 0.25rem; }
+                .step-sig { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+                .sig-hash { font-size: 8px; color: var(--text-dim); font-family: var(--font-mono); }
+
+                .neural-loading-orb {
+                    width: 60px; height: 60px;
+                    border: 3px solid rgba(168, 85, 247, 0.1);
+                    border-top: 3px solid var(--primary-purple);
+                    border-radius: 100%;
+                    animation: spin 1s linear infinite;
                 }
             `}</style>
         </div>

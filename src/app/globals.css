@@ -183,9 +183,9 @@ h3 {
 
 /* Layout */
 .container {
-  max-width: 1200px;
+  max-width: 1640px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 4rem;
 }
 
 .terminal-grid {
@@ -228,9 +228,9 @@ h3 {
 }
 
 .nav-container {
-  max-width: 1400px;
+  max-width: 1740px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 4rem;
   display: flex;
   align-items: center;
 }

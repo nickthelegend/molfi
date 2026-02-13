@@ -1,88 +1,36 @@
-
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { getOraclePrice, calculatePnL, calculateLiquidationPrice } from '@/lib/marketEngine';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
-/**
- * POST /api/positions/open
- * Allows an AI Agent to open a perpetual position.
- */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { vaultId, symbol, side, leverage, size, signature } = body;
+    const { signalId, status, txHash } = body;
 
-    if (!vaultId || !symbol || !side || !leverage || !size) {
-      return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 });
+    if (!signalId || !status) {
+      return NextResponse.json({ success: false, error: 'Missing signalId or status' }, { status: 400 });
     }
 
-    // 1. Fetch Mark Price from Oracle
-    const priceData = await getOraclePrice(symbol);
-    const entryPrice = priceData.price;
-
-    // 2. Calculate Liquidation Price
-    const liquidationPrice = calculateLiquidationPrice(side, entryPrice, leverage);
-
-    // 3. Persist Position to Supabase
-    const { data: position, error: posError } = await supabaseAdmin
-      .from('Position')
-      .insert({
-        vaultId,
-        symbol,
-        side,
-        leverage,
-        entryPrice,
-        liquidationPrice,
-        size,
-        margin: (entryPrice * size) / leverage,
-        markPrice: entryPrice,
-        status: 'OPEN',
-        openedAt: new Date().toISOString()
+    const { data: updatedSignal, error } = await supabaseAdmin
+      .from('TradeSignal')
+      .update({
+        status: status, // 'EXECUTED' or 'FAILED'
+        txHash: txHash,
+        executedAt: new Date()
       })
+      .eq('id', signalId)
       .select()
       .single();
 
-    if (posError) throw posError;
+    if (error) throw error;
 
-    // 4. Log the Trade History
-    await supabaseAdmin.from('Trade').insert({
-      vaultId,
-      symbol,
-      side,
-      price: entryPrice,
-      amount: size,
-      executedAt: new Date().toISOString()
+    console.log(`[CLAW_EXECUTION] Signal ${signalId} updated to ${status}. TX: ${txHash || 'N/A'}`);
+
+    return NextResponse.json({
+      success: true,
+      signal: updatedSignal
     });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: `Position ${side} opened at $${entryPrice}`, 
-      data: position 
-    });
-
   } catch (error: any) {
-    console.error('Trading Engine Error:', error);
+    console.error('Error updating position status:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-}
-
-/**
- * GET /api/positions
- * List active positions for a vault
- */
-export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const vaultId = searchParams.get('vaultId');
-
-    try {
-        let query = supabaseAdmin.from('Position').select('*').eq('status', 'OPEN');
-        if (vaultId) query = query.eq('vaultId', vaultId);
-
-        const { data: positions, error } = await query;
-        if (error) throw error;
-
-        return NextResponse.json({ success: true, data: positions });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
 }
