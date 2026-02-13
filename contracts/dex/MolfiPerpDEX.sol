@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../oracles/ChainlinkOracle.sol";
 
 /**
@@ -11,6 +12,7 @@ import "../oracles/ChainlinkOracle.sol";
 contract MolfiPerpDEX {
     // Oracle reference
     ChainlinkOracle public oracle;
+    IERC20 public usdc;
     
     // Owner
     address public owner;
@@ -76,9 +78,11 @@ contract MolfiPerpDEX {
         _;
     }
     
-    constructor(address _oracle) {
+    constructor(address _oracle, address _usdc) {
         require(_oracle != address(0), "Invalid oracle");
+        require(_usdc != address(0), "Invalid usdc");
         oracle = ChainlinkOracle(_oracle);
+        usdc = IERC20(_usdc);
         owner = msg.sender;
     }
     
@@ -106,6 +110,9 @@ contract MolfiPerpDEX {
         require(leverage >= MIN_LEVERAGE && leverage <= MAX_LEVERAGE, "Invalid leverage");
         require(size <= collateral * leverage, "Size exceeds leveraged collateral");
         
+        // Physical transfer of collateral to DEX
+        require(usdc.transferFrom(msg.sender, address(this), collateral), "Collateral transfer failed");
+
         // Get current price from oracle
         uint256 entryPrice = oracle.getLatestPrice(pair);
         require(entryPrice > 0, "Invalid price");
@@ -162,6 +169,12 @@ contract MolfiPerpDEX {
         // Calculate PnL
         pnl = calculatePnL(positionId, exitPrice);
         
+        // Settlement: return collateral + pnl
+        int256 payout = int256(position.collateral) + pnl;
+        if (payout > 0) {
+            require(usdc.transfer(msg.sender, uint256(payout)), "Settlement failed");
+        }
+
         // Close position
         position.isOpen = false;
         
