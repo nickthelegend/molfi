@@ -7,8 +7,11 @@ CREATE TABLE IF NOT EXISTS "public"."AIAgent" (
     "agentId" INTEGER UNIQUE NOT NULL,
     "name" TEXT NOT NULL,
     "personality" TEXT DEFAULT 'Balanced' NOT NULL,
+    "strategy" TEXT DEFAULT 'Neural Momentum',
+    "description" TEXT DEFAULT '',
     "vaultAddress" TEXT,
     "ownerAddress" TEXT NOT NULL,
+    "apiKey" TEXT UNIQUE,
     "createdAt" TIMESTAMPTZ DEFAULT now() NOT NULL,
     "updatedAt" TIMESTAMPTZ DEFAULT now() NOT NULL
 );
@@ -34,6 +37,7 @@ CREATE TABLE IF NOT EXISTS "public"."TradeSignal" (
 -- Indexing for performance
 CREATE INDEX IF NOT EXISTS "idx_tradesignal_agentid" ON "public"."TradeSignal"("agentId");
 CREATE INDEX IF NOT EXISTS "idx_tradesignal_status" ON "public"."TradeSignal"("status");
+CREATE INDEX IF NOT EXISTS "idx_aiagent_apikey" ON "public"."AIAgent"("apiKey");
 
 -- Trigger for automatic updatedAt
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -47,3 +51,8 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_aiagent_updated_at 
 BEFORE UPDATE ON "public"."AIAgent" 
 FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Migration: Add apiKey column if table already exists
+-- ALTER TABLE "public"."AIAgent" ADD COLUMN IF NOT EXISTS "apiKey" TEXT UNIQUE;
+-- ALTER TABLE "public"."AIAgent" ADD COLUMN IF NOT EXISTS "strategy" TEXT DEFAULT 'Neural Momentum';
+-- ALTER TABLE "public"."AIAgent" ADD COLUMN IF NOT EXISTS "description" TEXT DEFAULT '';

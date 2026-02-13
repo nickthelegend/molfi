@@ -17,8 +17,9 @@ import {
     TrendingUp,
     Clock,
     Zap,
-    ChevronRight,
-    Lock
+    Lock,
+    AlertCircle,
+    CheckCircle2
 } from "lucide-react";
 import { shortenAddress } from "@/lib/contract-helpers";
 
@@ -46,12 +47,17 @@ interface AllocateModalProps {
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
 
+type AllocateStep = 'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'success' | 'error';
+
 export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalProps) {
     const { address, isConnected } = useAccount();
     const [amount, setAmount] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [step, setStep] = useState<AllocateStep>('idle');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
+    const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
 
-    // 1. Fetch USDC Balance
+    // 1. Fetch mUSD.dev Balance
     const { data: usdcBalanceData } = useReadContract({
         address: USDC_ADDRESS,
         abi: USDC_ABI,
@@ -62,7 +68,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
     const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
 
     // 2. Check Allowance
-    const { data: allowance } = useReadContract({
+    const { data: allowance, refetch: refetchAllowance } = useReadContract({
         address: USDC_ADDRESS,
         abi: USDC_ABI,
         functionName: "allowance",
@@ -71,44 +77,124 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
     const { writeContractAsync } = useWriteContract();
 
+    // 3. Wait for approve tx confirmation
+    const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({
+        hash: approveTxHash,
+    });
+
+    // 4. Wait for deposit tx confirmation
+    const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({
+        hash: depositTxHash,
+    });
+
+    // When approve is confirmed, proceed to deposit
+    useEffect(() => {
+        if (approveConfirmed && step === 'waiting_approve') {
+            console.log("[AllocateModal] ✅ Approve confirmed, proceeding to deposit...");
+            refetchAllowance();
+            executeDeposit();
+        }
+    }, [approveConfirmed]);
+
+    // When deposit is confirmed, show success
+    useEffect(() => {
+        if (depositConfirmed && step === 'waiting_deposit') {
+            console.log("[AllocateModal] ✅ Deposit confirmed! Allocation complete.");
+            setStep('success');
+        }
+    }, [depositConfirmed]);
+
     const handleMax = () => {
         setAmount(formattedBalance);
     };
 
-    const handleAllocate = async () => {
-        if (!amount || !address || !isConnected) return;
+    const executeDeposit = async () => {
+        if (!amount || !address) return;
 
-        setIsProcessing(true);
+        setStep('depositing');
+        setErrorMsg(null);
+
         try {
             const parsedAmount = parseEther(amount);
+            console.log("[AllocateModal] Depositing to vault:", agent.vaultAddress);
+            console.log("[AllocateModal] Amount:", amount, "parsedAmount:", parsedAmount.toString());
 
-            // Approve if needed
-            if (!allowance || allowance < parsedAmount) {
-                console.log("Approving USDC...");
-                const approveTx = await writeContractAsync({
-                    address: USDC_ADDRESS,
-                    abi: USDC_ABI,
-                    functionName: "approve",
-                    args: [agent.vaultAddress as `0x${string}`, parsedAmount],
-                });
-                // We'd ideally wait for receipt here, but let's assume it went through for now or the user will click again
-                // In a real app we'd use useWaitForTransactionReceipt
-            }
-
-            console.log("Depositing to vault...");
-            await writeContractAsync({
+            const hash = await writeContractAsync({
                 address: agent.vaultAddress as `0x${string}`,
                 abi: VAULT_ABI,
                 functionName: "deposit",
                 args: [parsedAmount, address],
             });
 
-            console.log("Allocation successful!");
-            onClose();
-        } catch (err) {
-            console.error("Allocation failed:", err);
-        } finally {
-            setIsProcessing(false);
+            console.log("[AllocateModal] Deposit tx submitted:", hash);
+            setDepositTxHash(hash);
+            setStep('waiting_deposit');
+        } catch (err: any) {
+            console.error("[AllocateModal] ❌ Deposit failed:", err);
+            setErrorMsg(err.shortMessage || err.message || "Deposit failed");
+            setStep('error');
+        }
+    };
+
+    const handleAllocate = async () => {
+        if (!amount || !address || !isConnected) return;
+
+        setStep('approving');
+        setErrorMsg(null);
+        setApproveTxHash(undefined);
+        setDepositTxHash(undefined);
+
+        try {
+            const parsedAmount = parseEther(amount);
+
+            // Check if approval is needed
+            if (!allowance || allowance < parsedAmount) {
+                console.log("[AllocateModal] Approving mUSD.dev for vault:", agent.vaultAddress);
+                console.log("[AllocateModal] Amount:", amount, "parsedAmount:", parsedAmount.toString());
+
+                const hash = await writeContractAsync({
+                    address: USDC_ADDRESS,
+                    abi: USDC_ABI,
+                    functionName: "approve",
+                    args: [agent.vaultAddress as `0x${string}`, parsedAmount],
+                });
+
+                console.log("[AllocateModal] Approve tx submitted:", hash);
+                setApproveTxHash(hash);
+                setStep('waiting_approve');
+                // The useEffect watching approveConfirmed will trigger executeDeposit
+            } else {
+                // Already approved, go straight to deposit
+                console.log("[AllocateModal] Already approved, skipping to deposit");
+                await executeDeposit();
+            }
+        } catch (err: any) {
+            console.error("[AllocateModal] ❌ Approve failed:", err);
+            setErrorMsg(err.shortMessage || err.message || "Approval failed");
+            setStep('error');
+        }
+    };
+
+    const handleClose = () => {
+        setStep('idle');
+        setErrorMsg(null);
+        setApproveTxHash(undefined);
+        setDepositTxHash(undefined);
+        setAmount("");
+        onClose();
+    };
+
+    const isProcessing = ['approving', 'waiting_approve', 'depositing', 'waiting_deposit'].includes(step);
+
+    const getStepLabel = () => {
+        switch (step) {
+            case 'approving': return 'APPROVE IN WALLET...';
+            case 'waiting_approve': return 'WAITING FOR APPROVAL CONFIRMATION...';
+            case 'depositing': return 'DEPOSIT IN WALLET...';
+            case 'waiting_deposit': return 'WAITING FOR DEPOSIT CONFIRMATION...';
+            case 'success': return 'ALLOCATION COMPLETE ✓';
+            case 'error': return 'TRANSACTION FAILED';
+            default: return 'CONFIRM ALLOCATION';
         }
     };
 
@@ -128,7 +214,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                             <p className="modal-subtitle">Deploy mUSD.dev into this agent's strategy.</p>
                         </div>
                     </div>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="close-btn" onClick={handleClose}>
                         <X size={20} />
                     </button>
                 </div>
@@ -170,8 +256,9 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                             className="amount-input"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
+                            disabled={isProcessing}
                         />
-                        <button className="max-chip" onClick={handleMax}>MAX</button>
+                        <button className="max-chip" onClick={handleMax} disabled={isProcessing}>MAX</button>
                     </div>
                 </div>
 
@@ -202,18 +289,35 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
                 {/* Action Button */}
                 <button
-                    className={`allocate-btn ${isProcessing ? 'loading' : ''}`}
-                    disabled={isProcessing || !amount || Number(amount) <= 0}
-                    onClick={handleAllocate}
+                    className={`allocate-btn ${isProcessing ? 'loading' : ''} ${step === 'success' ? 'success' : ''} ${step === 'error' ? 'error-btn' : ''}`}
+                    disabled={isProcessing || (!amount || Number(amount) <= 0) && step !== 'success'}
+                    onClick={step === 'success' ? handleClose : handleAllocate}
                 >
                     {isProcessing ? (
-                        <Loader2 size={18} className="animate-spin" />
+                        <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>{getStepLabel()}</span>
+                        </>
+                    ) : step === 'success' ? (
+                        <>
+                            <CheckCircle2 size={18} />
+                            <span>{getStepLabel()}</span>
+                        </>
                     ) : (
                         <>
                             CONFIRM ALLOCATION <ArrowRight size={18} />
                         </>
                     )}
                 </button>
+
+                {/* Error Display */}
+                {step === 'error' && errorMsg && (
+                    <div className="error-display animate-in">
+                        <AlertCircle size={14} />
+                        <span>{errorMsg}</span>
+                        <button className="retry-btn" onClick={handleAllocate}>RETRY</button>
+                    </div>
+                )}
 
                 <p className="footer-warning">
                     Withdrawals are permitted only when the agent is in a neutral state.
@@ -369,6 +473,8 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
           cursor: pointer;
           transition: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
           box-shadow: var(--glow-purple);
+          font-size: 0.85rem;
+          letter-spacing: 0.05em;
         }
 
         .allocate-btn:hover:not(:disabled) {
@@ -382,6 +488,57 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
           cursor: not-allowed;
           box-shadow: none;
         }
+
+        .allocate-btn.loading {
+          background: rgba(168, 85, 247, 0.2);
+          border: 1px solid rgba(168, 85, 247, 0.3);
+          color: white;
+          cursor: wait;
+          box-shadow: none;
+        }
+
+        .allocate-btn.success {
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #10b981;
+          box-shadow: none;
+        }
+
+        .allocate-btn.error-btn {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          box-shadow: none;
+        }
+
+        .error-display {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 12px;
+          color: #ef4444;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 600;
+        }
+
+        .retry-btn {
+          margin-left: auto;
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #ef4444;
+          padding: 0.3rem 0.8rem;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.2s;
+          white-space: nowrap;
+        }
+
+        .retry-btn:hover { background: rgba(239, 68, 68, 0.25); }
 
         .footer-warning {
           text-align: center;

@@ -25,6 +25,8 @@ export default function LaunchPage() {
     const { isConnected, address } = useAccount();
     const [status, setStatus] = useState<'idle' | 'configuring' | 'initialising' | 'compiling' | 'deploying' | 'complete'>('idle');
     const [log, setLog] = useState<string[]>([]);
+    const [apiKey, setApiKey] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
     const [agentDetails, setAgentDetails] = useState({
         name: '',
         strategy: 'Neural Momentum',
@@ -38,6 +40,14 @@ export default function LaunchPage() {
 
     const addLog = (msg: string) => {
         setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    };
+
+    const copyApiKey = () => {
+        if (apiKey) {
+            navigator.clipboard.writeText(apiKey);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     const handleLaunch = async () => {
@@ -55,18 +65,41 @@ export default function LaunchPage() {
 
         await new Promise(r => setTimeout(r, 1000));
         setStatus('deploying');
-        addLog("Transmitting to Monad Testnet...");
-        addLog("Gas limit: 12,000,000 | RPC: Monad Testnet");
+        addLog("Registering agent on MolFi Protocol...");
+
+        // Actually register the agent via API
+        try {
+            const res = await fetch('/api/agent/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: agentDetails.name,
+                    personality: agentDetails.personality,
+                    strategy: agentDetails.strategy,
+                    description: agentDetails.description,
+                    ownerAddress: address,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                addLog(`⚠️ Registration warning: ${data.error || 'Unknown error'}`);
+                addLog("Proceeding with local deployment...");
+            } else {
+                setApiKey(data.apiKey);
+                addLog(`✅ Agent registered with ID: ${data.agent.agentId}`);
+                addLog(`✅ Vault assigned: ${data.agent.vaultAddress.slice(0, 10)}...`);
+                addLog(`✅ API Key generated: ${data.apiKey.slice(0, 16)}...`);
+            }
+        } catch (err) {
+            addLog("⚠️ API registration unavailable, using local deployment...");
+        }
 
         await new Promise(r => setTimeout(r, 1000));
-        addLog(`✅ ${agentDetails.name}_IdentityRegistry: 0xB159E0c8093081712c92e274DbFEa5A97A80cA30`);
-        addLog(`✅ MolfiAgentVault: 0x${Math.random().toString(16).slice(2, 42)}`);
         addLog("✅ ReputationRegistry: 0x38E9cDB0eBc128bEA55c36C03D5532697669132d");
-
-        await new Promise(r => setTimeout(r, 1000));
         addLog("✅ ClawBot_Bridge: 0x386fd4Fa2F27E528CF2D11C6d4b0A4dceD283E0E");
         addLog("Linking Neural Core to Monad Execution Layer...");
-        addLog("System: Vault linked to Agent ID. Ready for Liquidity.");
 
         await new Promise(r => setTimeout(r, 1000));
         setStatus('complete');
@@ -229,6 +262,34 @@ export default function LaunchPage() {
                                             <strong style={{ display: 'block', fontSize: '1.25rem', marginBottom: '0.5rem' }}>EVOLUTION COMPLETE</strong>
                                             <p style={{ opacity: 0.9 }}>{agentDetails.name} has been integrated with ClawBot and successfully deployed on the Monad Parallel Layer.</p>
                                         </div>
+
+                                        {/* API Key Display */}
+                                        {apiKey && (
+                                            <div style={{ marginTop: '2rem', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '16px', padding: '2rem' }}>
+                                                <div className="flex items-center gap-sm mb-md">
+                                                    <Zap size={14} className="text-primary" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">YOUR API KEY</span>
+                                                </div>
+                                                <div className="flex items-center gap-md" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                    <code style={{ flex: 1, fontSize: '0.75rem', color: '#a78bfa', wordBreak: 'break-all', userSelect: 'all' }}>{apiKey}</code>
+                                                    <button
+                                                        onClick={copyApiKey}
+                                                        style={{ background: copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(168, 85, 247, 0.15)', border: '1px solid ' + (copied ? 'rgba(34, 197, 94, 0.3)' : 'rgba(168, 85, 247, 0.3)'), color: copied ? '#4ade80' : '#a78bfa', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', transition: '0.2s' }}
+                                                    >
+                                                        {copied ? '✓ COPIED' : 'COPY'}
+                                                    </button>
+                                                </div>
+                                                <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(168, 85, 247, 0.03)', borderRadius: '10px', border: '1px dashed rgba(168, 85, 247, 0.15)' }}>
+                                                    <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem' }}>
+                                                        <strong style={{ color: '#a78bfa' }}>For OpenClaw / AI Agents:</strong> Paste this prompt:
+                                                    </p>
+                                                    <code style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', userSelect: 'all', lineHeight: 1.6 }}>
+                                                        Read https://molfi.fun/skill.md and follow the instructions to join MolFi with API key: {apiKey.slice(0, 20)}...
+                                                    </code>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="flex flex-col sm:flex-row gap-lg mt-xxl max-w-[600px] mx-auto">
                                             <Link href="/clawdex" style={{ flex: 1 }}>
                                                 <button className="premium-button" style={{ width: '100%', background: '#22c55e', boxShadow: '0 10px 20px rgba(34, 197, 94, 0.2)' }}>CONTINUE TO CLAWDEX</button>
