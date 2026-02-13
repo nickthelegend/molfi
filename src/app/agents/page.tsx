@@ -107,39 +107,44 @@ export default function AgentsPage() {
             <div className="grid-overlay" />
 
             {/* HERO HEADER */}
-            <section className="container" style={{ paddingTop: '160px', paddingBottom: '60px' }}>
-                <div style={{ maxWidth: '800px' }}>
-                    <div className="novel-pill mb-md">
-                        <Globe size={14} className="text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Aether-Sign Explorer</span>
+            <section className="container" style={{ paddingTop: '160px', paddingBottom: '100px', textAlign: 'center' }}>
+                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
+
+                    <div className="float-anim mb-lg">
+                        <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
+                            <Globe size={14} className="text-primary" />
+                            <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Aether-Sign Explorer</span>
+                        </div>
                     </div>
-                    <h1 style={{ fontSize: '4rem', marginBottom: '1.5rem', lineHeight: '1' }}>
+
+                    <h1 className="hero-title" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em', textAlign: 'center', margin: '0 auto' }}>
                         The Agent <span className="text-gradient">Multiverse</span>
                     </h1>
-                    <p className="text-secondary" style={{ fontSize: '1.25rem', marginBottom: '3rem' }}>
+                    <p className="text-secondary mx-auto" style={{ fontSize: '1.25rem', marginBottom: '4rem', maxWidth: '700px' }}>
                         Browse, analyze, and sync with the most advanced autonomous digital minds on the Molfi Network.
                     </p>
 
-                    <div className="grid md:grid-cols-3 gap-xl">
-                        <div className="novel-card">
-                            <span className="text-xs text-dim uppercase font-bold tracking-widest block mb-xs">Live Agents</span>
-                            <div className="flex items-center gap-sm">
-                                <h2 className="m-0">2,481</h2>
-                                <span className="text-xs text-success font-bold">+12 today</span>
+                    <div className="grid md:grid-cols-3 gap-xl w-full" style={{ maxWidth: '1200px' }}>
+                        <div className="novel-card" style={{ padding: '2rem' }}>
+                            <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Live Agents</span>
+                            <div className="flex items-center justify-center gap-sm">
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>2,481</h2>
+                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+12 today</span>
                             </div>
                         </div>
-                        <div className="novel-card">
-                            <span className="text-xs text-dim uppercase font-bold tracking-widest block mb-xs">Active TVL</span>
-                            <div className="flex items-center gap-sm">
-                                <h2 className="m-0">$42.8M</h2>
-                                <span className="text-xs text-success font-bold">+5.4%</span>
+                        <div className="novel-card" style={{ padding: '2rem' }}>
+                            <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Active TVL</span>
+                            <div className="flex items-center justify-center gap-sm">
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>$42.8M</h2>
+                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+5.4%</span>
                             </div>
                         </div>
-                        <div className="novel-card">
-                            <span className="text-xs text-dim uppercase font-bold tracking-widest block mb-xs">Network Perf</span>
-                            <div className="flex items-center gap-sm">
-                                <h2 className="m-0">+28.4%</h2>
-                                <span className="text-xs text-primary font-bold">AVG ROI</span>
+                        <div className="novel-card" style={{ padding: '2rem' }}>
+                            <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Network Perf</span>
+                            <div className="flex items-center justify-center gap-sm">
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>+28.4%</h2>
+                                <span className="text-xs text-primary font-bold" style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>AVG ROI</span>
                             </div>
                         </div>
                     </div>
@@ -147,25 +152,20 @@ export default function AgentsPage() {
             </section>
 
             {/* FILTER & DISCOVER BAR */}
-            <section className="container py-xl" style={{ borderTop: '1px solid var(--glass-border)', background: 'rgba(168, 85, 247, 0.02)' }}>
-                <div className="flex flex-col md:flex-row gap-xl items-center justify-between">
-                    <div className="flex items-center gap-lg" style={{ flex: 1, maxWidth: '600px', width: '100%' }}>
-                        <div className="novel-search-container" style={{ flex: 1 }}>
-                            <Search size={18} className="text-dim" />
-                            <input
-                                type="text"
-                                placeholder="Search the multiverse (name, strategy, asset)..."
-                                className="novel-search-input"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <button className="glass-icon-button">
-                            <Filter size={20} />
-                        </button>
+            <section className="container py-xl" style={{ borderTop: 'none', background: 'transparent' }}>
+                <div className="filter-bar" style={{ marginBottom: '0' }}>
+                    <div className="search-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, maxWidth: '800px' }}>
+                        <Search size={20} className="text-dim" />
+                        <input
+                            type="text"
+                            placeholder="Search the multiverse (name, strategy, asset)..."
+                            className="premium-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
 
-                    <div className="flex gap-md overflow-x-auto pb-sm md:pb-0" style={{ maxWidth: '100%' }}>
+                    <div className="flex gap-md" style={{ marginLeft: '2rem' }}>
                         {[
                             { id: 'all', label: 'ALL MINDS' },
                             { id: 'trader', label: 'TRADERS' },
@@ -189,33 +189,41 @@ export default function AgentsPage() {
                 <div className="terminal-grid">
                     {filteredAgents.map(agent => (
                         <div key={agent.id} className="col-span-4">
-                            <div className="novel-card hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <div className="premium-card group hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
                                 <div className="flex justify-between mb-lg">
                                     <div className="flex items-center gap-md">
                                         <div className="agent-orb">
-                                            <Cpu size={24} className="text-primary" />
+                                            <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                                            <div className="orb-ring" />
                                         </div>
                                         <div>
-                                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.1rem' }}>{agent.name}</h3>
+                                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.1rem', fontWeight: '700' }}>{agent.name}</h3>
                                             <span className="text-[10px] text-dim font-mono">{agent.owner}</span>
                                         </div>
                                     </div>
-                                    <div className="status-badge active" style={{ height: 'fit-content' }}>LIVE</div>
+                                    <div className="sync-badge">
+                                        <Activity size={10} className="animate-pulse" />
+                                        <span>LIVE</span>
+                                    </div>
                                 </div>
 
-                                <p className="text-secondary text-sm mb-xl" style={{ flex: 1 }}>{agent.description}</p>
+                                <p className="description-text" style={{ flex: 1, marginBottom: '2rem' }}>{agent.description}</p>
 
-                                <div className="grid grid-cols-2 gap-md mb-xl p-md rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                                    <div>
-                                        <span className="text-[10px] text-dim uppercase block">30D ROI</span>
-                                        <span className="font-bold text-success" style={{ fontSize: '1.25rem' }}>{agent.performance30d}</span>
+                                <div className="stat-grid" style={{ marginBottom: '2rem' }}>
+                                    <div className="stat-item">
+                                        <span className="stat-sm-label">30D ROI</span>
+                                        <span className="stat-sm-value text-success">{agent.performance30d}</span>
                                     </div>
-                                    <div>
-                                        <span className="text-[10px] text-dim uppercase block">REP SCORE</span>
-                                        <div className="flex items-center gap-xs">
-                                            <span className="font-bold text-primary" style={{ fontSize: '1.25rem' }}>{agent.reputationScore}</span>
+                                    <div className="stat-item border-x">
+                                        <span className="stat-sm-label">REP SCORE</span>
+                                        <div className="flex items-center justify-center gap-xs">
+                                            <span className="stat-sm-value text-primary">{agent.reputationScore}</span>
                                             <ShieldCheck size={14} className="text-primary" />
                                         </div>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-sm-label">TVL</span>
+                                        <span className="stat-sm-value">{agent.tvl}</span>
                                     </div>
                                 </div>
 
@@ -226,8 +234,8 @@ export default function AgentsPage() {
                                         ))}
                                     </div>
                                     <Link href={`/clawdex/agent/${agent.id}`}>
-                                        <button className="glass-icon-button" style={{ width: '40px', height: '40px' }}>
-                                            <ArrowUpRight size={18} />
+                                        <button className="stake-button" style={{ padding: '0.6rem 1rem' }}>
+                                            DETAILS <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
                                         </button>
                                     </Link>
                                 </div>
@@ -254,6 +262,7 @@ export default function AgentsPage() {
                 .type-chip:hover {
                     border-color: var(--primary-purple);
                     color: white;
+                    background: rgba(168, 85, 247, 0.1);
                 }
                 .type-chip.active {
                     background: var(--primary-purple);
@@ -262,63 +271,123 @@ export default function AgentsPage() {
                     box-shadow: var(--glow-purple);
                 }
                 .agent-orb {
-                    width: 48px;
-                    height: 48px;
+                    width: 52px;
+                    height: 52px;
                     background: rgba(168, 85, 247, 0.1);
                     border: 1px solid var(--glass-border);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: var(--glass-glow);
+                    position: relative;
                 }
+                .orb-ring {
+                    position: absolute;
+                    inset: -4px;
+                    border: 1px solid var(--primary-purple);
+                    border-radius: 100%;
+                    opacity: 0.2;
+                    animation: spin 10s linear infinite;
+                }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                
                 .asset-tag {
                     font-size: 10px;
                     font-weight: 800;
                     padding: 0.2rem 0.5rem;
                     background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.1);
                     border-radius: 4px;
                     color: var(--text-secondary);
+                    text-transform: uppercase;
                 }
-                .novel-search-container {
+                .py-xxl { padding: 120px 0; }
+                .hover-lift:hover { transform: translateY(-8px); }
+
+                /* Reuse ClawDex specific classes */
+                .premium-card {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 24px;
+                    padding: 2rem;
+                    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                    position: relative;
+                    overflow: hidden;
+                }
+                .premium-card:hover {
+                    background: rgba(255, 255, 255, 0.04);
+                    border-color: rgba(168, 85, 247, 0.3);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                }
+                .stat-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    background: rgba(0,0,0,0.2);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 16px;
+                }
+                .stat-item { padding: 1rem; text-align: center; }
+                .stat-sm-label { display: block; font-size: 9px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em; }
+                .stat-sm-value { font-size: 1rem; font-weight: 700; font-family: var(--font-mono); color: white; }
+                .border-x { border-left: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); }
+
+                .sync-badge {
                     display: flex;
                     align-items: center;
-                    gap: 0.75rem;
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid var(--glass-border);
-                    border-radius: 12px;
-                    padding: 0 1rem;
-                    height: 52px;
-                    transition: all 0.3s ease;
+                    gap: 0.4rem;
+                    font-size: 9px;
+                    font-weight: 800;
+                    color: var(--primary-purple);
+                    background: rgba(168, 85, 247, 0.1);
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 6px;
+                    height: fit-content;
                 }
-                .novel-search-input {
-                    background: transparent;
-                    border: none;
+                .description-text {
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
+                    line-height: 1.6;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+                .stake-button {
+                    background: var(--primary-purple);
                     color: white;
-                    font-size: 0.95rem;
-                    width: 100%;
-                    outline: none;
-                }
-                .glass-icon-button {
-                    width: 52px;
-                    height: 52px;
+                    border: none;
+                    border-radius: 12px;
+                    font-weight: 800;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.05em;
+                    cursor: pointer;
+                    transition: all 0.3s;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(255, 255, 255, 0.03);
+                }
+                .stake-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3); }
+
+                .filter-bar {
+                    background: rgba(255, 255, 255, 0.02);
+                    backdrop-filter: blur(24px);
+                    -webkit-backdrop-filter: blur(24px);
                     border: 1px solid var(--glass-border);
-                    border-radius: 12px;
-                    color: var(--text-secondary);
-                    cursor: pointer;
-                    transition: all 0.3s ease;
+                    border-radius: 24px;
+                    padding: 1.25rem 2.5rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                 }
-                .glass-icon-button:hover {
-                    border-color: var(--primary-purple);
-                    color: var(--primary-purple);
-                    transform: scale(1.05);
+                .premium-input { 
+                    background: transparent; 
+                    border: none; 
+                    color: white; 
+                    font-size: 1rem; 
+                    width: 100%; 
+                    outline: none; 
                 }
-                .py-xxl { padding: 100px 0; }
-                .hover-lift:hover { transform: translateY(-8px); }
             `}</style>
         </div>
     );
