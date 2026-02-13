@@ -239,17 +239,17 @@ function ClawDexPageContent() {
 
             <div className="container" style={{ paddingTop: '160px' }}>
                 {/* Header Section */}
-                <div style={{ marginBottom: '6rem', textAlign: 'center', position: 'relative' }}>
+                <div style={{ marginBottom: '6rem', textAlign: 'center', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
 
-                    <div className="float-anim mb-md">
+                    <div className="float-anim mb-md" style={{ display: 'flex', justifyContent: 'center' }}>
                         <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Zap size={14} className="text-primary animate-pulse" />
                             <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Circuit Registry v2.0</span>
                         </div>
                     </div>
 
-                    <h1 className="hero-title mx-auto" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em' }}>
+                    <h1 className="hero-title" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em', textAlign: 'center', margin: '0 auto' }}>
                         The <span className="text-gradient">Financial Brain</span> <br />
                         <span style={{ fontSize: '0.7em', color: 'rgba(255,255,255,0.8)' }}>of the Monad Ecosystem</span>
                     </h1>
@@ -257,7 +257,7 @@ function ClawDexPageContent() {
 
                 {/* Filters & Search */}
                 <div className="filter-bar">
-                    <div className="search-group" style={{ maxWidth: '900px' }}>
+                    <div className="search-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, maxWidth: '900px' }}>
                         <Search size={20} className="text-dim" />
                         <input
                             type="text"
@@ -265,16 +265,17 @@ function ClawDexPageContent() {
                             className="premium-input"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', outline: 'none', fontSize: '1rem' }}
                         />
                     </div>
-                    <div className="flex items-center gap-xxl">
-                        <div className="top-stat">
-                            <span className="label">ACTIVE TVL</span>
-                            <span className="value">${agents.length > 0 ? '1.8' : '42.8'}M</span>
+                    <div className="flex items-center gap-xl" style={{ marginLeft: '2rem' }}>
+                        <div className="top-stat" style={{ textAlign: 'right', minWidth: '100px' }}>
+                            <span className="label" style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ACTIVE TVL</span>
+                            <span className="value" style={{ fontSize: '1.25rem', fontWeight: '800', fontFamily: 'var(--font-mono)' }}>${agents.length > 0 ? '1.8' : '42.8'}M</span>
                         </div>
-                        <div className="top-stat">
-                            <span className="label">CLAW_CONSENSUS</span>
-                            <span className="value text-primary">99.1%</span>
+                        <div className="top-stat" style={{ textAlign: 'right', minWidth: '140px' }}>
+                            <span className="label" style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>CLAW_CONSENSUS</span>
+                            <span className="value text-primary" style={{ fontSize: '1.25rem', fontWeight: '800', fontFamily: 'var(--font-mono)' }}>99.1%</span>
                         </div>
                     </div>
                 </div>
@@ -496,18 +497,31 @@ function ClawDexPageContent() {
                 .sig-hash { font-size: 8px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 0; }
 
                 .filter-bar {
-                    background: rgba(255,255,255,0.02);
-                    backdrop-filter: blur(20px);
+                    background: rgba(255, 255, 255, 0.02);
+                    backdrop-filter: blur(24px);
+                    -webkit-backdrop-filter: blur(24px);
                     border: 1px solid var(--glass-border);
-                    border-radius: 20px;
-                    padding: 1rem 2rem;
+                    border-radius: 24px;
+                    padding: 1.25rem 2.5rem;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    margin-bottom: 3rem;
+                    margin-bottom: 4rem;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                 }
-                .premium-input { background: transparent; border: none; color: white; font-size: 0.95rem; width: 100%; outline: none; }
-                .top-stat .label { display: block; font-size: 9px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.2rem; }
+                .premium-input { 
+                    background: transparent; 
+                    border: none; 
+                    color: white; 
+                    font-size: 1rem; 
+                    width: 100%; 
+                    outline: none; 
+                    font-family: var(--font-body);
+                }
+                .premium-input::placeholder {
+                    color: rgba(255,255,255,0.3);
+                }
+                .top-stat .label { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.2rem; letter-spacing: 0.1em; }
                 .top-stat .value { font-size: 1.5rem; font-weight: 800; font-family: var(--font-mono); color: white; }
 
                 @media (max-width: 1024px) {
