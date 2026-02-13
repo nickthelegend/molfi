@@ -127,7 +127,7 @@ const DecisionLog = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const displaySignals = signals.length > 0 ? signals : MOCK_AGENTS[0].recentDecisions;
+    const displaySignals = signals;
 
     return (
         <div className="neural-stream-container">
@@ -226,7 +226,7 @@ function ClawDexPageContent() {
         alert(`Initializing staking protocol for agent: ${agentId}`);
     };
 
-    const displayAgents = agents.length > 0 ? agents : MOCK_AGENTS;
+    const displayAgents = agents;
 
     return (
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem', overflow: 'hidden' }}>

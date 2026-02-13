@@ -41,9 +41,8 @@ contract MolfiVaultFactory {
         ERC1967Proxy proxy = new ERC1967Proxy(implementation, data);
         address vaultAddress = address(proxy);
 
-        // Link the vault in the IdentityRegistry
-        // Note: msg.sender must be authorized in IdentityRegistry or Factory must be whitelisted
-        IdentityRegistryUpgradeable(identityRegistry).setAgentVault(agentId, vaultAddress);
+        // Link the vault in the IdentityRegistry manually in the deployment script
+        // IdentityRegistryUpgradeable(identityRegistry).setAgentVault(agentId, vaultAddress);
 
         emit VaultDeployed(agentId, vaultAddress);
         return vaultAddress;

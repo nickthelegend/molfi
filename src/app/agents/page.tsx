@@ -78,14 +78,30 @@ export default function AgentsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [sortBy, setSortBy] = useState<SortType>('reputation');
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setMounted(true);
+        const fetchAgents = async () => {
+            try {
+                const res = await fetch('/api/agents');
+                const data = await res.json();
+                if (data.success) {
+                    setAgents(data.agents);
+                }
+            } catch (err) {
+                console.error("Failed to fetch agents:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAgents();
     }, []);
 
     if (!mounted) return null;
 
-    const filteredAgents = MOCK_AGENTS
+    const filteredAgents = agents
         .filter((agent) => {
             const matchesSearch =
                 agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
