@@ -404,7 +404,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                             {isScanning ? "SCANNING BLOCKCHAIN..." : "SCAN & RECOVER INVESTMENT"}
                         </button>
 
-                        <Link href="/profile" className="neon-button secondary w-full">
+                        <Link href="/profile" className="neon-button white-secondary w-full">
                             Back to Profile
                         </Link>
                     </div>
@@ -1093,6 +1093,18 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     background: rgba(168, 85, 247, 0.12);
                     border-color: rgba(168, 85, 247, 0.6);
                     color: white;
+                }
+
+                .neon-button.white-secondary {
+                    background: transparent;
+                    border-color: rgba(255, 255, 255, 0.3);
+                    color: rgba(255, 255, 255, 0.8);
+                }
+                .neon-button.white-secondary:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: #ffffff;
+                    color: #ffffff;
+                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
                 }
             `}</style>
         </div>
