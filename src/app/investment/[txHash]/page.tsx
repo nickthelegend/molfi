@@ -315,185 +315,380 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const isProfitable = parseFloat(pnl) >= 0;
 
     return (
-        <div className="container max-w-6xl mx-auto pt-32 px-4 pb-12">
-            <Link href="/profile" className="inline-flex items-center text-sm text-secondary hover:text-white mb-6 transistion-colors">
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Profile
-            </Link>
+        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
+            <div className="grid-overlay" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Investment Card */}
-                <div className="lg:col-span-8">
-                    <div className="glass-container p-8 mb-8">
-                        <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30">
-                                        ACTIVE CIRCUIT
-                                    </span>
-                                    <span className="text-secondary text-sm flex items-center gap-1">
-                                        <Lock size={12} /> {new Date(investment.created_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                <h1 className="text-4xl font-bold mb-2 break-all">{investment.agents?.name || 'Unknown Agent'}</h1>
-                                <div className="flex items-center gap-4">
-                                    <a
-                                        href={getExplorerUrl(41454, investment.tx_hash)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-sm text-secondary hover:text-primary transition-colors"
-                                    >
-                                        TX: {shortenAddress(investment.tx_hash)}
-                                        <ExternalLink size={12} className="ml-1" />
-                                    </a>
-                                </div>
-                            </div>
+            <div className="container" style={{ maxWidth: '1200px', paddingTop: '140px', paddingBottom: '60px' }}>
+                <div className="investment-topbar">
+                    <Link href="/profile" className="inline-flex items-center text-sm text-secondary hover:text-white transistion-colors">
+                        <ArrowLeft size={16} className="mr-2" />
+                        Back to Profile
+                    </Link>
+                    <a
+                        href={getExplorerUrl(41454, investment.tx_hash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tx-pill"
+                    >
+                        TX: {shortenAddress(investment.tx_hash)}
+                        <ExternalLink size={12} className="ml-1" />
+                    </a>
+                </div>
 
-                            <div className="text-right">
-                                <p className="text-secondary text-sm mb-1 uppercase tracking-widest font-bold">Total Return</p>
-                                <p className={`text-3xl font-bold ${isProfitable ? 'text-green-500' : 'text-red-500'}`}>
-                                    {isProfitable ? '+' : ''}{pnlPercentage}%
-                                </p>
-                                <p className={`text-sm font-mono ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
-                                    {isProfitable ? '+' : ''}{pnl} USDT
-                                </p>
-                            </div>
+                <div className="glass-container investment-hero">
+                    <div className="investment-hero-main">
+                        <div className="investment-badges">
+                            <span className="status-pill">ACTIVE CIRCUIT</span>
+                            <span className="meta-pill">
+                                <Lock size={12} /> {new Date(investment.created_at).toLocaleDateString()}
+                            </span>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Initial Capital</p>
-                                <p className="text-xl font-bold font-mono text-white">{parseFloat(investment.amount).toFixed(2)} USDT</p>
-                                <p className="text-xs text-secondary mt-1">
-                                    {parseFloat(investment.shares).toFixed(4)} Shares Owned
-                                </p>
-                            </div>
-
-                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Current Value</p>
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp size={16} className={isProfitable ? 'text-green-500' : 'text-red-500'} />
-                                    <p className="text-xl font-bold font-mono text-white">{parseFloat(currentValue).toFixed(2)} USDT</p>
-                                </div>
-                                <p className="text-xs text-secondary mt-1">Mark-to-Market</p>
-                            </div>
-
-                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Vault State</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                    <p className="text-lg font-bold text-white">Live</p>
-                                </div>
-                                <a
-                                    href={getExplorerUrl(41454, investment.agents?.vault_address)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline mt-1 block"
-                                >
-                                    {shortenAddress(investment.agents?.vault_address || '')}
-                                </a>
-                            </div>
+                        <h1 className="investment-title">{investment.agents?.name || 'Unknown Agent'}</h1>
+                        <p className="investment-subtitle">
+                            Allocation secured on the agent vault. Track value and manage withdrawals below.
+                        </p>
+                    </div>
+                    <div className="investment-hero-performance">
+                        <div className="perf-label">Total Return</div>
+                        <div className={`perf-value ${isProfitable ? 'plus' : 'minus'}`}>
+                            {isProfitable ? '+' : ''}{pnlPercentage}%
                         </div>
-
-                        <div className="border-t border-white/10 pt-8">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <DollarSign size={18} className="text-primary" />
-                                Position Management
-                            </h3>
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <button
-                                    onClick={() => handleWithdraw('profit')}
-                                    disabled={isWithdrawing || parseFloat(pnl) <= 0}
-                                    className={`neon-button secondary flex-1 ${isWithdrawing && withdrawMode === 'profit' ? 'opacity-80' : ''} ${parseFloat(pnl) <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {isWithdrawing && withdrawMode === 'profit' ? 'Processing...' : 'Withdraw Profits Only'}
-                                </button>
-                                <button
-                                    onClick={() => handleWithdraw('all')}
-                                    disabled={isWithdrawing || parseFloat(currentValue) <= 0}
-                                    className={`neon-button flex-1 ${isWithdrawing && withdrawMode === 'all' ? 'opacity-80' : ''}`}
-                                >
-                                    {isWithdrawing && withdrawMode === 'all' ? 'Closing Position...' : 'Close Position (Withdraw All)'}
-                                </button>
-                            </div>
-
-                            {parseFloat(pnl) <= 0 && (
-                                <p className="text-xs text-dim mt-2 text-center md:text-left">
-                                    * Profit withdrawal enabled when position is in profit.
-                                </p>
-                            )}
+                        <div className={`perf-sub ${isProfitable ? 'plus' : 'minus'}`}>
+                            {isProfitable ? '+' : ''}{pnl} USDT
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar: Agent Archi/Stats */}
-                <div className="lg:col-span-4">
-                    <div className="glass-container p-6 sticky top-32">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-bold flex items-center gap-2">
-                                <ShieldCheck size={18} className="text-primary-purple" />
-                                AGENT ARCHITECTURE
-                            </h3>
-                            {agentData && (
-                                <span className={`text-xs font-bold px-2 py-1 rounded border ${agentData.roi >= 0 ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                    API: {agentData.roi}%
-                                </span>
+                <div className="investment-stats">
+                    <div className="stat-tile">
+                        <div className="stat-label">Initial Capital</div>
+                        <div className="stat-number">{parseFloat(investment.amount).toFixed(2)} USDT</div>
+                        <div className="stat-meta">{parseFloat(investment.shares).toFixed(4)} shares owned</div>
+                    </div>
+                    <div className="stat-tile">
+                        <div className="stat-label">Current Value</div>
+                        <div className="stat-number">
+                            <TrendingUp size={14} className={isProfitable ? 'text-green-500' : 'text-red-500'} />
+                            {parseFloat(currentValue).toFixed(2)} USDT
+                        </div>
+                        <div className="stat-meta">Mark-to-market</div>
+                    </div>
+                    <div className="stat-tile">
+                        <div className="stat-label">Vault State</div>
+                        <div className="stat-number">
+                            <span className="live-dot" />
+                            Live
+                        </div>
+                        <a
+                            href={getExplorerUrl(41454, investment.agents?.vault_address)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="stat-meta link"
+                        >
+                            {shortenAddress(investment.agents?.vault_address || '')}
+                        </a>
+                    </div>
+                </div>
+
+                <div className="investment-grid">
+                    <div className="investment-main">
+                        <div className="glass-container investment-panel">
+                            <div className="panel-header">
+                                <h3 className="panel-title">
+                                    <DollarSign size={18} className="text-primary" />
+                                    Position Management
+                                </h3>
+                                <span className="panel-tag">Manage Withdrawals</span>
+                            </div>
+                            <div className="panel-body">
+                                <div className="panel-actions">
+                                    <button
+                                        onClick={() => handleWithdraw('profit')}
+                                        disabled={isWithdrawing || parseFloat(pnl) <= 0}
+                                        className={`neon-button secondary flex-1 ${isWithdrawing && withdrawMode === 'profit' ? 'opacity-80' : ''} ${parseFloat(pnl) <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isWithdrawing && withdrawMode === 'profit' ? 'Processing...' : 'Withdraw Profits Only'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleWithdraw('all')}
+                                        disabled={isWithdrawing || parseFloat(currentValue) <= 0}
+                                        className={`neon-button flex-1 ${isWithdrawing && withdrawMode === 'all' ? 'opacity-80' : ''}`}
+                                    >
+                                        {isWithdrawing && withdrawMode === 'all' ? 'Closing Position...' : 'Close Position (Withdraw All)'}
+                                    </button>
+                                </div>
+
+                                <div className="panel-note">
+                                    {parseFloat(pnl) <= 0
+                                        ? '* Profit withdrawal enabled when position is in profit.'
+                                        : 'Profit withdrawal uses on-chain share pricing.'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="investment-side">
+                        <div className="glass-container p-6 sticky top-32">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <ShieldCheck size={18} className="text-primary-purple" />
+                                    AGENT ARCHITECTURE
+                                </h3>
+                                {agentData && (
+                                    <span className={`text-xs font-bold px-2 py-1 rounded border ${agentData.roi >= 0 ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                        API: {agentData.roi}%
+                                    </span>
+                                )}
+                            </div>
+
+                            {agentData ? (
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="text-xs font-bold text-dim uppercase mb-2 block">Strategy Core</label>
+                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary">
+                                                    <BarChart3 size={16} />
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-sm text-white">{agentData.strategy || 'Neural Momentum'}</div>
+                                                    <div className="text-xs text-secondary">{agentData.personality || 'Balanced'} Risk Profile</div>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-dim leading-relaxed">
+                                                {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-dim uppercase mb-2 block">Performance Metrics</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
+                                                <div className="text-xs text-secondary mb-1">Win Rate</div>
+                                                <div className="text-lg font-bold text-white">{agentData.winRate}%</div>
+                                            </div>
+                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
+                                                <div className="text-xs text-secondary mb-1">Total Trades</div>
+                                                <div className="text-lg font-bold text-white">{agentData.totalTrades}</div>
+                                            </div>
+                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center col-span-2">
+                                                <div className="text-xs text-secondary mb-1">Total Agent PnL</div>
+                                                <div className={`text-lg font-bold ${agentData.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {agentData.totalPnL >= 0 ? '+' : ''}{agentData.totalPnL.toFixed(2)} USDT
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Link href={`/clawdex/agent/${agentData.agentId}`} className="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/5 border border-dashed border-primary/30 rounded-lg transition-colors">
+                                        View Full Agent Protocol
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="py-8 text-center text-secondary">
+                                    <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
+                                    <span className="text-xs">Synchronizing Agent Data...</span>
+                                </div>
                             )}
                         </div>
-
-                        {agentData ? (
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-xs font-bold text-dim uppercase mb-2 block">Strategy Core</label>
-                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary">
-                                                <BarChart3 size={16} />
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-sm text-white">{agentData.strategy || 'Neural Momentum'}</div>
-                                                <div className="text-xs text-secondary">{agentData.personality || 'Balanced'} Risk Profile</div>
-                                            </div>
-                                        </div>
-                                        <p className="text-xs text-dim leading-relaxed">
-                                            {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-xs font-bold text-dim uppercase mb-2 block">Performance Metrics</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
-                                            <div className="text-xs text-secondary mb-1">Win Rate</div>
-                                            <div className="text-lg font-bold text-white">{agentData.winRate}%</div>
-                                        </div>
-                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
-                                            <div className="text-xs text-secondary mb-1">Total Trades</div>
-                                            <div className="text-lg font-bold text-white">{agentData.totalTrades}</div>
-                                        </div>
-                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center col-span-2">
-                                            <div className="text-xs text-secondary mb-1">Total Agent PnL</div>
-                                            <div className={`text-lg font-bold ${agentData.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                {agentData.totalPnL >= 0 ? '+' : ''}{agentData.totalPnL.toFixed(2)} USDT
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Link href={`/clawdex/agent/${agentData.agentId}`} className="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/5 border border-dashed border-primary/30 rounded-lg transition-colors">
-                                    View Full Agent Protocol
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="py-8 text-center text-secondary">
-                                <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
-                                <span className="text-xs">Synchronizing Agent Data...</span>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
+
+            <style jsx global>{`
+                .investment-topbar {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 1rem;
+                    margin-bottom: 1.5rem;
+                    flex-wrap: wrap;
+                }
+                .tx-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    padding: 0.4rem 0.8rem;
+                    font-size: 0.7rem;
+                    border-radius: 999px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(255,255,255,0.03);
+                    color: var(--text-secondary);
+                }
+                .investment-hero {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 2rem;
+                    padding: 2.5rem;
+                    margin-bottom: 1.5rem;
+                }
+                .investment-hero-main {
+                    max-width: 640px;
+                }
+                .investment-badges {
+                    display: flex;
+                    gap: 0.6rem;
+                    align-items: center;
+                    margin-bottom: 0.8rem;
+                    flex-wrap: wrap;
+                }
+                .status-pill {
+                    padding: 0.35rem 0.8rem;
+                    border-radius: 999px;
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    letter-spacing: 0.12em;
+                    text-transform: uppercase;
+                    background: rgba(168, 85, 247, 0.2);
+                    border: 1px solid rgba(168, 85, 247, 0.3);
+                    color: var(--primary-purple);
+                }
+                .meta-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                }
+                .investment-title {
+                    font-size: 2.5rem;
+                    margin-bottom: 0.5rem;
+                }
+                .investment-subtitle {
+                    color: var(--text-secondary);
+                    font-size: 1rem;
+                }
+                .investment-hero-performance {
+                    background: rgba(0,0,0,0.35);
+                    border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 20px;
+                    padding: 1.5rem 2rem;
+                    min-width: 220px;
+                    text-align: right;
+                }
+                .perf-label {
+                    font-size: 0.7rem;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    color: var(--text-dim);
+                }
+                .perf-value {
+                    font-size: 2.2rem;
+                    font-weight: 800;
+                    margin-top: 0.3rem;
+                }
+                .perf-value.plus { color: #10b981; }
+                .perf-value.minus { color: #ef4444; }
+                .perf-sub {
+                    font-size: 0.85rem;
+                    font-family: var(--font-mono);
+                }
+                .perf-sub.plus { color: #10b981; }
+                .perf-sub.minus { color: #ef4444; }
+
+                .investment-stats {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                }
+                .stat-tile {
+                    background: rgba(0,0,0,0.25);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 16px;
+                    padding: 1.2rem;
+                }
+                .stat-label {
+                    font-size: 0.7rem;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    color: var(--text-dim);
+                    margin-bottom: 0.4rem;
+                }
+                .stat-number {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                }
+                .stat-meta {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    margin-top: 0.4rem;
+                }
+                .stat-meta.link {
+                    color: var(--primary-purple);
+                }
+                .live-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 999px;
+                    background: #10b981;
+                    box-shadow: 0 0 10px rgba(16,185,129,0.8);
+                }
+
+                .investment-grid {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+                    gap: 1.5rem;
+                }
+                .investment-panel {
+                    padding: 2rem;
+                }
+                .panel-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
+                    flex-wrap: wrap;
+                    gap: 0.6rem;
+                }
+                .panel-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 1.1rem;
+                }
+                .panel-tag {
+                    font-size: 0.65rem;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    color: var(--text-dim);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 0.3rem 0.6rem;
+                    border-radius: 999px;
+                }
+                .panel-actions {
+                    display: flex;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                }
+                .panel-note {
+                    margin-top: 0.8rem;
+                    font-size: 0.75rem;
+                    color: var(--text-dim);
+                }
+
+                @media (max-width: 1024px) {
+                    .investment-hero {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+                    .investment-hero-performance {
+                        width: 100%;
+                        text-align: left;
+                    }
+                    .investment-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .investment-side .glass-container {
+                        position: static;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
