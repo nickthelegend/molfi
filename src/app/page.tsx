@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from "next/link";
+import NextImage from "next/image";
 import {
   TrendingUp,
   Shield,
@@ -304,8 +305,12 @@ export default function Home() {
         <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-center gap-xl pb-xxl border-top pt-xl" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
             <div className="flex items-center gap-md">
-              <Cpu className="text-primary" size={32} />
-              <span className="font-bold font-mono tracking-tighter">MOLFI PROTOCOL</span>
+              <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+                <NextImage src="/logo/logo.png" alt="Molfi Logo" fill style={{ objectFit: 'contain' }} sizes="32px" />
+              </div>
+              <div style={{ position: 'relative', height: '32px', width: '128px' }}>
+                <NextImage src="/logo/text-logo.png" alt="Molfi Protocol" fill style={{ objectFit: 'contain', objectPosition: 'left' }} sizes="128px" />
+              </div>
             </div>
             <div className="flex gap-xl text-xs font-bold uppercase tracking-widest text-dim">
               <span className="hover:text-primary transition-colors cursor-pointer">Security</span>

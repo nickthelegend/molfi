@@ -7,6 +7,9 @@ import { Providers } from "@/components/Providers";
 export const metadata: Metadata = {
   title: "Molfi Protocol | Autonomous Hedge Fund",
   description: "Deploy your AI Fund Manager, automate perpetual positions, and compete for multichain yield.",
+  icons: {
+    icon: '/logo/logo.png',
+  },
 };
 
 export default function RootLayout({

@@ -1,8 +1,9 @@
 "use client";
 
+import NextImage from 'next/image';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Menu, X, Cpu, Bot, Activity, Zap, BarChart2, Swords, Droplets } from 'lucide-react';
+import { Menu, X, Bot, Activity, Droplets, Swords } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AlertCenter from './AlertCenter';
 
@@ -19,10 +20,24 @@ export default function Navbar() {
             <div className="nav-container">
                 <div style={{ flex: 1 }}>
                     <Link href="/" className="nav-brand">
-                        <Cpu className="text-primary" size={32} style={{ color: 'var(--primary-purple)' }} />
-                        <span className="text-gradient data-text">
-                            MOLFI
-                        </span>
+                        <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+                            <NextImage
+                                src="/logo/logo.png"
+                                alt="Molfi Logo"
+                                fill
+                                style={{ objectFit: 'contain' }}
+                                sizes="32px"
+                            />
+                        </div>
+                        <div style={{ position: 'relative', height: '32px', width: '100px' }}>
+                            <NextImage
+                                src="/logo/text-logo.png"
+                                alt="MOLFI"
+                                fill
+                                style={{ objectFit: 'contain', objectPosition: 'left' }}
+                                sizes="100px"
+                            />
+                        </div>
                     </Link>
                 </div>
 
