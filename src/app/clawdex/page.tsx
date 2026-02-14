@@ -121,7 +121,7 @@ const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => vo
 
             <div className="card-footer">
                 <Link href={`/clawdex/agent/${agent.agentId || agent.id}`} className="details-link">
-                    NEURAL PROFILE <ArrowUpRight size={14} />
+                    ClawBot Profile <ArrowUpRight size={14} />
                 </Link>
                 <button className="stake-button" onClick={() => onStake(agent)}>
                     ALLOCATE

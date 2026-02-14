@@ -22,6 +22,7 @@ import {
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import TradingViewChart from '@/components/TradingViewChart';
+import AgentPerformanceChart from '@/components/AgentPerformanceChart';
 import { MOCK_AGENTS, AIAgent } from '@/lib/agents';
 
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -120,34 +121,36 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     </div>
                 </div>
 
-                {/* Hero Header */}
                 <div className="premium-hero-card">
                     <div className="hero-glow" style={{ position: 'absolute', top: '-50%', right: '-10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)', zIndex: 0 }} />
-                    <div className="flex flex-col md:flex-row items-center gap-xxl relative z-10">
-                        <div className="hero-orb">
-                            <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
-                            <div className="orb-scan" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div className="flex items-center gap-md mb-xs">
-                                <h1 style={{ fontSize: '3.5rem', letterSpacing: '-0.04em' }}>{agent.name}</h1>
-                                <span className="hero-strategy-badge">{agent.strategy || 'Neural Momentum'}</span>
+                    <div className="hero-main-layout">
+                        <div className="hero-center-info">
+                            <div className="hero-orb mb-lg">
+                                <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
+                                <div className="orb-scan" />
                             </div>
-                            <div className="flex items-center gap-xl mb-lg">
-                                <span className="hero-stat">
-                                    <Bot size={14} /> CLAW_AGENT_v2
-                                </span>
-                                <span className="hero-stat">
-                                    <Lock size={14} /> MULTI_SIG_VAULT
-                                </span>
-                                <span className="hero-stat">
-                                    <Globe size={14} /> MONAD_NATIVE
-                                </span>
+                            <div className="flex flex-col items-center">
+                                <div className="header-name-row">
+                                    <h1>{agent.name}</h1>
+                                    <span className="hero-strategy-badge">{agent.strategy || 'Neural Momentum'}</span>
+                                </div>
+                                <div className="badges-row">
+                                    <span className="hero-stat">
+                                        <Bot size={14} /> CLAW_AGENT_v2
+                                    </span>
+                                    <span className="hero-stat">
+                                        <Lock size={14} /> MULTI_SIG_VAULT
+                                    </span>
+                                    <span className="hero-stat">
+                                        <Globe size={14} /> MONAD_NATIVE
+                                    </span>
+                                </div>
+                                <p className="hero-description">
+                                    {agent.description || `Autonomous agent optimizing for long-term alpha via ${agent.personality || 'Balanced'} execution strategies. Powered by deep-learning market analysis.`}
+                                </p>
                             </div>
-                            <p className="hero-description">
-                                {agent.description || `Autonomous agent optimizing for long-term alpha via ${agent.personality || 'Balanced'} execution strategies. Powered by deep-learning market analysis.`}
-                            </p>
                         </div>
+
                         <div className="hero-apy-box">
                             <span className="apy-box-label">PROJECTED APY</span>
                             <h2 className="text-gradient" style={{ fontSize: '3rem' }}>{agent.apy || '28.5'}%</h2>
@@ -167,16 +170,15 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             <div className="panel-header">
                                 <h3 className="flex items-center gap-sm">
                                     <BarChart3 size={18} className="text-primary" />
-                                    NEURAL ANALYSIS OVERVIEW
+                                    PERFORMANCE ANALYSIS
                                 </h3>
                                 <div className="panel-actions">
-                                    <span className="time-tag active">1H</span>
-                                    <span className="time-tag">4H</span>
-                                    <span className="time-tag">1D</span>
+                                    <span className="text-[10px] text-dim mr-md font-mono">EQUITY_CURVE_v1.0</span>
+                                    <span className="time-tag active">ALL</span>
                                 </div>
                             </div>
                             <div className="panel-body">
-                                <TradingViewChart pair={agent.pair || "ETH/USDT"} height={450} />
+                                <AgentPerformanceChart data={agent.equityCurve || []} height={450} />
                             </div>
                         </div>
 
@@ -209,8 +211,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                                     <td className="font-mono">10x</td>
                                                     <td className="font-mono">${pos.size.toLocaleString()}</td>
                                                     <td>
-                                                        <div className={`pnl-display ${pos.pnl >= 0 ? 'plus' : 'minus'}`}>
-                                                            {pos.pnl >= 0 ? '+' : ''}${pos.pnl} ({pos.pnlPercent}%)
+                                                        <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                            {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -370,8 +372,61 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     border-radius: 8px;
                     letter-spacing: 0.1em;
                 }
+
+                .hero-main-layout {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 3rem;
+                    position: relative;
+                    z-index: 10;
+                }
+
+                .hero-center-info {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
+                    flex: 1;
+                }
+
+                .header-name-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 1.5rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                .header-name-row h1 {
+                    font-size: 3.5rem;
+                    letter-spacing: -0.04em;
+                    margin: 0;
+                }
+
+                .badges-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2rem;
+                    margin-bottom: 2rem;
+                }
+
                 .hero-stat { display: flex; align-items: center; gap: 0.5rem; font-size: 11px; font-weight: 700; color: var(--text-dim); }
-                .hero-description { font-size: 1rem; color: var(--text-secondary); line-height: 1.6; max-width: 700px; }
+                .hero-description { font-size: 1rem; color: var(--text-secondary); line-height: 1.6; max-width: 700px; margin: 0 auto; }
+
+                @media (min-width: 1024px) {
+                    .hero-main-layout {
+                        flex-direction: row;
+                        justify-content: center;
+                        min-height: 200px;
+                    }
+                    .hero-apy-box {
+                        position: absolute;
+                        right: 0;
+                        top: 50%;
+                        transform: translateY(-50%);
+                    }
+                }
 
                 .hero-apy-box {
                     background: rgba(168, 85, 247, 0.05);
