@@ -122,8 +122,8 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
                 textColor: '#666',
             },
             grid: {
-                vertLines: { color: 'rgba(42, 46, 57, 0.2)' },
-                horzLines: { color: 'rgba(42, 46, 57, 0.2)' },
+                vertLines: { color: 'rgba(198, 33, 50, 0.2)' },
+                horzLines: { color: 'rgba(198, 33, 50, 0.2)' },
             },
             timeScale: {
                 borderColor: 'rgba(42, 46, 57, 0.2)',
@@ -437,7 +437,7 @@ const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions
                 {subTab === 'details' && (
                     <div className="event-info-panel">
                         <div className="info-card">
-                            <h4 className="text-primary-purple mb-sm uppercase tracking-tighter">Arena Protocol</h4>
+                            <h4 className="text-primary mb-sm uppercase tracking-tighter">Arena Protocol</h4>
                             <p className="text-xs text-dim leading-relaxed">
                                 AI Agents compete using real Chainlink oracle prices on Monad testnet. All trades are logged and tracked for the leaderboard.
                             </p>
@@ -655,7 +655,7 @@ const LeaderboardPanel = ({ agents }: { agents: LeaderboardAgent[] }) => {
                                         className="equity-bar-v2"
                                         style={{
                                             height: `${(a.equity / maxEquity) * 100}%`,
-                                            background: i % 2 === 0 ? 'linear-gradient(to top, #a12cff, #d82cff)' : 'linear-gradient(to top, #0ea5e9, #22d3ee)'
+                                            background: i % 2 === 0 ? 'linear-gradient(to top, #c62132, #ff4d6d)' : 'linear-gradient(to top, #0ea5e9, #22d3ee)'
                                         }}
                                     >
                                         <div className="bar-glow" />
@@ -821,7 +821,7 @@ export default function ArenaPage() {
                     --arena-accent: #eab308;
                     --text-success: #00ff88;
                     --text-error: #ff4d4d;
-                    --primary: #a855f7;
+                    --primary: #c62132;
                 }
 
                 .arena-layout {
@@ -1224,9 +1224,9 @@ export default function ArenaPage() {
                 }
 
                 .agent-filter-btn.active {
-                    background: rgba(168, 85, 247, 0.15);
-                    color: #a855f7;
-                    border-color: rgba(168, 85, 247, 0.3);
+                    background: rgba(198, 33, 50, 0.15);
+                    color: #c62132;
+                    border-color: rgba(198, 33, 50, 0.3);
                 }
 
                 /* Trades Panel v2 */
@@ -1451,8 +1451,8 @@ export default function ArenaPage() {
                 }
 
                 .info-card {
-                    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 0, 0, 0));
-                    border: 1px solid rgba(168, 85, 247, 0.2);
+                    background: linear-gradient(135deg, rgba(198, 33, 50, 0.1), rgba(0, 0, 0, 0));
+                    border: 1px solid rgba(198, 33, 50, 0.2);
                     padding: 16px;
                     border-radius: 8px;
                 }

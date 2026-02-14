@@ -38,7 +38,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
             case 'conservative':
                 return '#10b981';
             case 'balanced':
-                return '#a855f7';
+                return '#c62132';
             case 'aggressive':
                 return '#ef4444';
         }
@@ -58,7 +58,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
                 overflow: 'hidden',
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--primary-purple)';
+                e.currentTarget.style.borderColor = 'var(--primary-red)';
                 e.currentTarget.style.transform = 'translateY(-4px)';
             }}
             onMouseLeave={(e) => {
@@ -74,7 +74,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
                     right: 0,
                     width: '150px',
                     height: '150px',
-                    background: 'var(--primary-purple)',
+                    background: 'var(--primary-red)',
                     filter: 'blur(80px)',
                     opacity: 0.1,
                     pointerEvents: 'none',
@@ -85,7 +85,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem', position: 'relative' }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <div style={{ color: 'var(--primary-purple)' }}>
+                        <div style={{ color: 'var(--primary-red)' }}>
                             {getTypeIcon()}
                         </div>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
@@ -101,7 +101,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
                     <div
                         style={{
                             padding: '0.5rem 0.75rem',
-                            background: 'var(--primary-purple)',
+                            background: 'var(--primary-red)',
                             borderRadius: '20px',
                             fontSize: '0.875rem',
                             fontWeight: 600,
@@ -152,7 +152,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
                     <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
                         TVL
                     </p>
-                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--primary-purple)' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--primary-red)' }}>
                         {agent.tvl || '$0'}
                     </p>
                 </div>
@@ -164,7 +164,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
                         style={{
                             fontSize: '1rem',
                             fontWeight: 600,
-                            color: agent.performance30d?.startsWith('+') ? 'var(--accent-purple)' : '#ef4444',
+                            color: agent.performance30d?.startsWith('+') ? 'var(--accent-red)' : '#ef4444',
                         }}
                     >
                         {agent.performance30d || '0%'}
@@ -203,7 +203,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
             )}
 
             {/* View Details Link */}
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-purple)', fontSize: '0.875rem', fontWeight: 600 }}>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-red)', fontSize: '0.875rem', fontWeight: 600 }}>
                 View Details
                 <ExternalLink size={14} />
             </div>

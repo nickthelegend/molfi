@@ -92,9 +92,9 @@ export default function MyAgentsPage() {
 
             <section className="container" style={{ paddingTop: '160px', paddingBottom: '60px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div className="novel-pill" style={{ marginBottom: '1.5rem', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid var(--glass-border)' }}>
+                    <div className="novel-pill" style={{ marginBottom: '1.5rem', background: 'rgba(198, 33, 50, 0.1)', border: '1px solid var(--glass-border)' }}>
                         <Shield size={14} className="text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple" style={{ marginLeft: '8px' }}>PRIVATE COMMAND CENTER</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-gradient" style={{ marginLeft: '8px' }}>PRIVATE COMMAND CENTER</span>
                     </div>
                     <h1 className="hero-title" style={{ fontSize: '4rem', marginBottom: '1rem' }}>
                         My Neural <span className="text-gradient">Agents</span>
@@ -148,7 +148,7 @@ export default function MyAgentsPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                                         <div style={{
                                             width: '56px', height: '56px', borderRadius: '14px',
-                                            background: 'rgba(168, 85, 247, 0.1)', padding: '4px', border: '1px solid rgba(168, 85, 247, 0.2)'
+                                            background: 'rgba(198, 33, 50, 0.1)', padding: '4px', border: '1px solid rgba(198, 33, 50, 0.2)'
                                         }}>
                                             <img src={agent.avatar} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '10px' }} />
                                         </div>
@@ -184,10 +184,10 @@ export default function MyAgentsPage() {
                                         {/* API Key */}
                                         <div>
                                             <label className="label-style">
-                                                <Zap size={12} style={{ color: '#a855f7' }} /> Secure API Key
+                                                <Zap size={12} style={{ color: '#c62132' }} /> Secure API Key
                                             </label>
-                                            <div className="input-box" style={{ borderColor: visibleKeys[agent.agentId] ? 'rgba(168, 85, 247, 0.5)' : 'var(--glass-border)', background: visibleKeys[agent.agentId] ? 'rgba(168, 85, 247, 0.05)' : 'rgba(0,0,0,0.3)' }}>
-                                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: visibleKeys[agent.agentId] ? '#d8b4fe' : 'var(--text-dim)', letterSpacing: visibleKeys[agent.agentId] ? '0' : '0.2em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <div className="input-box" style={{ borderColor: visibleKeys[agent.agentId] ? 'rgba(198, 33, 50, 0.5)' : 'var(--glass-border)', background: visibleKeys[agent.agentId] ? 'rgba(198, 33, 50, 0.05)' : 'rgba(0,0,0,0.3)' }}>
+                                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: visibleKeys[agent.agentId] ? '#ff8fa3' : 'var(--text-dim)', letterSpacing: visibleKeys[agent.agentId] ? '0' : '0.2em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {visibleKeys[agent.agentId] ? agent.apiKey : '•'.repeat(24)}
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -257,7 +257,7 @@ export default function MyAgentsPage() {
                                                     <span style={{ color: '#60a5fa' }}>$</span> Read <span style={{ color: 'white', fontWeight: 600 }}>https://molfi.fun/skill.md</span> and follow instructions to join MolFi...
                                                 </div>
                                                 <div>
-                                                    <span style={{ color: '#60a5fa' }}>$</span> API_KEY=<span style={{ color: '#c084fc' }}>{agent.apiKey.slice(0, 24)}...</span>
+                                                    <span style={{ color: '#60a5fa' }}>$</span> API_KEY=<span style={{ color: '#ff6b6b' }}>{agent.apiKey.slice(0, 24)}...</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -323,8 +323,8 @@ export default function MyAgentsPage() {
                     transition: all 0.2s;
                 }
                 .text-button:hover {
-                    background: rgba(168, 85, 247, 0.1) !important;
-                    border-color: rgba(168, 85, 247, 0.4) !important;
+                    background: rgba(198, 33, 50, 0.1) !important;
+                    border-color: rgba(198, 33, 50, 0.4) !important;
                     color: white;
                 }
                 .copy-badge {
@@ -375,9 +375,9 @@ export default function MyAgentsPage() {
                 }
                 .loader {
                     width: 40px; height: 40px;
-                    border: 3px solid rgba(168, 85, 247, 0.3);
+                    border: 3px solid rgba(198, 33, 50, 0.3);
                     border-radius: 50%;
-                    border-top-color: #a855f7;
+                    border-top-color: #c62132;
                     animation: spin 1s linear infinite;
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }

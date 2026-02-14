@@ -30,7 +30,7 @@ const MarketTicker = () => {
     const tickerItems = Array.from(prices.values());
 
     return (
-        <div className="ticker-container" style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.2)', background: 'rgba(10, 10, 15, 0.8)' }}>
+        <div className="ticker-container" style={{ borderBottom: '1px solid rgba(198, 33, 50, 0.2)', background: 'rgba(5, 5, 5, 0.8)' }}>
             <div className="ticker-content">
                 {[...tickerItems, ...tickerItems].map((item, i) => (
                     <span key={i} className="ticker-item">
@@ -183,7 +183,7 @@ const TradingPairsPanel = () => {
                 {allPairs.map((pair) => {
                     const data = prices.get(pair);
                     const icon = PAIR_ICONS[pair] || '◆';
-                    const color = PAIR_COLORS[pair] || '#a855f7';
+                    const color = PAIR_COLORS[pair] || '#c62132';
                     const price = data?.price ?? 0;
                     const change = data?.change24h ?? 0;
                     const volume = data?.volume24h ?? 0;
@@ -298,9 +298,9 @@ function ClawDexPageContent() {
                     <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', zIndex: 0, pointerEvents: 'none' }} />
 
                     <div className="float-anim mb-md" style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
+                        <div className="novel-pill" style={{ background: 'rgba(198, 33, 50, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Zap size={14} className="text-primary animate-pulse" />
-                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">ClawBot Registry v2.0</span>
+                            <span className="text-xs text-gradient font-bold uppercase tracking-widest">ClawBot Registry v2.0</span>
                         </div>
                     </div>
 
@@ -374,7 +374,7 @@ function ClawDexPageContent() {
                     <div className="col-span-4 flex flex-col gap-xl">
                         <TradingPairsPanel />
 
-                        <div className="novel-card" style={{ background: 'rgba(168, 85, 247, 0.02)', borderColor: 'var(--glass-border)' }}>
+                        <div className="novel-card" style={{ background: 'rgba(198, 33, 50, 0.02)', borderColor: 'var(--glass-border)' }}>
                             <h3 className="mb-lg flex items-center gap-sm" style={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                                 <TrendingUp size={18} className="text-primary" />
                                 Rep Scoreboard
@@ -420,7 +420,7 @@ function ClawDexPageContent() {
                     left: 0;
                     width: 100%;
                     height: 48px;
-                    background: rgba(10, 10, 15, 0.95);
+                    background: rgba(5, 5, 5, 0.95);
                     backdrop-filter: blur(20px);
                     z-index: 90;
                     display: flex;
@@ -450,7 +450,7 @@ function ClawDexPageContent() {
                     white-space: nowrap;
                 }
                 .ticker-symbol { color: var(--text-secondary); }
-                .ticker-price { color: var(--primary-purple); font-family: var(--font-mono); }
+                .ticker-price { color: var(--primary-red); font-family: var(--font-mono); }
                 .ticker-change.up { color: #10b981; }
                 .ticker-change.down { color: #ef4444; }
 
@@ -464,17 +464,17 @@ function ClawDexPageContent() {
                 }
                 .premium-card:hover {
                     background: rgba(255, 255, 255, 0.04);
-                    border-color: rgba(168, 85, 247, 0.3);
+                    border-color: rgba(198, 33, 50, 0.3);
                     transform: translateY(-4px);
                     box-shadow: 0 20px 40px rgba(0,0,0,0.4);
                 }
                 .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
                 .agent-orb { position: relative; width: 64px; height: 64px; }
-                .agent-orb img { width: 100%; height: 100%; border-radius: 100%; object-fit: cover; border: 2px solid rgba(168, 85, 247, 0.2); }
+                .agent-orb img { width: 100%; height: 100%; border-radius: 100%; object-fit: cover; border: 2px solid rgba(198, 33, 50, 0.2); }
                 .orb-ring {
                     position: absolute;
                     inset: -4px;
-                    border: 1px solid var(--primary-purple);
+                    border: 1px solid var(--primary-red);
                     border-radius: 100%;
                     opacity: 0.3;
                     animation: spin 8s linear infinite;
@@ -497,15 +497,15 @@ function ClawDexPageContent() {
                     gap: 0.4rem;
                     font-size: 9px;
                     font-weight: 800;
-                    color: var(--primary-purple);
-                    background: rgba(168, 85, 247, 0.1);
+                    color: var(--primary-red);
+                    background: rgba(198, 33, 50, 0.1);
                     padding: 0.25rem 0.6rem;
                     border-radius: 6px;
                 }
 
                 .apy-display { text-align: right; }
                 .apy-label { display: block; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 0.25rem; }
-                .apy-value { font-size: 2rem; font-weight: 800; color: var(--primary-purple); font-family: var(--font-mono); }
+                .apy-value { font-size: 2rem; font-weight: 800; color: var(--primary-red); font-family: var(--font-mono); }
 
                 .description-text {
                     font-size: 0.9rem;
@@ -532,10 +532,10 @@ function ClawDexPageContent() {
                 .stat-sm-value { font-size: 1rem; font-weight: 700; font-family: var(--font-mono); color: white; }
 
                 .card-footer { display: flex; justify-content: space-between; align-items: center; }
-                .details-link { font-size: 10px; font-weight: 800; color: var(--primary-purple); letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+                .details-link { font-size: 10px; font-weight: 800; color: var(--primary-red); letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
                 .details-link:hover { color: white; gap: 0.7rem; }
                 .stake-button {
-                    background: var(--primary-purple);
+                    background: var(--primary-red);
                     color: white;
                     border: none;
                     padding: 0.75rem 1.5rem;
@@ -546,7 +546,7 @@ function ClawDexPageContent() {
                     cursor: pointer;
                     transition: all 0.3s;
                 }
-                .stake-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3); }
+                .stake-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(198, 33, 50, 0.3); }
 
                 .neural-stream-container {
                     background: rgba(255,255,255,0.02);
@@ -565,8 +565,8 @@ function ClawDexPageContent() {
                     align-items: center;
                 }
                 .header-text { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: white; }
-                .live-status { display: flex; align-items: center; gap: 0.5rem; background: rgba(168, 85, 247, 0.1); padding: 0.3rem 0.6rem; border-radius: 99px; }
-                .live-status span { font-size: 8px; font-weight: 900; color: var(--primary-purple); letter-spacing: 0.05em; }
+                .live-status { display: flex; align-items: center; gap: 0.5rem; background: rgba(198, 33, 50, 0.1); padding: 0.3rem 0.6rem; border-radius: 99px; }
+                .live-status span { font-size: 8px; font-weight: 900; color: var(--primary-red); letter-spacing: 0.05em; }
 
                 .stream-content { height: 500px; overflow-y: auto; padding: 1rem; }
 
@@ -589,7 +589,7 @@ function ClawDexPageContent() {
                 }
                 .pair-row:hover {
                     background: rgba(255,255,255,0.03);
-                    border-color: rgba(168, 85, 247, 0.2);
+                    border-color: rgba(198, 33, 50, 0.2);
                 }
                 .pair-left {
                     display: flex;
@@ -675,7 +675,7 @@ function ClawDexPageContent() {
                     border: 1px solid transparent;
                     transition: all 0.2s;
                 }
-                .stream-item:hover { background: rgba(255,255,255,0.03); border-color: rgba(168, 85, 247, 0.2); }
+                .stream-item:hover { background: rgba(255,255,255,0.03); border-color: rgba(198, 33, 50, 0.2); }
                 .item-top { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
                 .side-label { font-size: 9px; font-weight: 900; letter-spacing: 0.05em; }
                 .side-label.long { color: #10b981; }

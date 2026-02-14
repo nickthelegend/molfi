@@ -26,16 +26,16 @@ export default function AgentPerformanceChart({ data, height = 400 }: AgentPerfo
                 textColor: '#d1d4dc',
             },
             grid: {
-                vertLines: { color: 'rgba(168, 85, 247, 0.05)' },
-                horzLines: { color: 'rgba(168, 85, 247, 0.05)' },
+                vertLines: { color: 'rgba(198, 33, 50, 0.05)' },
+                horzLines: { color: 'rgba(198, 33, 50, 0.05)' },
             },
             timeScale: {
-                borderColor: 'rgba(168, 85, 247, 0.2)',
+                borderColor: 'rgba(198, 33, 50, 0.2)',
                 timeVisible: true,
                 secondsVisible: false,
             },
             rightPriceScale: {
-                borderColor: 'rgba(168, 85, 247, 0.2)',
+                borderColor: 'rgba(198, 33, 50, 0.2)',
                 scaleMargins: {
                     top: 0.1,
                     bottom: 0.1,
@@ -44,24 +44,24 @@ export default function AgentPerformanceChart({ data, height = 400 }: AgentPerfo
             crosshair: {
                 mode: LightweightCharts.CrosshairMode.Normal,
                 vertLine: {
-                    color: 'rgba(168, 85, 247, 0.5)',
+                    color: 'rgba(198, 33, 50, 0.5)',
                     width: 1,
                     style: 1,
-                    labelBackgroundColor: '#a855f7',
+                    labelBackgroundColor: '#c62132',
                 },
                 horzLine: {
-                    color: 'rgba(168, 85, 247, 0.5)',
+                    color: 'rgba(198, 33, 50, 0.5)',
                     width: 1,
                     style: 1,
-                    labelBackgroundColor: '#a855f7',
+                    labelBackgroundColor: '#c62132',
                 },
             },
         });
 
         const areaSeries = chart.addSeries(LightweightCharts.AreaSeries, {
-            lineColor: '#a855f7',
-            topColor: 'rgba(168, 85, 247, 0.4)',
-            bottomColor: 'rgba(168, 85, 247, 0.0)',
+            lineColor: '#c62132',
+            topColor: 'rgba(198, 33, 50, 0.4)',
+            bottomColor: 'rgba(198, 33, 50, 0.0)',
             lineWidth: 3,
         });
 

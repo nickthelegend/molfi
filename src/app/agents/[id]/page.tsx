@@ -49,7 +49,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
             case 'conservative':
                 return '#10b981';
             case 'balanced':
-                return '#a855f7';
+                return '#c62132';
             case 'aggressive':
                 return '#ef4444';
         }
@@ -58,7 +58,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     return (
         <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1200px', margin: '0 auto' }}>
             {/* Back Link */}
-            <Link href="/agents" style={{ color: 'var(--primary-purple)', textDecoration: 'none', fontSize: '0.875rem', marginBottom: '1rem', display: 'inline-block' }}>
+            <Link href="/agents" style={{ color: 'var(--primary-red)', textDecoration: 'none', fontSize: '0.875rem', marginBottom: '1rem', display: 'inline-block' }}>
                 ← Back to Marketplace
             </Link>
 
@@ -67,14 +67,14 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                            <div style={{ color: 'var(--primary-purple)' }}>
+                            <div style={{ color: 'var(--primary-red)' }}>
                                 {getTypeIcon()}
                             </div>
                             <h1 style={{ fontSize: '2.5rem', margin: 0 }}>{agent.name}</h1>
                             <span
                                 style={{
                                     padding: '0.5rem 1rem',
-                                    background: 'var(--primary-purple)',
+                                    background: 'var(--primary-red)',
                                     borderRadius: '20px',
                                     fontSize: '1rem',
                                     fontWeight: 600,
@@ -110,7 +110,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                                 href={getExplorerUrl(41454, agent.owner)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ color: 'var(--primary-purple)', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                style={{ color: 'var(--primary-red)', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                             >
                                 View on Explorer <ExternalLink size={14} />
                             </a>
@@ -127,19 +127,19 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div className="glass-container" style={{ padding: '1.5rem' }}>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Total Value Locked</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-purple)' }}>{agent.tvl}</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-red)' }}>{agent.tvl}</p>
                 </div>
                 <div className="glass-container" style={{ padding: '1.5rem' }}>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>30d Performance</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{agent.performance30d}</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{agent.performance30d}</p>
                 </div>
                 <div className="glass-container" style={{ padding: '1.5rem' }}>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Win Rate</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{agent.winRate}%</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{agent.winRate}%</p>
                 </div>
                 <div className="glass-container" style={{ padding: '1.5rem' }}>
                     <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Total Trades</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-purple)' }}>{agent.totalTrades.toLocaleString()}</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-red)' }}>{agent.totalTrades.toLocaleString()}</p>
                 </div>
             </div>
 
@@ -150,21 +150,21 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                     {/* Performance Chart Placeholder */}
                     <div className="glass-container" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Activity size={20} style={{ color: 'var(--primary-purple)' }} />
+                            <Activity size={20} style={{ color: 'var(--primary-red)' }} />
                             Performance
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                             <div>
                                 <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>24h</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{agent.performance24h}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-red)' }}>{agent.performance24h}</p>
                             </div>
                             <div>
                                 <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>7d</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{agent.performance7d}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-red)' }}>{agent.performance7d}</p>
                             </div>
                             <div>
                                 <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>30d</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{agent.performance30d}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-red)' }}>{agent.performance30d}</p>
                             </div>
                         </div>
                         <div style={{ height: '200px', background: 'var(--bg-card)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -192,7 +192,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                                             key={asset}
                                             style={{
                                                 padding: '0.5rem 1rem',
-                                                background: 'var(--primary-purple)',
+                                                background: 'var(--primary-red)',
                                                 borderRadius: '8px',
                                                 fontSize: '0.875rem',
                                                 fontWeight: 600,
@@ -209,7 +209,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                     {/* Feedback Section */}
                     <div className="glass-container" style={{ padding: '1.5rem' }}>
                         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <MessageSquare size={20} style={{ color: 'var(--primary-purple)' }} />
+                            <MessageSquare size={20} style={{ color: 'var(--primary-red)' }} />
                             Community Feedback
                         </h2>
                         <div style={{ textAlign: 'center', padding: '2rem' }}>
@@ -235,7 +235,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                         {agent.apiEndpoint && (
                             <div style={{ marginBottom: '1rem' }}>
                                 <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>API Endpoint</p>
-                                <a href={agent.apiEndpoint} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-purple)', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <a href={agent.apiEndpoint} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-red)', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                     {agent.apiEndpoint} <ExternalLink size={12} />
                                 </a>
                             </div>
@@ -244,7 +244,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                         {agent.twitter && (
                             <div style={{ marginBottom: '1rem' }}>
                                 <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Twitter</p>
-                                <a href={`https://twitter.com/${agent.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-purple)', fontSize: '0.875rem', textDecoration: 'none' }}>
+                                <a href={`https://twitter.com/${agent.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-red)', fontSize: '0.875rem', textDecoration: 'none' }}>
                                     {agent.twitter}
                                 </a>
                             </div>

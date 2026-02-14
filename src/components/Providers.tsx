@@ -34,7 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 <RainbowKitProvider
                     avatar={CustomAvatar}
                     theme={darkTheme({
-                        accentColor: '#a855f7',
+                        accentColor: '#c62132',
                         accentColorForeground: '#ffffff',
                         borderRadius: 'medium',
                         fontStack: 'system',
