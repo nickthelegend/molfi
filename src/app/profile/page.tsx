@@ -6,7 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { User, Bot, TrendingUp, Trophy, Zap, Plus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/contract-helpers';
-import { formatEther } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 
 type Agent = {
@@ -37,6 +37,7 @@ type InvestmentItem = {
     currentValue: number;
     pnl: number;
     apy?: number;
+    txHash?: string;
 };
 
 type ActivityItem = {
@@ -111,87 +112,57 @@ export default function ProfilePage() {
                 setActivities(allActivity.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10));
 
                 // Process Investments
-                const investmentItems = await Promise.all(
-                    allAgents.map(async (agent: any) => {
-                        if (!agent.vaultAddress) return null;
-                        const vaultAddress = agent.vaultAddress as `0x${string}`;
+                // Process Investments (Optimized via Supabase)
+                const investmentsRes = await fetch(`/api/investments/user/${address}`);
+                const investmentsData = await investmentsRes.json();
 
-                        try {
-                            const shareBalance = await publicClient.readContract({
-                                address: vaultAddress,
-                                abi: MolfiAgentVaultABI,
-                                functionName: "balanceOf",
-                                args: [address],
-                            }) as bigint;
+                let investmentItems: InvestmentItem[] = [];
 
-                            const currentAssets = shareBalance > 0n
-                                ? await publicClient.readContract({
+                if (investmentsData.success && investmentsData.investments) {
+                    investmentItems = await Promise.all(
+                        investmentsData.investments.map(async (inv: any) => {
+                            if (!inv.agents?.vault_address) return null;
+                            const vaultAddress = inv.agents.vault_address as `0x${string}`;
+
+                            try {
+                                // Get current value of shares
+                                const currentAssets = await publicClient.readContract({
                                     address: vaultAddress,
                                     abi: MolfiAgentVaultABI,
                                     functionName: "convertToAssets",
-                                    args: [shareBalance],
-                                }) as bigint
-                                : 0n;
+                                    args: [parseEther(inv.shares.toString())], // Use stored shares
+                                }) as bigint;
 
-                            const [depositLogs, withdrawLogs] = await Promise.all([
-                                publicClient.getLogs({
-                                    address: vaultAddress,
-                                    event: {
-                                        type: 'event',
-                                        name: 'Deposit',
-                                        inputs: [
-                                            { type: 'address', indexed: true, name: 'sender' },
-                                            { type: 'address', indexed: true, name: 'owner' },
-                                            { type: 'uint256', indexed: false, name: 'assets' },
-                                            { type: 'uint256', indexed: false, name: 'shares' }
-                                        ]
-                                    },
-                                    args: { owner: address },
-                                    fromBlock: 'earliest'
-                                }),
-                                publicClient.getLogs({
-                                    address: vaultAddress,
-                                    event: {
-                                        type: 'event',
-                                        name: 'Withdraw',
-                                        inputs: [
-                                            { type: 'address', indexed: true, name: 'sender' },
-                                            { type: 'address', indexed: true, name: 'receiver' },
-                                            { type: 'address', indexed: true, name: 'owner' },
-                                            { type: 'uint256', indexed: false, name: 'assets' },
-                                            { type: 'uint256', indexed: false, name: 'shares' }
-                                        ]
-                                    },
-                                    args: { owner: address },
-                                    fromBlock: 'earliest'
-                                })
-                            ]);
+                                const deposited = parseFloat(inv.amount);
+                                const currentValue = parseFloat(formatEther(currentAssets));
+                                const pnl = currentValue - deposited;
 
-                            const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
-                            const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
-                            const netDeposits = deposits > withdrawals ? deposits - withdrawals : 0n;
-
-                            const deposited = Number(formatEther(netDeposits));
-                            const currentValue = Number(formatEther(currentAssets));
-                            const pnl = currentValue - deposited;
-
-                            if (deposited <= 0 && currentValue <= 0) return null;
-
-                            return {
-                                agentId: Number(agent.agentId),
-                                name: agent.name,
-                                vaultAddress,
-                                deposited,
-                                currentValue,
-                                pnl,
-                                apy: agent.apy,
-                            } as InvestmentItem;
-                        } catch (err) {
-                            console.error("Investment fetch failed:", err);
-                            return null;
-                        }
-                    })
-                );
+                                return {
+                                    agentId: Number(inv.agents.agent_id),
+                                    name: inv.agents.name,
+                                    vaultAddress,
+                                    deposited,
+                                    currentValue,
+                                    pnl,
+                                    apy: 0, // Calculate if needed based on time
+                                    txHash: inv.tx_hash, // Pass txHash for linking
+                                } as InvestmentItem & { txHash: string };
+                            } catch (err) {
+                                console.error(`Failed to fetch value for investment ${inv.id}:`, err);
+                                return {
+                                    agentId: Number(inv.agents.agent_id),
+                                    name: inv.agents.name,
+                                    vaultAddress,
+                                    deposited: parseFloat(inv.amount),
+                                    currentValue: 0,
+                                    pnl: 0,
+                                    apy: 0,
+                                    txHash: inv.tx_hash,
+                                };
+                            }
+                        })
+                    );
+                }
 
                 setInvestments(investmentItems.filter((i): i is InvestmentItem => i !== null));
             } catch (err) {
@@ -354,8 +325,8 @@ export default function ProfilePage() {
                                         <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
                                         <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
                                     </div>
-                                    <Link href={`/clawdex/agent/${inv.agentId}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
-                                        View <ExternalLink size={12} style={{ marginLeft: '6px' }} />
+                                    <Link href={`/investment/${(inv as any).txHash}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
+                                        Details <ExternalLink size={12} style={{ marginLeft: '6px' }} />
                                     </Link>
                                 </div>
 

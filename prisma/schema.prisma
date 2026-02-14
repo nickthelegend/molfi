@@ -18,6 +18,7 @@ model AIAgent {
   vaultAddress  String?
   ownerAddress  String
   signals       TradeSignal[]
+  investments   Investment[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -35,4 +36,21 @@ model TradeSignal {
   txHash        String?
   executedAt    DateTime?
   createdAt     DateTime @default(now())
+}
+
+model Investment {
+  id              String    @id @default(cuid())
+  txHash          String    @unique
+  agentId         Int
+  agent           AIAgent   @relation(fields: [agentId], references: [agentId])
+  userAddress     String
+  amount          Float     // Amount in underlying asset
+  shares          Float     // Shares received
+  timestamp       DateTime  @default(now())
+  status          String    @default("ACTIVE") // ACTIVE, WITHDRAWN
+  withdrawnAt     DateTime?
+  withdrawnTxHash String?
+  
+  @@index([userAddress])
+  @@index([agentId])
 }

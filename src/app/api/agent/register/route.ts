@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import crypto from 'crypto';
@@ -27,15 +28,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get next agent ID
+        // Get next agent ID from NEW table
         const { data: maxAgent } = await supabaseAdmin
-            .from('AIAgent')
-            .select('agentId')
-            .order('agentId', { ascending: false })
+            .from('agents')
+            .select('agent_id')
+            .order('agent_id', { ascending: false })
             .limit(1)
             .single();
 
-        const nextAgentId = (maxAgent?.agentId || 0) + 1;
+        const nextAgentId = (Number(maxAgent?.agent_id) || 0) + 1;
 
         // Generate API key
         const apiKey = generateApiKey();
@@ -43,16 +44,16 @@ export async function POST(request: NextRequest) {
         // Generate a mock vault address (in production this would be an actual deployed vault)
         const vaultAddress = '0x' + crypto.randomBytes(20).toString('hex');
 
-        // Insert agent into database
+        // Insert agent into NEW database table
         const { data: agent, error } = await supabaseAdmin
-            .from('AIAgent')
+            .from('agents')
             .insert({
-                agentId: nextAgentId,
+                agent_id: nextAgentId,
                 name: name,
                 personality: personality || 'Balanced',
-                ownerAddress: ownerAddress,
-                vaultAddress: vaultAddress,
-                apiKey: apiKey,
+                owner_address: ownerAddress,
+                vault_address: vaultAddress,
+                api_key: apiKey,
                 strategy: strategy || 'Neural Momentum',
                 description: description || '',
             })

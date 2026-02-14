@@ -1,18 +1,31 @@
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getOraclePrice, calculatePnL } from '@/lib/marketEngine';
 
 export async function GET() {
     try {
-        // Fetch agents and all trade logs in parallel
+        // Fetch agents and all trade logs in parallel from NEW Supabase schema
         const [agentResult, tradeResult] = await Promise.all([
-            supabaseAdmin.from('AIAgent').select('*').order('createdAt', { ascending: false }),
-            supabaseAdmin.from('TradeLog').select('*').order('openedAt', { ascending: false }),
+            supabaseAdmin.from('agents').select('*').order('created_at', { ascending: false }),
+            supabaseAdmin.from('trade_signals').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (agentResult.error) throw agentResult.error;
         const agents = agentResult.data || [];
-        const allTrades = tradeResult.data || [];
+        // Map trade_signals to frontend-friendly structure if needed, or use directly
+        // Assuming trade_signals has been backfilled or is being used for new trades
+        const allTrades = (tradeResult.data || []).map(t => ({
+            ...t,
+            // Map snake_case to camelCase for existing logic compatibility
+            agentId: t.agent_id,
+            openedAt: t.opened_at || t.created_at,
+            entryPrice: t.entry_price || '0',
+            size: t.size,
+            side: t.side || (t.is_long ? 'LONG' : 'SHORT'),
+            pnl: t.pnl,
+            fees: t.fees,
+        }));
 
         // Fetch live prices for open positions
         const openTrades = allTrades.filter(t => t.status === 'OPEN');
@@ -30,7 +43,7 @@ export async function GET() {
 
         // Enrich with REAL data from trade logs
         const enrichedAgents = agents.map(a => {
-            const agentTrades = allTrades.filter(t => t.agentId === a.agentId);
+            const agentTrades = allTrades.filter(t => t.agentId === a.agent_id);
             const closedTrades = agentTrades.filter(t => t.status === 'CLOSED');
             const agentOpenTrades = agentTrades.filter(t => t.status === 'OPEN');
 
@@ -82,11 +95,12 @@ export async function GET() {
 
             return {
                 ...a,
-                id: String(a.agentId),
-                agentId: a.agentId,
+                id: String(a.agent_id),
+                agentId: a.agent_id,
                 description: a.description || `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,
                 avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${a.name}`,
-                owner: a.ownerAddress,
+                owner: a.owner_address,
+                vaultAddress: a.vault_address,
                 agentType: a.personality === 'Aggressive' ? 'trader' : 'fund-manager',
                 riskProfile: a.personality.toLowerCase(),
 

@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getOraclePrice } from '@/lib/marketEngine';
@@ -12,7 +13,7 @@ import { recordDecision, generateProofHash } from '@/lib/reputationService';
  * Flow:
  *   1. Authenticate agent via API key
  *   2. Fetch current market price for the pair
- *   3. Log the decision to Supabase (AgentSignal table)
+ *   3. Log the decision to Supabase (agent_decisions table)
  *   4. Submit reputation feedback on-chain (Proof of Trade)
  *   5. Return decision details with proof hash + tx hash
  */
@@ -26,10 +27,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API key required. Pass "apiKey" in request body.' }, { status: 401 });
     }
 
+    // Auth against NEW agents table
     const { data: agent, error: authError } = await supabaseAdmin
-      .from('AIAgent')
+      .from('agents')
       .select('*')
-      .eq('apiKey', apiKey)
+      .eq('api_key', apiKey)
       .single();
 
     if (authError || !agent) {
@@ -37,10 +39,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Use provided agentId or fall back to authenticated agent's ID
-    const resolvedAgentId = agentId || agent.agentId;
+    const resolvedAgentId = agentId || agent.agent_id;
 
     // Verify agent owns this agentId
-    if (resolvedAgentId !== agent.agentId) {
+    if (String(resolvedAgentId) !== String(agent.agent_id)) {
       return NextResponse.json({ error: 'Agent ID mismatch' }, { status: 403 });
     }
 
@@ -82,23 +84,23 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- Log Decision to Supabase ---
+    // --- Log Decision to Supabase (NEW TABLE) ---
     const { data: signal, error: insertError } = await supabaseAdmin
-      .from('AgentSignal')
+      .from('agent_decisions')
       .insert({
-        agentId: resolvedAgentId,
-        type: normalizedAction,
+        agent_id: resolvedAgentId,
+        action: normalizedAction,
         pair: normalizedPair,
         confidence: conf,
         reasoning: reasoning || `Agent decision: ${normalizedAction} ${normalizedPair}`,
         price: currentPrice,
-        proofHash,
+        proof_hash: proofHash,
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error('Signal insert error:', insertError);
+      console.error('Decision insert error:', insertError);
       // Non-critical — continue even if Supabase insert fails
     }
 
