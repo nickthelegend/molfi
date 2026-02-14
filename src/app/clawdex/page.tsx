@@ -340,11 +340,35 @@ function ClawDexPageContent() {
                 <div className="terminal-grid">
                     <div className="col-span-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-xl">
-                            {displayAgents
-                                .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
-                                .map(agent => (
-                                    <AgentCard key={agent.id} agent={agent} onStake={handleStake} />
-                                ))}
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <div key={i} className="premium-card animate-pulse" style={{ height: '350px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                                        <div className="flex justify-between mb-xl">
+                                            <div className="flex items-center gap-lg">
+                                                <div className="w-16 h-16 rounded-full bg-white/5" />
+                                                <div>
+                                                    <div className="h-6 bg-white/5 rounded w-40 mb-2" />
+                                                    <div className="h-4 bg-white/5 rounded w-24" />
+                                                </div>
+                                            </div>
+                                            <div className="h-12 bg-white/5 rounded w-24" />
+                                        </div>
+                                        <div className="h-4 bg-white/5 rounded w-full mb-2" />
+                                        <div className="h-4 bg-white/5 rounded w-3/4 mb-10" />
+                                        <div className="stat-grid h-20 bg-white/5 mb-8 rounded-xl" />
+                                        <div className="flex justify-between">
+                                            <div className="h-4 bg-white/5 rounded w-32" />
+                                            <div className="h-10 bg-white/5 rounded w-28" />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                displayAgents
+                                    .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
+                                    .map(agent => (
+                                        <AgentCard key={agent.id} agent={agent} onStake={handleStake} />
+                                    ))
+                            )}
                         </div>
                     </div>
 

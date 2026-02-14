@@ -228,7 +228,31 @@ export default function AgentsPage() {
             {/* AGENT GRID */}
             <section className="container py-xxl">
                 <div className="terminal-grid">
-                    {filteredAgents.map(agent => (
+                    {loading ? (
+                        [...Array(6)].map((_, i) => (
+                            <div key={i} className="col-span-4">
+                                <div className="premium-card animate-pulse" style={{ height: '320px', display: 'flex', flexDirection: 'column', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+                                    <div className="flex justify-between mb-lg">
+                                        <div className="flex items-center gap-md">
+                                            <div className="agent-orb bg-white/5" />
+                                            <div>
+                                                <div className="h-5 bg-white/5 rounded w-32 mb-2" />
+                                                <div className="h-3 bg-white/5 rounded w-20" />
+                                            </div>
+                                        </div>
+                                        <div className="h-6 bg-white/5 rounded w-12" />
+                                    </div>
+                                    <div className="h-4 bg-white/5 rounded w-full mb-2" />
+                                    <div className="h-4 bg-white/5 rounded w-3/4 mb-12" />
+                                    <div className="stat-grid h-16 bg-white/5 mb-8" />
+                                    <div className="flex justify-between">
+                                        <div className="h-4 bg-white/5 rounded w-20" />
+                                        <div className="h-10 bg-white/5 rounded w-24" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : filteredAgents.map(agent => (
                         <div key={agent.id} className="col-span-4">
                             <div className="premium-card group hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
                                 <Link href={`/clawdex/agent/${agent.id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', flexDirection: 'column' }}>

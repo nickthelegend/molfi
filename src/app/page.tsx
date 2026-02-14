@@ -39,12 +39,32 @@ const LEDGER_IDS: Record<string, string> = {
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const prices = useLivePrices();
 
   useEffect(() => {
     setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
+
+    const fetchAgents = async () => {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        if (data.success) {
+          // Sort by ROI descending and take top 3
+          const sorted = [...data.agents].sort((a, b) => (b.roi || 0) - (a.roi || 0));
+          setAgents(sorted.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("Failed to fetch agents:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgents();
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -142,62 +162,55 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-xl">
-          <div className="novel-card hover-lift">
-            <div className="flex justify-between mb-lg">
-              <div className="agent-badge">ALPHA</div>
-              <ShieldCheck className="text-success" size={20} />
-            </div>
-            <h3 className="mb-md">Nexus Prime</h3>
-            <p className="text-secondary text-sm mb-xl">Neural momentum strategy optimized for high-leverage perpetuals on Monad.</p>
-            <div className="flex justify-between pt-lg border-top" style={{ borderColor: 'var(--glass-border)' }}>
-              <div className="text-center">
-                <span className="text-xs text-dim block">30D ROI</span>
-                <span className="font-bold text-success">+42.8%</span>
+          {loading ? (
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="novel-card animate-pulse" style={{ height: '300px' }}>
+                <div className="h-4 bg-white/5 rounded w-1/4 mb-xl" />
+                <div className="h-8 bg-white/5 rounded w-3/4 mb-md" />
+                <div className="h-16 bg-white/5 rounded w-full mb-xl" />
+                <div className="flex justify-between border-t border-white/5 pt-lg">
+                  <div className="h-8 bg-white/5 rounded w-1/3" />
+                  <div className="h-8 bg-white/5 rounded w-1/3" />
+                </div>
               </div>
-              <div className="text-center">
-                <span className="text-xs text-dim block">WIN RATE</span>
-                <span className="font-bold">78%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="novel-card hover-lift">
-            <div className="flex justify-between mb-lg">
-              <div className="agent-badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }}>QUANTUM</div>
-              <Activity className="text-primary" size={20} />
-            </div>
-            <h3 className="mb-md">Void Oracle</h3>
-            <p className="text-secondary text-sm mb-xl">HFT arbitrage agent utilizing machine-speed execution across decentralized pools.</p>
-            <div className="flex justify-between pt-lg border-top" style={{ borderColor: 'var(--glass-border)' }}>
-              <div className="text-center">
-                <span className="text-xs text-dim block">30D ROI</span>
-                <span className="font-bold text-success">+28.5%</span>
-              </div>
-              <div className="text-center">
-                <span className="text-xs text-dim block">WIN RATE</span>
-                <span className="font-bold">64%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="novel-card hover-lift">
-            <div className="flex justify-between mb-lg">
-              <div className="agent-badge" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>STABLE</div>
-              <Shield className="text-gold" size={20} />
-            </div>
-            <h3 className="mb-md">Guardian v2</h3>
-            <p className="text-secondary text-sm mb-xl">Delta-neutral yield aggregator focusing on sustainable protocol incentives.</p>
-            <div className="flex justify-between pt-lg border-top" style={{ borderColor: 'var(--glass-border)' }}>
-              <div className="text-center">
-                <span className="text-xs text-dim block">30D ROI</span>
-                <span className="font-bold text-success">+14.2%</span>
-              </div>
-              <div className="text-center">
-                <span className="text-xs text-dim block">WIN RATE</span>
-                <span className="font-bold">92%</span>
-              </div>
-            </div>
-          </div>
+            ))
+          ) : (
+            agents.map((agent, i) => (
+              <Link href={`/clawdex/agent/${agent.id}`} key={agent.id}>
+                <div className="novel-card hover-lift h-full flex flex-col">
+                  <div className="flex justify-between mb-lg">
+                    <div className="agent-badge" style={{ background: i === 0 ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)', color: i === 0 ? 'var(--primary-purple)' : 'var(--text-dim)' }}>
+                      {i === 0 ? 'ELITE_FUND' : 'HIGH_PERF'}
+                    </div>
+                    {(agent.roi || 0) > 20 ? <ShieldCheck className="text-success" size={20} /> : <Activity className="text-primary" size={20} />}
+                  </div>
+                  <div className="flex items-center gap-md mb-md">
+                    <img
+                      src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
+                      alt={agent.name}
+                      style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid rgba(168, 85, 247, 0.2)' }}
+                    />
+                    <h3 className="m-0 text-xl">{agent.name}</h3>
+                  </div>
+                  <p className="text-secondary text-sm mb-xl flex-grow">
+                    {agent.description || `Autonomous neural strategy specializing in ${agent.personality || 'Balanced'} market cycles.`}
+                  </p>
+                  <div className="flex justify-between pt-lg border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <div className="text-center">
+                      <span className="text-[9px] text-dim uppercase font-bold tracking-widest block mb-1">Live ROI</span>
+                      <span className={`font-bold ${(agent.roi || 0) >= 0 ? 'text-success' : 'text-error'}`}>
+                        {(agent.roi || 0) >= 0 ? '+' : ''}{(agent.roi || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[9px] text-dim uppercase font-bold tracking-widest block mb-1">Assets (AUM)</span>
+                      <span className="font-bold text-white">${parseFloat(agent.aum || 0) > 1000000 ? (agent.aum / 1000000).toFixed(1) + 'M' : (agent.aum / 1000).toFixed(1) + 'K'}</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </section>
 
