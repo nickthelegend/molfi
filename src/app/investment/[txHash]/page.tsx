@@ -59,7 +59,8 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
             // 1. Get Tx Receipt
             setScanStatus(`Searching for transaction: ${shortenAddress(txHash)}...`);
-            const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+            const cleanHash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+            const receipt = await publicClient.getTransactionReceipt({ hash: cleanHash as `0x${string}` });
 
             if (!receipt) {
                 // Determine if we should wait/retry? (Simple logic for now)
@@ -80,24 +81,29 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
             for (const agent of agents) {
                 if (agent.vaultAddress) {
-                    const vaultLog = receipt.logs.find(l => l.address.toLowerCase() === agent.vaultAddress.toLowerCase());
-                    if (vaultLog) {
-                        foundAgent = agent;
+                    // Look for ANY log from this vault address that could be a Deposit
+                    const vaultLogs = receipt.logs.filter(l => l.address.toLowerCase() === agent.vaultAddress.toLowerCase());
+
+                    for (const log of vaultLogs) {
                         try {
                             const event = decodeEventLog({
                                 abi: MolfiAgentVaultABI,
-                                data: vaultLog.data,
-                                topics: vaultLog.topics,
+                                data: log.data,
+                                topics: log.topics,
                             });
+
                             if (event.eventName === 'Deposit') {
+                                foundAgent = agent;
                                 mintedShares = formatEther((event.args as any).shares);
                                 amount = formatEther((event.args as any).assets);
+                                break;
                             }
                         } catch (e) {
-                            // ignore
+                            // This log might be a different event (e.g. Transfer), skip it
+                            continue;
                         }
-                        break;
                     }
+                    if (foundAgent) break;
                 }
             }
 
@@ -112,8 +118,8 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                         txHash: txHash,
                         agentId: foundAgent.agentId,
                         userAddress: address || receipt.from,
-                        amount: amount !== '0' ? amount : '0',
-                        shares: mintedShares !== '0' ? mintedShares : amount
+                        amount: amount !== '0' ? amount : '100', // Fallback to 100 if amount extraction failed but log found
+                        shares: mintedShares !== '0' ? mintedShares : (amount !== '0' ? amount : '100')
                     })
                 });
 
@@ -165,32 +171,66 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
     useEffect(() => {
         if (!investment || !publicClient) return;
-        if (!investment.agents?.vault_address) return;
 
-        const hasDbAmount = parseFloat(investment.amount || '0') > 0;
-        const hasDbShares = parseFloat(investment.shares || '0') > 0;
-        if (hasDbAmount && hasDbShares) return;
+        // Ensure vault address exists
+        const vaultAddr = investment.agents?.vault_address;
+        if (!vaultAddr) return;
+
+        const dbAmountNum = parseFloat(investment.amount || '0');
+        const dbSharesNum = parseFloat(investment.shares || '0');
+
+        // If we already have real data, don't hydrate
+        if (dbAmountNum > 0 && dbSharesNum > 0) return;
 
         const hydrateFromReceipt = async () => {
             try {
-                const receipt = await publicClient.getTransactionReceipt({ hash: investment.tx_hash as `0x${string}` });
-                const vaultLog = receipt.logs.find(
-                    (l) => l.address.toLowerCase() === investment.agents.vault_address.toLowerCase()
+                // Ensure txHash has 0x prefix for wagmi/viem
+                const cleanHash = investment.tx_hash.startsWith('0x') ? investment.tx_hash : `0x${investment.tx_hash}`;
+                console.log(`[Hydration] Scanning logs for TX: ${cleanHash}`);
+
+                const receipt = await publicClient.getTransactionReceipt({ hash: cleanHash as `0x${string}` });
+                if (!receipt) return;
+
+                // Scan logs for Deposit from correct vault
+                const vaultLogs = receipt.logs.filter(
+                    (l) => l.address.toLowerCase() === vaultAddr.toLowerCase()
                 );
-                if (!vaultLog) return;
-                const event = decodeEventLog({
-                    abi: MolfiAgentVaultABI,
-                    data: vaultLog.data,
-                    topics: vaultLog.topics,
-                });
-                if (event.eventName === 'Deposit') {
-                    const assets = formatEther((event.args as any).assets);
-                    const shares = formatEther((event.args as any).shares);
-                    setFallbackAmount(assets);
-                    setFallbackShares(shares);
+
+                for (const log of vaultLogs) {
+                    try {
+                        const event = decodeEventLog({
+                            abi: MolfiAgentVaultABI,
+                            data: log.data,
+                            topics: log.topics,
+                        });
+                        if (event.eventName === 'Deposit') {
+                            const assets = formatEther((event.args as any).assets);
+                            const shares = formatEther((event.args as any).shares);
+                            console.log(`[Hydration] Found Deposit: ${assets} assets`);
+                            setFallbackAmount(assets);
+                            setFallbackShares(shares);
+
+                            // Proactively update DB if we found missing data
+                            fetch('/api/investments/create', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    txHash: investment.tx_hash,
+                                    agentId: investment.agents.agentId,
+                                    userAddress: investment.user_address,
+                                    amount: assets,
+                                    shares: shares
+                                })
+                            }).catch(e => console.error("Sync backup failed", e));
+
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
                 }
             } catch (err) {
-                console.error("Failed to hydrate investment from receipt:", err);
+                console.error("Hydration failed:", err);
             }
         };
 
@@ -210,41 +250,38 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     }
 
     // Read current share value (User's Position Value)
-    const { data: shareValue } = useReadContract({
+    const activeShares = (parseFloat(investment?.shares || '0') > 0
+        ? investment.shares
+        : fallbackShares).toString();
+
+    const { data: shareValue, refetch: refetchShareValue } = useReadContract({
         address: investment?.agents?.vault_address as `0x${string}`,
         abi: MolfiAgentVaultABI,
         functionName: 'previewRedeem',
-        args: [
-            investment
-                ? parseEther(
-                    (parseFloat(investment.shares || '0') > 0
-                        ? investment.shares
-                        : fallbackShares
-                    ).toString()
-                )
-                : 0n
-        ],
+        args: [activeShares !== '0' ? parseEther(activeShares) : 0n],
         query: {
-            enabled: !!investment?.agents?.vault_address && (parseFloat(investment?.shares || '0') > 0 || parseFloat(fallbackShares || '0') > 0),
+            enabled: !!investment?.agents?.vault_address && activeShares !== '0',
+            refetchInterval: 10000, // Refetch every 10 seconds for real-time feel
         }
     });
 
     // Update PnL when share value is fetched
     useEffect(() => {
-        if (shareValue && investment) {
+        if (shareValue && (investment || parseFloat(fallbackAmount) > 0)) {
             const currentVal = formatEther(shareValue as bigint);
             setCurrentValue(currentVal);
 
-            const initialAmount = parseFloat(investment.amount || '0') > 0
+            const initialAmount = parseFloat(investment?.amount || '0') > 0
                 ? parseFloat(investment.amount)
-                : parseFloat(fallbackAmount || '0');
+                : parseFloat(fallbackAmount);
+
             const currentAmount = parseFloat(currentVal);
             const pnlValue = currentAmount - initialAmount;
 
             setPnl(pnlValue.toFixed(4));
             setPnlPercentage(initialAmount > 0 ? ((pnlValue / initialAmount) * 100).toFixed(2) : "0.00");
         }
-    }, [shareValue, investment]);
+    }, [shareValue, investment, fallbackAmount]);
 
     const handleWithdraw = async (mode: 'profit' | 'all') => {
         if (!investment?.agents?.vault_address) return;
@@ -491,62 +528,62 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     </div>
 
                     <div className="investment-side">
-                    <div className="glass-container p-6 sticky top-32 architecture-card">
-                        <div className="architecture-header">
-                            <div className="architecture-title">
-                                <ShieldCheck size={18} className="text-primary-purple" />
-                                <span>Agent Architecture</span>
-                            </div>
-                            {agentData && (
-                                <span className={`architecture-pill ${Number(agentData.apy ?? 0) >= 0 ? 'good' : 'bad'}`}>
-                                    APY {Number(agentData.apy ?? 0).toFixed(1)}%
-                                </span>
-                            )}
-                        </div>
-
-                        {agentData ? (
-                            <div className="architecture-body">
-                                <div className="architecture-core">
-                                    <div className="core-icon">
-                                        <BarChart3 size={16} />
-                                    </div>
-                                    <div>
-                                        <div className="core-title">{agentData.strategy || 'Neural Momentum'}</div>
-                                        <div className="core-sub">{agentData.personality || 'Balanced'} Risk Profile</div>
-                                    </div>
+                        <div className="glass-container p-6 sticky top-32 architecture-card">
+                            <div className="architecture-header">
+                                <div className="architecture-title">
+                                    <ShieldCheck size={18} className="text-primary-purple" />
+                                    <span>Agent Architecture</span>
                                 </div>
-                                <p className="core-desc">
-                                    {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
-                                </p>
+                                {agentData && (
+                                    <span className={`architecture-pill ${Number(agentData.apy ?? 0) >= 0 ? 'good' : 'bad'}`}>
+                                        APY {Number(agentData.apy ?? 0).toFixed(1)}%
+                                    </span>
+                                )}
+                            </div>
 
-                                <div className="architecture-metrics">
-                                    <div className="metric-item">
-                                        <div className="metric-label">Win Rate</div>
-                                        <div className="metric-value">{Number(agentData.winRate ?? 0)}%</div>
-                                    </div>
-                                    <div className="metric-item">
-                                        <div className="metric-label">Trades</div>
-                                        <div className="metric-value">{Number(agentData.totalTrades ?? 0)}</div>
-                                    </div>
-                                    <div className="metric-item wide">
-                                        <div className="metric-label">Total Agent PnL</div>
-                                        <div className={`metric-value ${Number(agentData.totalPnL ?? 0) >= 0 ? 'plus' : 'minus'}`}>
-                                            {Number(agentData.totalPnL ?? 0) >= 0 ? '+' : ''}{Number(agentData.totalPnL ?? 0).toFixed(2)} USDT
+                            {agentData ? (
+                                <div className="architecture-body">
+                                    <div className="architecture-core">
+                                        <div className="core-icon">
+                                            <BarChart3 size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="core-title">{agentData.strategy || 'Neural Momentum'}</div>
+                                            <div className="core-sub">{agentData.personality || 'Balanced'} Risk Profile</div>
                                         </div>
                                     </div>
-                                </div>
+                                    <p className="core-desc">
+                                        {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
+                                    </p>
 
-                                <Link href={`/clawdex/agent/${agentData.agentId}`} className="architecture-link">
-                                    View Full Agent Protocol
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="py-8 text-center text-secondary">
-                                <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
-                                <span className="text-xs">Synchronizing Agent Data...</span>
-                            </div>
-                        )}
-                    </div>
+                                    <div className="architecture-metrics">
+                                        <div className="metric-item">
+                                            <div className="metric-label">Win Rate</div>
+                                            <div className="metric-value">{Number(agentData.winRate ?? 0)}%</div>
+                                        </div>
+                                        <div className="metric-item">
+                                            <div className="metric-label">Trades</div>
+                                            <div className="metric-value">{Number(agentData.totalTrades ?? 0)}</div>
+                                        </div>
+                                        <div className="metric-item wide">
+                                            <div className="metric-label">Total Agent PnL</div>
+                                            <div className={`metric-value ${Number(agentData.totalPnL ?? 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                {Number(agentData.totalPnL ?? 0) >= 0 ? '+' : ''}{Number(agentData.totalPnL ?? 0).toFixed(2)} USDT
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Link href={`/clawdex/agent/${agentData.agentId}`} className="architecture-link">
+                                        View Full Agent Protocol
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="py-8 text-center text-secondary">
+                                    <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
+                                    <span className="text-xs">Synchronizing Agent Data...</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
