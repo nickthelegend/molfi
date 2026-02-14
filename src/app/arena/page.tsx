@@ -108,9 +108,13 @@ const ArenaTabs = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTa
 const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
+    const [timeRange, setTimeRange] = useState<'1H' | '4H' | '1D' | '1W' | 'ALL'>('1D');
 
     useEffect(() => {
         if (!chartContainerRef.current) return;
+
+        // Clear container (previous chart is removed by cleanup function)
+        chartRef.current = null;
 
         const chart = LightweightCharts.createChart(chartContainerRef.current, {
             layout: {
@@ -143,33 +147,94 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
 
         const colors = ['#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f43f5e', '#eab308'];
 
-        // Use REAL equity curves from API data
+        const now = Math.floor(Date.now() / 1000);
+        const rangeSeconds: Record<string, number> = {
+            '1H': 3600,
+            '4H': 14400,
+            '1D': 86400,
+            '1W': 604800,
+            'ALL': 0,
+        };
+        const rangeStart = timeRange === 'ALL' ? 0 : now - rangeSeconds[timeRange];
+
         const displayAgents = agents.length > 0 ? agents.slice(0, 7) : [];
+        let globalMinTime = now;
+        let hasData = false;
 
         displayAgents.forEach((agent, i) => {
-            const curve = agent.equityCurve || [];
-            if (curve.length === 0) return;
+            const rawCurve = agent.equityCurve || [];
+            if (rawCurve.length === 0) return;
 
-            // De-duplicate timestamps (lightweight-charts requires unique ascending times)
+            // Sort and de-duplicate raw data
             const seen = new Set<number>();
-            const cleanData = curve
-                .map(p => ({ time: Math.floor(p.time) as any, value: p.value }))
+            const sorted = [...rawCurve]
+                .map(p => ({ time: Math.floor(p.time), value: p.value }))
+                .sort((a, b) => a.time - b.time)
                 .filter(p => {
                     if (seen.has(p.time)) return false;
                     seen.add(p.time);
                     return true;
-                })
-                .sort((a: any, b: any) => a.time - b.time);
+                });
 
-            if (cleanData.length < 2) return;
+            if (sorted.length === 0) return;
+
+            // Find the last known value at or before rangeStart (for the anchor)
+            let anchorValue = sorted[0].value;
+            for (const p of sorted) {
+                if (p.time <= rangeStart) anchorValue = p.value;
+                else break;
+            }
+
+            // Build the chart data: anchor + actual points within range + current point
+            const chartData: { time: any; value: number }[] = [];
+            const usedTimes = new Set<number>();
+
+            // Add anchor at range start (so the line starts from the left edge)
+            if (timeRange !== 'ALL') {
+                chartData.push({ time: rangeStart as any, value: anchorValue });
+                usedTimes.add(rangeStart);
+            }
+
+            // Add all actual data points within range
+            for (const p of sorted) {
+                if (p.time >= rangeStart && !usedTimes.has(p.time)) {
+                    chartData.push({ time: p.time as any, value: p.value });
+                    usedTimes.add(p.time);
+                }
+            }
+
+            // Add current time point with latest value
+            const latestValue = sorted[sorted.length - 1].value;
+            if (!usedTimes.has(now)) {
+                chartData.push({ time: now as any, value: latestValue });
+                usedTimes.add(now);
+            }
+
+            // Ensure ascending order
+            chartData.sort((a: any, b: any) => a.time - b.time);
+
+            if (chartData.length < 2) return;
+            hasData = true;
+
+            if (chartData[0].time < globalMinTime) globalMinTime = chartData[0].time;
 
             const lineSeries = chart.addSeries(LightweightCharts.LineSeries, {
                 color: colors[i % colors.length],
                 lineWidth: 2,
                 title: agent.name,
             });
-            lineSeries.setData(cleanData);
+            lineSeries.setData(chartData);
         });
+
+        // Set visible range to the selected time window
+        if (hasData) {
+            const visibleFrom = timeRange === 'ALL' ? globalMinTime : rangeStart;
+            chart.timeScale().setVisibleRange({
+                from: visibleFrom as any,
+                to: now as any,
+            });
+        }
+
 
         const handleResize = () => {
             if (chartContainerRef.current) {
@@ -182,7 +247,7 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
             window.removeEventListener('resize', handleResize);
             chart.remove();
         };
-    }, [agents]);
+    }, [agents, timeRange]);
 
     return (
         <div className="chart-wrapper">
@@ -191,16 +256,35 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
                     <div className="dropdown-mini">Equity Curves <ChevronDown size={12} /></div>
                     <span className="text-dim" style={{ fontSize: 10 }}>LIVE</span>
                 </div>
+                <div className="chart-time-selector">
+                    {(['1H', '4H', '1D', '1W', 'ALL'] as const).map(range => (
+                        <button
+                            key={range}
+                            className={`time-range-btn ${timeRange === range ? 'active' : ''}`}
+                            onClick={() => setTimeRange(range)}
+                        >
+                            {range}
+                        </button>
+                    ))}
+                </div>
             </div>
             <div ref={chartContainerRef} style={{ width: '100%', height: '400px' }} />
         </div>
     );
 };
 
+
 const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions: Trade[] }) => {
     const [subTab, setSubTab] = useState<'trades' | 'positions' | 'details'>('trades');
+    const [selectedAgent, setSelectedAgent] = useState<string>('all');
 
     const completedTrades = trades.filter(t => t.status === 'CLOSED');
+
+    // Get unique agent names from open positions
+    const agentNames = [...new Set(openPositions.map(p => p.agentName))];
+    const filteredPositions = selectedAgent === 'all'
+        ? openPositions
+        : openPositions.filter(p => p.agentName === selectedAgent);
 
     return (
         <div className="trades-panel-v2">
@@ -259,10 +343,38 @@ const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions
 
                 {subTab === 'positions' && (
                     <div className="positions-pro">
-                        {openPositions.length === 0 ? (
-                            <div className="empty-state" style={{ padding: 24, textAlign: 'center', color: '#555', fontSize: 12 }}>No open positions</div>
+                        {/* Agent Filter */}
+                        {agentNames.length > 0 && (
+                            <div className="agent-filter-bar">
+                                <button
+                                    className={`agent-filter-btn ${selectedAgent === 'all' ? 'active' : ''}`}
+                                    onClick={() => setSelectedAgent('all')}
+                                >
+                                    All ({openPositions.length})
+                                </button>
+                                {agentNames.map(name => (
+                                    <button
+                                        key={name}
+                                        className={`agent-filter-btn ${selectedAgent === name ? 'active' : ''}`}
+                                        onClick={() => setSelectedAgent(name)}
+                                    >
+                                        <img
+                                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${name}`}
+                                            alt=""
+                                            style={{ width: 16, height: 16, borderRadius: 4 }}
+                                        />
+                                        {name} ({openPositions.filter(p => p.agentName === name).length})
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {filteredPositions.length === 0 ? (
+                            <div className="empty-state" style={{ padding: 24, textAlign: 'center', color: '#555', fontSize: 12 }}>
+                                {selectedAgent === 'all' ? 'No open positions' : `No open positions for ${selectedAgent}`}
+                            </div>
                         ) : (
-                            openPositions.map(pos => (
+                            filteredPositions.map(pos => (
                                 <div key={pos.id} className="pos-card-pro">
                                     <div className="pos-header">
                                         <div className="flex items-center gap-sm">
@@ -320,6 +432,7 @@ const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions
                         )}
                     </div>
                 )}
+
 
                 {subTab === 'details' && (
                     <div className="event-info-panel">
@@ -1046,6 +1159,74 @@ export default function ArenaPage() {
                     align-items: center;
                     gap: 0.25rem;
                     cursor: pointer;
+                }
+
+                .chart-time-selector {
+                    display: flex;
+                    gap: 2px;
+                    background: #111;
+                    border-radius: 6px;
+                    padding: 2px;
+                }
+
+                .time-range-btn {
+                    background: none;
+                    border: none;
+                    color: #666;
+                    font-size: 10px;
+                    font-weight: 700;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-family: var(--font-mono);
+                }
+
+                .time-range-btn:hover {
+                    color: #aaa;
+                }
+
+                .time-range-btn.active {
+                    background: var(--primary);
+                    color: white;
+                }
+
+                .agent-filter-bar {
+                    display: flex;
+                    gap: 6px;
+                    padding: 10px 12px;
+                    border-bottom: 1px solid var(--arena-border);
+                    overflow-x: auto;
+                    flex-wrap: nowrap;
+                }
+
+                .agent-filter-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: #111;
+                    border: 1px solid rgba(255,255,255,0.06);
+                    color: #888;
+                    font-size: 10px;
+                    font-weight: 700;
+                    padding: 5px 10px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    white-space: nowrap;
+                    font-family: var(--font-mono);
+                }
+
+                .agent-filter-btn:hover {
+                    background: #1a1a1a;
+                    color: #ccc;
+                    border-color: rgba(255,255,255,0.12);
+                }
+
+                .agent-filter-btn.active {
+                    background: rgba(168, 85, 247, 0.15);
+                    color: #a855f7;
+                    border-color: rgba(168, 85, 247, 0.3);
                 }
 
                 /* Trades Panel v2 */
