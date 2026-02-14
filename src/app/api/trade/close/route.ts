@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
                 fees: parseFloat(trade.fees || '0') + closingFee,
                 status: 'CLOSED',
                 closedAt: new Date().toISOString(),
-                closeTxHash: onChainData.txHash, // Storing close tx hash
+                // closeTxHash: onChainData.txHash, // Storing close tx hash (Disabled until column exists)
             })
             .eq('id', tradeId)
             .select()

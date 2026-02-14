@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
                 entryPrice,
                 fees: tradingFee,
                 status: 'OPEN',
-                txHash: onChainData.txHash, // Storing execution tx hash
+                // txHash: onChainData.txHash, // Storing execution tx hash (Disabled until column exists)
             })
             .select()
             .single();
