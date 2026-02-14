@@ -34,9 +34,6 @@ export default function Navbar() {
                     <Link href="/arena" className="nav-link">
                         <Swords size={18} /> Arena
                     </Link>
-                    <Link href="/analytics" className="nav-link">
-                        <BarChart2 size={18} /> Analytics
-                    </Link>
                     <Link href="/agents" className="nav-link">
                         <Bot size={18} /> Agents
                     </Link>
@@ -75,7 +72,6 @@ export default function Navbar() {
                 <div className="mobile-menu">
                     <Link href="/clawdex" onClick={() => setIsMenuOpen(false)} className="nav-link">ClawDex</Link>
                     <Link href="/arena" onClick={() => setIsMenuOpen(false)} className="nav-link">Arena</Link>
-                    <Link href="/analytics" onClick={() => setIsMenuOpen(false)} className="nav-link">Analytics</Link>
                     <Link href="/agents" onClick={() => setIsMenuOpen(false)} className="nav-link">Agents</Link>
                     <Link href="/faucet" onClick={() => setIsMenuOpen(false)} className="nav-link">Faucet</Link>
                     {mounted && (
