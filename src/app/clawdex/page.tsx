@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useLivePrices } from '@/lib/useLivePrices';
-import { MOCK_AGENTS, AIAgent, Position, TradingDecision } from '@/lib/agents';
+import { AIAgent, Position, TradingDecision } from '@/lib/agents';
 import AllocateModal from '@/components/AllocateModal';
 import { CryptoIcon } from '@ledgerhq/crypto-icons';
 

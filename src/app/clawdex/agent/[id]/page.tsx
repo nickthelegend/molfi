@@ -25,7 +25,7 @@ import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import TradingViewChart from '@/components/TradingViewChart';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
-import { MOCK_AGENTS, AIAgent } from '@/lib/agents';
+import { AIAgent } from '@/lib/agents';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
@@ -60,6 +60,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const [agent, setAgent] = useState<any | null>(null);
     const [stakeAmount, setStakeAmount] = useState('');
     const [loading, setLoading] = useState(true);
+    const [posTab, setPosTab] = useState<'active' | 'completed'>('active');
     const { isConnected, address } = useAccount();
 
     useEffect(() => {
@@ -69,15 +70,9 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 const data = await res.json();
                 if (data.success) {
                     setAgent(data.agent);
-                } else {
-                    // Fallback to mock if not found during dev
-                    const mock = MOCK_AGENTS.find(a => a.id === id);
-                    if (mock) setAgent(mock);
                 }
             } catch (err) {
                 console.error("Failed to fetch agent:", err);
-                const mock = MOCK_AGENTS.find(a => a.id === id);
-                if (mock) setAgent(mock);
             } finally {
                 setLoading(false);
             }
@@ -89,6 +84,54 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
     const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
+    const [reputationLogs, setReputationLogs] = useState<any[]>([]);
+
+    const REPUTATION_REGISTRY = process.env.NEXT_PUBLIC_REPUTATION_REGISTRY as `0x${string}`;
+    const PROTOCOL_CLIENT = '0xcCED528A5b70e16c8131Cb2de424564dD938fD3B' as `0x${string}`; // Deployer address
+
+    // 0. Fetch Reputation Logs from Chain
+    const { data: feedbackData } = useReadContract({
+        address: REPUTATION_REGISTRY,
+        abi: [
+            {
+                "inputs": [
+                    { "internalType": "uint256", "name": "agentId", "type": "uint256" },
+                    { "internalType": "address[]", "name": "clientAddresses", "type": "address[]" },
+                    { "internalType": "string", "name": "tag1", "type": "string" },
+                    { "internalType": "string", "name": "tag2", "type": "string" },
+                    { "internalType": "bool", "name": "includeRevoked", "type": "bool" }
+                ],
+                "name": "readAllFeedback",
+                "outputs": [
+                    { "internalType": "address[]", "name": "clients", "type": "address[]" },
+                    { "internalType": "uint64[]", "name": "feedbackIndexes", "type": "uint64[]" },
+                    { "internalType": "int128[]", "name": "values", "type": "int128[]" },
+                    { "internalType": "uint8[]", "name": "valueDecimals", "type": "uint8[]" },
+                    { "internalType": "string[]", "name": "tag1s", "type": "string[]" },
+                    { "internalType": "string[]", "name": "tag2s", "type": "string[]" },
+                    { "internalType": "bool[]", "name": "revokedStatuses", "type": "bool[]" }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ],
+        functionName: "readAllFeedback",
+        args: agent?.agentId ? [BigInt(agent.agentId), [PROTOCOL_CLIENT], "", "", false] : undefined,
+    });
+
+    useEffect(() => {
+        if (feedbackData) {
+            const [clients, indexes, values, decimals, tag1s, tag2s] = feedbackData as any;
+            const logs = tag1s.map((tag1: string, i: number) => ({
+                action: tag1,
+                pair: tag2s[i],
+                value: Number(values[i]) / (10 ** Number(decimals[i])),
+                index: Number(indexes[i]),
+                client: clients[i]
+            })).reverse();
+            setReputationLogs(logs);
+        }
+    }, [feedbackData]);
 
     // 1. Fetch USDC Balance
     const { data: usdcBalanceData } = useReadContract({
@@ -297,10 +340,24 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             </div>
                         </div>
 
-                        {/* Recent Positions Table */}
+                        {/* Positions Table */}
                         <div className="premium-panel">
-                            <div className="panel-header">
-                                <h3>ACTIVE CIRCUITS (POSITIONS)</h3>
+                            <div className="panel-header flex justify-between items-center">
+                                <h3>{posTab === 'active' ? 'ACTIVE CIRCUITS' : 'COMPLETED CIRCUITS'}</h3>
+                                <div className="tab-control">
+                                    <button
+                                        className={`tab-btn ${posTab === 'active' ? 'active' : ''}`}
+                                        onClick={() => setPosTab('active')}
+                                    >
+                                        ACTIVE
+                                    </button>
+                                    <button
+                                        className={`tab-btn ${posTab === 'completed' ? 'active' : ''}`}
+                                        onClick={() => setPosTab('completed')}
+                                    >
+                                        HISTORY
+                                    </button>
+                                </div>
                             </div>
                             <div className="panel-body no-padding">
                                 <div style={{ overflowX: 'auto' }}>
@@ -309,35 +366,66 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                             <tr>
                                                 <th>ASSET</th>
                                                 <th>SIDE</th>
-                                                <th>LEVERAGE</th>
+                                                <th>{posTab === 'active' ? 'LEVERAGE' : 'PnL'}</th>
                                                 <th>SIZE</th>
-                                                <th>PnL (UNREALIZED)</th>
+                                                <th>{posTab === 'active' ? 'PnL (UNREALIZED)' : 'EXIT PRICE'}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {agent.activePositions?.map((pos: any) => (
-                                                <tr key={pos.id}>
-                                                    <td className="font-bold">{pos.pair}</td>
-                                                    <td>
-                                                        <span className={`side-tag ${pos.side}`}>
-                                                            {pos.side}
-                                                        </span>
-                                                    </td>
-                                                    <td className="font-mono">10x</td>
-                                                    <td className="font-mono">${pos.size.toLocaleString()}</td>
-                                                    <td>
-                                                        <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
-                                                            {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {(!agent.activePositions || agent.activePositions.length === 0) && (
-                                                <tr>
-                                                    <td colSpan={5} className="empty-state">
-                                                        No active positions. Monitoring for next high-precision entry.
-                                                    </td>
-                                                </tr>
+                                            {posTab === 'active' ? (
+                                                <>
+                                                    {agent.activePositions?.map((pos: any) => (
+                                                        <tr key={pos.id}>
+                                                            <td className="font-bold">{pos.pair}</td>
+                                                            <td>
+                                                                <span className={`side-tag ${pos.side}`}>
+                                                                    {pos.side}
+                                                                </span>
+                                                            </td>
+                                                            <td className="font-mono">{pos.leverage || '10'}x</td>
+                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
+                                                            <td>
+                                                                <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                                    {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {(!agent.activePositions || agent.activePositions.length === 0) && (
+                                                        <tr>
+                                                            <td colSpan={5} className="empty-state">
+                                                                No active positions. Monitoring for high-precision entry.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {agent.completedPositions?.map((pos: any) => (
+                                                        <tr key={pos.id}>
+                                                            <td className="font-bold">{pos.pair}</td>
+                                                            <td>
+                                                                <span className={`side-tag ${pos.side}`}>
+                                                                    {pos.side}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div className={`pnl-display ${(pos.pnl || 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                                    {(pos.pnl || 0) >= 0 ? '+' : ''}${pos.pnl || '0.00'} ({(pos.pnlPercent || 0).toFixed(2)}%)
+                                                                </div>
+                                                            </td>
+                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
+                                                            <td className="font-mono text-dim">${pos.exitPrice || '---'}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {(!agent.completedPositions || agent.completedPositions.length === 0) && (
+                                                        <tr>
+                                                            <td colSpan={5} className="empty-state">
+                                                                No completed trades on record.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </>
                                             )}
                                         </tbody>
                                     </table>
@@ -420,36 +508,41 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             )}
                         </div>
 
-                        {/* Decision Timeline */}
+                        {/* Reputation Log - ON CHAIN DATA */}
                         <div className="premium-panel">
                             <div className="panel-header">
                                 <h3 className="flex items-center gap-sm">
-                                    <ShieldCheck size={18} className="text-primary" />
-                                    SIGNAL ARCHIVE
+                                    <Zap size={18} className="text-primary-purple" />
+                                    ON-CHAIN REPUTATION LOG
                                 </h3>
                             </div>
-                            <div className="panel-body">
-                                <div className="neural-timeline">
-                                    {agent.recentDecisions?.map((dec: any, i: number) => (
-                                        <div key={dec.id || i} className="timeline-step">
-                                            <div className="step-marker" />
-                                            <div className="step-box">
-                                                <div className="flex items-center justify-between mb-xs">
-                                                    <span className={`step-action ${dec.isLong || dec.action === 'BUY' ? 'long' : 'short'}`}>
-                                                        {dec.isLong || dec.action === 'BUY' ? 'BUY / LONG' : 'SELL / SHORT'}
-                                                    </span>
-                                                    <span className="step-time">
-                                                        {dec.createdAt ? new Date(dec.createdAt).toLocaleTimeString() : 'RECENT'}
+                            <div className="panel-body no-padding">
+                                <div className="reputation-list">
+                                    {reputationLogs.length > 0 ? (
+                                        reputationLogs.map((log, i) => (
+                                            <div key={i} className="reputation-entry">
+                                                <div className="flex justify-between items-center mb-xs">
+                                                    <div className="flex items-center gap-xs">
+                                                        <div className={`action-dot ${log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? 'win' : 'loss') : 'neutral'}`} />
+                                                        <span className="action-label">{log.action.replace('_', ' ')}</span>
+                                                    </div>
+                                                    <span className="entry-value font-mono">
+                                                        {log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? '+' : '') : ''}
+                                                        {log.value.toFixed(log.value < 1 && log.value !== 0 ? 4 : 2)}
+                                                        {log.action === 'DECISION' ? '%' : ' USDT'}
                                                     </span>
                                                 </div>
-                                                <p className="step-pair">{dec.pair}</p>
-                                                <div className="step-sig">
-                                                    <div className="sig-hash">AUTH_ID: {dec.id?.slice(0, 12) || dec.proof}</div>
-                                                    <Activity size={10} className="text-dim/50" />
+                                                <div className="flex justify-between text-[10px] text-dim">
+                                                    <span>{log.pair}</span>
+                                                    <span className="font-mono text-[9px] truncate ml-lg opacity-50">#IX_{log.index}</span>
                                                 </div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-xl text-center text-dim text-[11px] italic">
+                                            Synchronizing reputation relay...
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -473,6 +566,49 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     transition: all 0.2s;
                 }
                 .glass-back-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary-purple); }
+
+                .tab-control {
+                    display: flex;
+                    gap: 0.5rem;
+                    background: rgba(0,0,0,0.3);
+                    padding: 0.25rem;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                .tab-btn {
+                    padding: 0.3rem 0.8rem;
+                    border-radius: 6px;
+                    font-size: 9px;
+                    font-weight: 800;
+                    border: none;
+                    background: transparent;
+                    color: var(--text-dim);
+                    cursor: pointer;
+                    transition: 0.2s;
+                }
+                .tab-btn.active {
+                    background: var(--primary-purple);
+                    color: white;
+                }
+
+                .reputation-list {
+                    padding: 0.5rem;
+                    max-height: 400px;
+                    overflow-y: auto;
+                }
+                .reputation-entry {
+                    padding: 0.75rem;
+                    border-bottom: 1px solid rgba(255,255,255,0.03);
+                    transition: 0.2s;
+                }
+                .reputation-entry:hover { background: rgba(168, 85, 247, 0.03); }
+                .reputation-entry:last-child { border-bottom: none; }
+                .action-dot { width: 6px; height: 6px; border-radius: 50%; }
+                .action-dot.win { background: #10b981; box-shadow: 0 0 8px #10b981; }
+                .action-dot.loss { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+                .action-dot.neutral { background: var(--primary-purple); }
+                .action-label { font-size: 10px; font-weight: 800; color: white; letter-spacing: 0.05em; text-transform: uppercase; }
+                .entry-value { font-size: 11px; font-weight: 700; color: var(--primary-purple); }
 
                 .neural-status-indicator {
                     display: flex;

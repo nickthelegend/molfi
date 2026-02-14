@@ -1,99 +1,75 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, TrendingUp, TrendingDown, Bot, Zap, Trophy, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/contract-helpers';
-
-// Mock data - will be replaced with real contract data
-const MOCK_AGENTS = [
-    {
-        id: '1',
-        name: 'AlphaTrader',
-        owner: '0x1234567890123456789012345678901234567890',
-        type: 'trader',
-        status: 'active',
-        reputation: 92,
-        totalTrades: 247,
-        wins: 168,
-        losses: 79,
-        winRate: 68,
-        totalProfit: 12450,
-        totalLoss: 3200,
-        netProfit: 9250,
-        tvl: 125000,
-    },
-    {
-        id: '2',
-        name: 'SafeYield',
-        owner: '0x2345678901234567890123456789012345678901',
-        type: 'fund-manager',
-        status: 'active',
-        reputation: 88,
-        totalTrades: 156,
-        wins: 117,
-        losses: 39,
-        winRate: 75,
-        totalProfit: 8900,
-        totalLoss: 1200,
-        netProfit: 7700,
-        tvl: 85000,
-    },
-    {
-        id: '3',
-        name: 'MarketOracle',
-        owner: '0x3456789012345678901234567890123456789012',
-        type: 'analyst',
-        status: 'active',
-        reputation: 95,
-        totalTrades: 320,
-        wins: 256,
-        losses: 64,
-        winRate: 80,
-        totalProfit: 15600,
-        totalLoss: 2100,
-        netProfit: 13500,
-        tvl: 210000,
-    },
-];
 
 export default function ExplorerPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [sortBy, setSortBy] = useState<'reputation' | 'profit' | 'winRate' | 'trades'>('reputation');
+    const [agents, setAgents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                const res = await fetch('/api/agents');
+                const data = await res.json();
+                if (data.success) {
+                    setAgents(data.agents);
+                }
+            } catch (err) {
+                console.error("Failed to fetch agents:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAgents();
+    }, []);
 
     // Calculate global stats
-    const totalAgents = MOCK_AGENTS.length;
-    const totalTrades = MOCK_AGENTS.reduce((sum, agent) => sum + agent.totalTrades, 0);
-    const totalWins = MOCK_AGENTS.reduce((sum, agent) => sum + agent.wins, 0);
-    const totalLosses = MOCK_AGENTS.reduce((sum, agent) => sum + agent.losses, 0);
-    const totalProfit = MOCK_AGENTS.reduce((sum, agent) => sum + agent.totalProfit, 0);
-    const totalLoss = MOCK_AGENTS.reduce((sum, agent) => sum + agent.totalLoss, 0);
-    const netProfit = totalProfit - totalLoss;
+    const totalAgents = agents.length;
+    const totalTrades = agents.reduce((sum, agent) => sum + (agent.totalTrades || 0), 0);
+    const totalWins = agents.reduce((sum, agent) => sum + (agent.wins || 0), 0);
+    const totalLosses = agents.reduce((sum, agent) => sum + (agent.losses || 0), 0);
+    const totalProfit = agents.reduce((sum, agent) => sum + (Math.max(0, agent.realizedPnL || 0)), 0); // Only counting profitable agents for Total Profit stat
+    const totalLoss = agents.reduce((sum, agent) => sum + (Math.min(0, agent.realizedPnL || 0)), 0);
+    const netProfit = agents.reduce((sum, agent) => sum + (agent.totalPnL || 0), 0);
 
     // Filter and sort agents
-    const filteredAgents = MOCK_AGENTS
+    const filteredAgents = agents
         .filter((agent) => {
             const matchesSearch =
                 agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 agent.owner.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || agent.status === statusFilter;
+            // Filter inactive if totalTrades is 0 (proxy for status)
+            const isActive = agent.totalTrades > 0;
+            const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? isActive : !isActive);
             return matchesSearch && matchesStatus;
         })
         .sort((a, b) => {
             switch (sortBy) {
                 case 'reputation':
-                    return b.reputation - a.reputation;
+                    // Using ROI/WinRate as proxy for reputation if not explicit
+                    return (b.roi || 0) - (a.roi || 0);
                 case 'profit':
-                    return b.netProfit - a.netProfit;
+                    return (b.totalPnL || 0) - (a.totalPnL || 0);
                 case 'winRate':
-                    return b.winRate - a.winRate;
+                    return (b.winRate || 0) - (a.winRate || 0);
                 case 'trades':
-                    return b.totalTrades - a.totalTrades;
+                    return (b.totalTrades || 0) - (a.totalTrades || 0);
                 default:
                     return 0;
             }
         });
+
+    if (loading) return (
+        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', textAlign: 'center' }}>
+            <div className="animate-pulse text-secondary">Loading Explorer Data...</div>
+        </div>
+    );
 
     return (
         <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1600px', margin: '0 auto' }}>

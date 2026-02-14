@@ -108,6 +108,11 @@ export async function GET(req: Request, { params }: { params: any }) {
                 winRate: closedTrades.length > 0 ? Math.round((closedTrades.filter(t => parseFloat(t.pnl || '0') > 0).length / closedTrades.length) * 100) : 0,
                 totalTrades: trades.length,
                 activePositions,
+                completedPositions: closedTrades.map(t => ({
+                    ...t,
+                    pnl: parseFloat(parseFloat(t.pnl || '0').toFixed(4)),
+                    pnlPercent: t.size && parseFloat(t.size) > 0 ? parseFloat(((parseFloat(t.pnl || '0') / parseFloat(t.size)) * 100).toFixed(2)) : 0
+                })).reverse(),
                 recentDecisions: signals || []
             }
         });
