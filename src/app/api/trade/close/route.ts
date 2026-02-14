@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
         }
 
         const { data: agent, error: authError } = await supabaseAdmin
-            .from('AIAgent')
+            .from('agents')
             .select('*')
-            .eq('apiKey', apiKey)
+            .eq('api_key', apiKey)
             .single();
 
         if (authError || !agent) {
@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
 
         // --- Get the open trade ---
         const { data: trade, error: fetchError } = await supabaseAdmin
-            .from('TradeLog')
+            .from('trade_signals')
             .select('*')
             .eq('id', tradeId)
-            .eq('agentId', agent.agentId)
+            .eq('agent_id', agent.agent_id)
             .single();
 
         if (fetchError || !trade) {
@@ -45,25 +45,30 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: `Trade is already ${trade.status}` }, { status: 400 });
         }
 
+        const tradeSize = parseFloat(trade.size || '0');
+        const entryPrice = parseFloat(trade.entry_price || trade.entryPrice || '0');
+
         // --- Get Current Price (JIT sync to oracle) ---
         const priceData = await syncOraclePrice(trade.pair);
         const exitPrice = priceData.price;
 
         // --- Calculate PnL ---
         const pnl = calculatePnL(
-            trade.side as 'LONG' | 'SHORT',
-            parseFloat(trade.entryPrice),
+            (trade.side || (trade.is_long ? 'LONG' : 'SHORT')) as 'LONG' | 'SHORT',
+            entryPrice,
             exitPrice,
-            parseFloat(trade.size)
+            tradeSize
         );
 
-        const closingFee = parseFloat(trade.size) * 0.001; // 0.1%
-        const netPnl = pnl - closingFee - parseFloat(trade.fees || '0');
+        const closingFee = tradeSize * 0.001; // 0.1%
+        const existingFees = parseFloat(trade.fees || '0');
+        const netPnl = pnl - closingFee - existingFees;
 
         // --- ON-CHAIN EXECUTION: Close Perp Position ---
         let onChainData = { success: false, txHash: null };
 
-        if (agent.vaultAddress) {
+        const vaultAddr = agent.vault_address || agent.vaultAddress;
+        if (vaultAddr) {
             try {
                 const RPC_URL = 'https://testnet-rpc.monad.xyz';
                 const provider = new ethers.JsonRpcProvider(RPC_URL);
@@ -71,7 +76,7 @@ export async function POST(request: NextRequest) {
 
                 // 1. Get Vault and DEX
                 const vault = new ethers.Contract(
-                    agent.vaultAddress,
+                    vaultAddr,
                     [
                         "function closePerpPosition(uint256) external",
                         "function perpDEX() public view returns (address)"
@@ -90,17 +95,19 @@ export async function POST(request: NextRequest) {
                 );
 
                 // 2. Find the on-chain position ID
-                const positionIds = await dex.getAgentPositions(agent.vaultAddress);
+                const positionIds = await dex.getAgentPositions(vaultAddr);
                 let targetPositionId = null;
 
-                console.log(`[ON-CHAIN] Searching for position to close for Agent #${agent.agentId} (${trade.pair})...`);
+                console.log(`[ON-CHAIN] Searching for position to close for Agent #${agent.agent_id} (${trade.pair})...`);
 
                 // Search from newest to oldest
                 for (let i = positionIds.length - 1; i >= 0; i--) {
                     const posId = positionIds[i];
                     const pos = await dex.getPosition(posId);
 
-                    const isCorrectSide = (trade.side === 'LONG' && pos.isLong) || (trade.side === 'SHORT' && !pos.isLong);
+                    const tradeIsLong = trade.side === 'LONG' || trade.is_long === true;
+                    const isCorrectSide = (tradeIsLong && pos.isLong) || (!tradeIsLong && !pos.isLong);
+
                     if (pos.isOpen && pos.pair === trade.pair && isCorrectSide) {
                         targetPositionId = posId;
                         break;
@@ -119,7 +126,7 @@ export async function POST(request: NextRequest) {
                     };
                     console.log(`[ON-CHAIN] Position Closed ✅ tx: ${tx.hash}`);
                 } else {
-                    console.warn(`[ON-CHAIN] No matching open position found for agent #${agent.agentId} on ${trade.pair}`);
+                    console.warn(`[ON-CHAIN] No matching open position found for agent #${agent.agent_id} on ${trade.pair}`);
                 }
             } catch (err: any) {
                 console.error('[ON-CHAIN] Close execution failed:', err.message);
@@ -128,14 +135,13 @@ export async function POST(request: NextRequest) {
 
         // --- Update Trade in Supabase ---
         const { data: closedTrade, error: updateError } = await supabaseAdmin
-            .from('TradeLog')
+            .from('trade_signals')
             .update({
-                exitPrice,
+                exit_price: exitPrice,
                 pnl: parseFloat(netPnl.toFixed(4)),
-                fees: parseFloat(trade.fees || '0') + closingFee,
+                fees: existingFees + closingFee,
                 status: 'CLOSED',
-                closedAt: new Date().toISOString(),
-                // closeTxHash: onChainData.txHash, // Storing close tx hash (Disabled until column exists)
+                closed_at: new Date().toISOString(),
             })
             .eq('id', tradeId)
             .select()
@@ -145,16 +151,17 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to close trade: ' + updateError.message);
         }
 
-        const tradeDuration = Date.now() - new Date(trade.openedAt).getTime();
-        console.log(`[TRADE_CLOSE] Agent ${agent.name} (#${agent.agentId}) closed ${trade.side} ${trade.pair} | Entry: $${trade.entryPrice} → Exit: $${exitPrice.toFixed(2)} | PnL: ${netPnl > 0 ? '+' : ''}$${netPnl.toFixed(4)}`);
+        const tradeOpenedAt = trade.opened_at || trade.openedAt || trade.created_at;
+        const tradeDuration = Date.now() - new Date(tradeOpenedAt).getTime();
+        console.log(`[TRADE_CLOSE] Agent ${agent.name} (#${agent.agent_id}) closed trade | PnL: ${netPnl > 0 ? '+' : ''}$${netPnl.toFixed(4)}`);
 
-        // Submit on-chain reputation with PnL as the value
+        // Submit on-chain reputation
         const reputation = await recordTradeClose({
-            agentId: agent.agentId,
+            agentId: agent.agent_id,
             agentName: agent.name,
             pair: trade.pair,
-            side: trade.side,
-            entryPrice: parseFloat(trade.entryPrice),
+            side: trade.side || (trade.is_long ? 'LONG' : 'SHORT'),
+            entryPrice: entryPrice,
             exitPrice,
             pnl: parseFloat(netPnl.toFixed(4)),
             tradeId: trade.id,
@@ -164,20 +171,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             agent: {
-                id: agent.agentId,
+                id: agent.agent_id,
                 name: agent.name,
             },
             trade: {
                 tradeId: trade.id,
                 pair: trade.pair,
-                side: trade.side,
-                entryPrice: parseFloat(trade.entryPrice),
-                exitPrice,
                 pnl: parseFloat(netPnl.toFixed(4)),
-                totalFees: parseFloat(trade.fees || '0') + closingFee,
                 status: 'CLOSED',
-                duration: tradeDuration,
-                priceSource: priceData.source,
                 closeTxHash: onChainData.txHash,
             },
             reputation: {
@@ -196,3 +197,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
