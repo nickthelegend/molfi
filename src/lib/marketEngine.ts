@@ -20,6 +20,7 @@ const ORACLE_ABI = [
   'function getPriceUnsafe(string memory pair) external view returns (uint256 price, uint256 updatedAt, bool isStale)',
   'function getAllPrices() external view returns (string[] memory pairs, uint256[] memory prices, uint256[] memory timestamps)',
   'function hasPriceFeed(string memory pair) external view returns (bool)',
+  'function updatePrice(string memory pair, uint256 price) external',
 ];
 
 // ── Configuration ────────────────────────────────────────────────

@@ -277,36 +277,40 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         }
     });
 
-    // Update PnL when share value is fetched
+    // Update PnL when share value is fetched or agent data updates
     useEffect(() => {
         if (shareValue && (investment || parseFloat(fallbackAmount) > 0)) {
             const currentVal = formatEther(shareValue as bigint);
-            setCurrentValue(currentVal);
 
             const initialAmount = parseFloat(investment?.amount || '0') > 0
                 ? parseFloat(investment.amount)
                 : parseFloat(fallbackAmount);
 
-            const currentAmount = parseFloat(currentVal);
-            const totalPnlValue = currentAmount - initialAmount;
+            const onChainReturn = parseFloat(currentVal) - initialAmount;
+            let calculatedPnl = onChainReturn;
+            let uPnL = 0;
+            let rPnL = 0;
 
-            setPnl(totalPnlValue.toFixed(4));
-            setPnlPercentage(initialAmount > 0 ? ((totalPnlValue / initialAmount) * 100).toFixed(2) : "0.00");
-
-            // Calculate breakdown if agent data exists
+            // Factor in agent performance if data is available
             if (agentData && totalSupply && parseFloat(activeShares) > 0) {
                 const totalSharesNum = parseFloat(formatEther(totalSupply as bigint));
-                const ownership = parseFloat(activeShares) / totalSharesNum;
+                const ownership = totalSharesNum > 0 ? parseFloat(activeShares) / totalSharesNum : 0;
 
-                // Unrealized PnL for user is their share of agent's unrealized profit
-                const uPnL = ownership * (agentData.unrealizedPnL || 0);
-                const rPnL = totalPnlValue - uPnL;
+                uPnL = ownership * (agentData.unrealizedPnL || 0);
+                rPnL = ownership * (agentData.realizedPnL || 0);
 
-                setPnlBreakdown({
-                    realized: rPnL.toFixed(4),
-                    unrealized: uPnL.toFixed(4)
-                });
+                // Final profit is realized + unrealized (simulated trades)
+                calculatedPnl = rPnL + uPnL;
             }
+
+            setPnl(calculatedPnl.toFixed(4));
+            setPnlPercentage(initialAmount > 0 ? ((calculatedPnl / initialAmount) * 100).toFixed(2) : "0.00");
+            setCurrentValue((initialAmount + calculatedPnl).toFixed(2));
+
+            setPnlBreakdown({
+                realized: rPnL.toFixed(4),
+                unrealized: uPnL.toFixed(4)
+            });
         }
     }, [shareValue, investment, fallbackAmount, agentData, totalSupply, activeShares]);
 

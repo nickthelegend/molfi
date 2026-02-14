@@ -115,6 +115,18 @@ export async function submitReputation(entry: ReputationEntry): Promise<Reputati
         try {
             const contract = new ethers.Contract(REPUTATION_REGISTRY, REPUTATION_ABI, wallet);
 
+            // Pre-check: Self-feedback registry check to avoid revert
+            try {
+                const identityAddr = await contract.getIdentityRegistry();
+                const identity = new ethers.Contract(identityAddr, ['function isAuthorizedOrOwner(address, uint256) external view returns (bool)'], wallet.provider);
+                const isSelf = await identity.isAuthorizedOrOwner(wallet.address, entry.agentId);
+
+                if (isSelf) {
+                    console.warn(`[Reputation] Skip: Self-feedback not allowed for agent #${entry.agentId} (Deployer is owner)`);
+                    return { success: false, proofHash, error: 'Self-feedback not allowed' };
+                }
+            } catch (checkErr) { /* fallback to try-catch the actual TX */ }
+
             console.log(`[Reputation] Submitting ${entry.action} for agent #${entry.agentId} (${entry.pair})...`);
 
             const tx = await contract.giveFeedback(
@@ -132,11 +144,15 @@ export async function submitReputation(entry: ReputationEntry): Promise<Reputati
             console.log(`[Reputation] TX sent: ${tx.hash}`);
 
             // Don't wait for confirmation to avoid blocking the API response
-            // Fire and forget — log the result asynchronously
             tx.wait(1).then(() => {
                 console.log(`[Reputation] ✅ Confirmed: ${entry.action} for agent #${entry.agentId} | tx: ${tx.hash}`);
             }).catch((err: any) => {
-                console.error(`[Reputation] ⚠️ TX failed to confirm: ${err.message}`);
+                const isRevert = err.message?.includes('reverted') || err.message?.includes('CALL_EXCEPTION');
+                if (isRevert) {
+                    console.warn(`[Reputation] ⚠️ TX reverted on-chain (likely duplicate feedbackHash or state change): ${tx.hash}`);
+                } else {
+                    console.error(`[Reputation] ⚠️ TX failed to confirm: ${err.message}`);
+                }
             });
 
             return {
