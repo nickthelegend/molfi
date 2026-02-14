@@ -232,21 +232,6 @@ export default function ProfilePage() {
         <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1400px', margin: '0 auto' }}>
             {/* Header */}
             <div className="glass-container" style={{ padding: '2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
-                {/* Glow effect */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: '-50%',
-                        right: '-10%',
-                        width: '300px',
-                        height: '300px',
-                        background: 'var(--primary-purple)',
-                        filter: 'blur(100px)',
-                        opacity: 0.2,
-                        pointerEvents: 'none',
-                    }}
-                />
-
                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '2rem' }}>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>

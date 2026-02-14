@@ -290,8 +290,7 @@ function ClawDexPageContent() {
             <div className="grid-overlay" />
 
             {/* Ambient Background Glows */}
-            <div style={{ position: 'fixed', top: '-10%', left: '-10%', width: '50%', height: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
-            <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%)', zIndex: -1, pointerEvents: 'none' }} />
+            {/* Removed per user request */}
 
             <div className="container" style={{ paddingTop: '160px' }}>
                 {/* Header Section */}
