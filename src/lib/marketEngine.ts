@@ -1,130 +1,134 @@
 /**
  * MolFi Market Engine
- * Reads real prices from Chainlink Data Feeds on Monad Testnet.
+ * ═══════════════════════════════════════════════════════════════
+ * Reads real prices from MolfiOracle on Monad Testnet.
+ *
+ * Price pipeline:
+ *   Binance API → oracle-bot.cjs → MolfiOracle contract → this engine → API
+ *
+ * Fallback chain:
+ *   1. Read from MolfiOracle on-chain (live prices pushed by bot)
+ *   2. Fetch directly from Binance REST API (if oracle is stale/down)
+ *   3. Return hardcoded fallback prices (last resort)
  */
 
 import { ethers } from 'ethers';
 
-// Chainlink AggregatorV3 ABI (just latestRoundData)
-const AGGREGATOR_ABI = [
-  "function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)",
-  "function decimals() external view returns (uint8)"
+// ── MolfiOracle ABI (read-only subset) ──────────────────────────
+const ORACLE_ABI = [
+  'function getLatestPrice(string memory pair) public view returns (uint256)',
+  'function getPriceUnsafe(string memory pair) external view returns (uint256 price, uint256 updatedAt, bool isStale)',
+  'function getAllPrices() external view returns (string[] memory pairs, uint256[] memory prices, uint256[] memory timestamps)',
+  'function hasPriceFeed(string memory pair) external view returns (bool)',
 ];
 
-// Chainlink Feed Addresses on Monad Testnet
-const CHAINLINK_FEEDS: Record<string, string> = {
-  'BTC/USD': '0x2Cd9D7E85494F68F5aF08EF96d6FD5e8F71B4d31',
-  'ETH/USD': '0x0c76859E85727683Eeba0C70Bc2e0F5781337818',
-  'LINK/USD': '0x4682035965Cd2B88759193ee2660d8A0766e1391',
-  'USDC/USD': '0x70BB0758a38ae43418ffcEd9A25273dd4e804D15',
-  'USDT/USD': '0x14eE6bE30A91989851Dc23203E41C804D4D71441',
-};
+// ── Configuration ────────────────────────────────────────────────
+const ORACLE_ADDRESS = process.env.NEXT_PUBLIC_MOLFI_ORACLE || '';
 
-// Supported trading pairs (map pair name → Chainlink feed key)
-export const SUPPORTED_PAIRS = ['BTC/USD', 'ETH/USD', 'LINK/USD'];
-
-export interface PriceData {
-  symbol: string;
-  price: number;
-  change24h: number;
-  updatedAt: string;
-  source: 'chainlink' | 'fallback';
-  roundId?: string;
-}
-
-// RPC endpoints with fallback
 const RPC_URLS = [
   'https://testnet-rpc.monad.xyz',
   'https://monad-testnet.drpc.org',
 ];
 
+// Binance symbol mapping (for direct fallback)
+const BINANCE_SYMBOLS: Record<string, string> = {
+  'BTC/USD': 'BTCUSDT',
+  'ETH/USD': 'ETHUSDT',
+  'LINK/USD': 'LINKUSDT',
+};
+
+export const SUPPORTED_PAIRS = ['BTC/USD', 'ETH/USD', 'LINK/USD'];
+
+// ── Types ────────────────────────────────────────────────────────
+export interface PriceData {
+  symbol: string;
+  price: number;
+  change24h: number;
+  updatedAt: string;
+  source: 'oracle' | 'binance' | 'fallback';
+}
+
+// ── RPC Provider Pool ────────────────────────────────────────────
 let providerIndex = 0;
 
 function getProvider(): ethers.JsonRpcProvider {
-  const url = RPC_URLS[providerIndex % RPC_URLS.length];
-  return new ethers.JsonRpcProvider(url);
+  return new ethers.JsonRpcProvider(RPC_URLS[providerIndex % RPC_URLS.length]);
 }
 
 function rotateProvider() {
   providerIndex = (providerIndex + 1) % RPC_URLS.length;
 }
 
-// Price cache (5 second TTL)
+// ── Price Cache (5 second TTL) ───────────────────────────────────
 const priceCache: Record<string, { data: PriceData; timestamp: number }> = {};
-const CACHE_TTL = 5000; // 5 seconds
+const CACHE_TTL = 5000;
 
-/**
- * Fetches the latest price for a symbol from Chainlink on Monad testnet.
- */
-export async function getOraclePrice(symbol: string): Promise<PriceData> {
-  // Normalize symbol format
-  const normalized = symbol.replace('-', '/').toUpperCase();
+// ── Strategy 1: Read from MolfiOracle on-chain ───────────────────
+async function readFromOracle(symbol: string): Promise<PriceData | null> {
+  if (!ORACLE_ADDRESS) return null;
 
-  // Check cache
-  const cached = priceCache[normalized];
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-
-  const feedAddress = CHAINLINK_FEEDS[normalized];
-  if (!feedAddress) {
-    throw new Error(`Unsupported symbol: ${symbol}. Supported: ${Object.keys(CHAINLINK_FEEDS).join(', ')}`);
-  }
-
-  // Try fetching from Chainlink with fallback
   for (let attempt = 0; attempt < RPC_URLS.length; attempt++) {
     try {
       const provider = getProvider();
-      const feed = new ethers.Contract(feedAddress, AGGREGATOR_ABI, provider);
+      const oracle = new ethers.Contract(ORACLE_ADDRESS, ORACLE_ABI, provider);
 
-      const [roundData, decimals] = await Promise.all([
-        feed.latestRoundData(),
-        feed.decimals(),
-      ]);
+      // Use getPriceUnsafe to avoid revert on stale prices
+      const [priceWei, updatedAt, isStale] = await oracle.getPriceUnsafe(symbol);
 
-      const [roundId, answer, , updatedAt] = roundData;
-      const price = Number(answer) / (10 ** Number(decimals));
+      if (priceWei === BigInt(0)) return null; // No price set
+      if (isStale) {
+        console.warn(`[MarketEngine] Oracle price for ${symbol} is stale`);
+        return null;
+      }
 
-      const data: PriceData = {
-        symbol: normalized,
+      const price = Number(ethers.formatUnits(priceWei, 18));
+
+      return {
+        symbol,
         price,
-        change24h: 0, // Chainlink doesn't provide 24h change
+        change24h: 0,
         updatedAt: new Date(Number(updatedAt) * 1000).toISOString(),
-        source: 'chainlink',
-        roundId: roundId.toString(),
+        source: 'oracle',
       };
-
-      // Cache it
-      priceCache[normalized] = { data, timestamp: Date.now() };
-      return data;
-
     } catch (err: any) {
-      console.warn(`[MarketEngine] RPC attempt ${attempt + 1} failed for ${normalized}: ${err.message}`);
+      console.warn(`[MarketEngine] Oracle read attempt ${attempt + 1} failed: ${err.message}`);
       rotateProvider();
     }
   }
-
-  // All RPC attempts failed — return fallback
-  console.error(`[MarketEngine] All RPC endpoints failed for ${normalized}, using fallback`);
-  return getFallbackPrice(normalized);
+  return null;
 }
 
-/**
- * Fetch all supported prices at once
- */
-export async function getAllPrices(): Promise<PriceData[]> {
-  const pairs = Object.keys(CHAINLINK_FEEDS);
-  const results = await Promise.allSettled(pairs.map(p => getOraclePrice(p)));
+// ── Strategy 2: Direct Binance API fetch ─────────────────────────
+async function readFromBinance(symbol: string): Promise<PriceData | null> {
+  const binanceSymbol = BINANCE_SYMBOLS[symbol];
+  if (!binanceSymbol) return null;
 
-  return results.map((r, i) => {
-    if (r.status === 'fulfilled') return r.value;
-    return getFallbackPrice(pairs[i]);
-  });
+  try {
+    const res = await fetch(
+      `https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const price = parseFloat(data.price);
+
+    if (isNaN(price) || price <= 0) return null;
+
+    return {
+      symbol,
+      price,
+      change24h: 0,
+      updatedAt: new Date().toISOString(),
+      source: 'binance',
+    };
+  } catch (err: any) {
+    console.warn(`[MarketEngine] Binance fetch failed for ${symbol}: ${err.message}`);
+    return null;
+  }
 }
 
-/**
- * Fallback prices when Chainlink is unreachable
- */
+// ── Strategy 3: Hardcoded fallback ───────────────────────────────
 const FALLBACK_PRICES: Record<string, number> = {
   'BTC/USD': 97000,
   'ETH/USD': 2700,
@@ -143,9 +147,133 @@ function getFallbackPrice(symbol: string): PriceData {
   };
 }
 
+// ── Just-In-Time (JIT) Oracle Synchronization ────────────────────
 /**
- * Perpetual Math: Calculates Unrealized PnL
+ * Syncs the on-chain oracle with the latest Binance price.
+ * Useful for updating prices only when a trade occurs to save gas.
  */
+export async function syncOraclePrice(symbol: string): Promise<PriceData> {
+  const normalized = symbol.replace('-', '/').toUpperCase();
+  console.log(`[MarketEngine] JIT syncing oracle for ${normalized}...`);
+
+  // 1. Get real price from Binance
+  const binanceData = await readFromBinance(normalized);
+  if (!binanceData) {
+    throw new Error(`Failed to fetch live price for ${normalized} from Binance`);
+  }
+
+  // 2. Push to on-chain Oracle if we have the private key
+  const pk = process.env.DEPLOYER_PRIVATE_KEY;
+  if (ORACLE_ADDRESS && pk) {
+    try {
+      const provider = getProvider();
+      const wallet = new ethers.Wallet(pk, provider);
+      const oracle = new ethers.Contract(ORACLE_ADDRESS, ORACLE_ABI, wallet);
+
+      const priceWei = ethers.parseUnits(binanceData.price.toFixed(8), 18);
+
+      console.log(`[MarketEngine] Sending update tx for ${normalized}...`);
+      const tx = await oracle.updatePrice(normalized, priceWei, { gasLimit: 300000 });
+      console.log(`[MarketEngine] Oracle update tx: ${tx.hash}`);
+
+      // Wait for 1 confirmation to ensure the price is on-chain before the trade executes
+      await tx.wait(1);
+      console.log(`[MarketEngine] Oracle synced ✅`);
+
+      return {
+        ...binanceData,
+        source: 'oracle',
+        updatedAt: new Date().toISOString()
+      };
+    } catch (err: any) {
+      console.error(`[MarketEngine] JIT Sync failed: ${err.message}`);
+      return binanceData;
+    }
+  }
+
+  return binanceData;
+}
+
+// ── Main Price Fetcher ───────────────────────────────────────────
+/**
+ * Fetches the latest price for a symbol.
+ * Tries: MolfiOracle → Binance → Fallback
+ */
+export async function getOraclePrice(symbol: string): Promise<PriceData> {
+  const normalized = symbol.replace('-', '/').toUpperCase();
+
+  // Check cache
+  const cached = priceCache[normalized];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  // Try oracle first
+  let data = await readFromOracle(normalized);
+
+  // Fallback to Binance direct
+  if (!data) {
+    data = await readFromBinance(normalized);
+  }
+
+  // Last resort: hardcoded
+  if (!data) {
+    console.error(`[MarketEngine] All sources failed for ${normalized}, using fallback`);
+    data = getFallbackPrice(normalized);
+  }
+
+  // Cache it
+  priceCache[normalized] = { data, timestamp: Date.now() };
+  return data;
+}
+
+/**
+ * Fetch all supported prices at once
+ */
+export async function getAllPrices(): Promise<PriceData[]> {
+  // Try batch read from oracle first
+  if (ORACLE_ADDRESS) {
+    for (let attempt = 0; attempt < RPC_URLS.length; attempt++) {
+      try {
+        const provider = getProvider();
+        const oracle = new ethers.Contract(ORACLE_ADDRESS, ORACLE_ABI, provider);
+        const [pairs, prices, timestamps] = await oracle.getAllPrices();
+
+        const results: PriceData[] = [];
+        for (let i = 0; i < pairs.length; i++) {
+          const price = Number(ethers.formatUnits(prices[i], 18));
+          if (price > 0) {
+            const data: PriceData = {
+              symbol: pairs[i],
+              price,
+              change24h: 0,
+              updatedAt: new Date(Number(timestamps[i]) * 1000).toISOString(),
+              source: 'oracle',
+            };
+            results.push(data);
+            priceCache[pairs[i]] = { data, timestamp: Date.now() };
+          }
+        }
+
+        if (results.length > 0) return results;
+      } catch (err: any) {
+        console.warn(`[MarketEngine] Batch oracle read failed: ${err.message}`);
+        rotateProvider();
+      }
+    }
+  }
+
+  // Fallback: fetch each pair individually (tries Binance → fallback)
+  const allPairs = Object.keys(BINANCE_SYMBOLS);
+  const results = await Promise.allSettled(allPairs.map(p => getOraclePrice(p)));
+
+  return results.map((r, i) => {
+    if (r.status === 'fulfilled') return r.value;
+    return getFallbackPrice(allPairs[i]);
+  });
+}
+
+// ── Perpetual Math ───────────────────────────────────────────────
 export function calculatePnL(
   side: 'LONG' | 'SHORT',
   entryPrice: number,
@@ -159,9 +287,6 @@ export function calculatePnL(
   }
 }
 
-/**
- * Perpetual Math: Calculates Liquidation Price
- */
 export function calculateLiquidationPrice(
   side: 'LONG' | 'SHORT',
   entryPrice: number,

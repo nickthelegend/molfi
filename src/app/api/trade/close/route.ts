@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getOraclePrice, calculatePnL } from '@/lib/marketEngine';
+import { syncOraclePrice, calculatePnL } from '@/lib/marketEngine';
 
 export async function POST(request: NextRequest) {
     try {
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: `Trade is already ${trade.status}` }, { status: 400 });
         }
 
-        // --- Get Current Price ---
-        const priceData = await getOraclePrice(trade.pair);
+        // --- Get Current Price (JIT sync to oracle) ---
+        const priceData = await syncOraclePrice(trade.pair);
         const exitPrice = priceData.price;
 
         // --- Calculate PnL ---

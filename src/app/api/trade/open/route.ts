@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getOraclePrice, calculateLiquidationPrice, SUPPORTED_PAIRS } from '@/lib/marketEngine';
+import { syncOraclePrice, calculateLiquidationPrice, SUPPORTED_PAIRS } from '@/lib/marketEngine';
 
 export async function POST(request: NextRequest) {
     try {
@@ -42,8 +42,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Side must be LONG or SHORT' }, { status: 400 });
         }
 
-        // --- Get Real Price from Chainlink ---
-        const priceData = await getOraclePrice(normalizedPair);
+        // --- Get Real Price (and JIT sync to on-chain oracle) ---
+        // Instead of polling, we sync only when needed to save gas.
+        const priceData = await syncOraclePrice(normalizedPair);
         const entryPrice = priceData.price;
 
         // --- Calculate Trade Params ---
