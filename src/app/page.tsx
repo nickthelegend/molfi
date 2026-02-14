@@ -18,9 +18,23 @@ import {
   Layers,
   Lock,
   Eye,
-  ZapOff
+  ZapOff,
+  ChevronDown
 } from "lucide-react";
 import { useLivePrices } from '@/lib/useLivePrices';
+import { CryptoIcon } from '@ledgerhq/crypto-icons';
+
+const LEDGER_IDS: Record<string, string> = {
+  'BTC/USDT': 'bitcoin',
+  'ETH/USDT': 'ethereum',
+  'SOL/USDT': 'solana',
+  'LINK/USDT': 'ethereum/erc20/chainlink',
+  'DOGE/USDT': 'dogecoin',
+  'AVAX/USDT': 'avalanche_c_chain',
+  'MATIC/USDT': 'polygon',
+  'DOT/USDT': 'polkadot',
+  'NEAR/USDT': 'near',
+};
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -33,6 +47,8 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const tickerItems = Array.from(prices.values());
 
   if (!mounted) return null;
 
@@ -100,23 +116,14 @@ export default function Home() {
       {/* LIVE MARKET TICKER */}
       <div className="home-ticker">
         <div className="ticker-content-smooth">
-          {Array(4).fill(0).map((_, idx) => (
-            <div key={idx} className="flex gap-xl pr-xl">
-              <div className="ticker-item">
-                <span className="text-dim">BTC/USDT</span>
-                <span className="font-mono font-bold">${prices.get('BTC/USDT')?.price.toLocaleString() || '45,250'}</span>
-                <span className="text-success">+2.4%</span>
-              </div>
-              <div className="ticker-item">
-                <span className="text-dim">ETH/USDT</span>
-                <span className="font-mono font-bold">${prices.get('ETH/USDT')?.price.toLocaleString() || '2,480'}</span>
-                <span className="text-success">+1.8%</span>
-              </div>
-              <div className="ticker-item">
-                <span className="text-dim">SOL/USDT</span>
-                <span className="font-mono font-bold">${prices.get('SOL/USDT')?.price.toLocaleString() || '102'}</span>
-                <span className="text-error">-0.5%</span>
-              </div>
+          {[...tickerItems, ...tickerItems, ...tickerItems].map((item, i) => (
+            <div key={i} className="ticker-item">
+              <CryptoIcon ledgerId={LEDGER_IDS[item.symbol] || 'bitcoin'} ticker={item.symbol.split('/')[0]} size="16px" />
+              <span className="ticker-symbol" style={{ marginLeft: '4px' }}>{item.symbol}</span>
+              <span className="ticker-price">${item.price.toLocaleString()}</span>
+              <span className={`ticker-change ${item.change24h >= 0 ? 'up' : 'down'}`}>
+                {item.change24h >= 0 ? '▲' : '▼'} {Math.abs(item.change24h).toFixed(2)}%
+              </span>
             </div>
           ))}
         </div>
@@ -370,19 +377,29 @@ export default function Home() {
                 }
                 .ticker-content-smooth {
                     display: inline-flex;
-                    animation: ticker-scroll 30s linear infinite;
+                    animation: ticker-scroll 60s linear infinite;
+                    will-change: transform;
                 }
                 @keyframes ticker-scroll {
                     from { transform: translateX(0); }
                     to { transform: translateX(-50%); }
                 }
-                .ticker-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    padding: 0 3rem;
-                    border-right: 1px solid var(--glass-border);
+                .ticker-content-smooth:hover {
+                    animation-play-state: paused;
                 }
+                .ticker-item {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0 2.5rem;
+                    border-right: 1px solid var(--glass-border);
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                }
+                .ticker-symbol { color: var(--text-secondary); }
+                .ticker-price { color: var(--primary-purple); font-family: var(--font-mono); }
+                .ticker-change.up { color: #10b981; }
+                .ticker-change.down { color: #ef4444; }
                 .agent-badge {
                     font-size: 0.65rem;
                     font-weight: 800;
