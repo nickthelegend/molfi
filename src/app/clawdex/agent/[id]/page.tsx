@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import TradingViewChart from '@/components/TradingViewChart';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
+import NeuralLoader from '@/components/NeuralLoader';
 import { AIAgent } from '@/lib/agents';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 
@@ -45,11 +46,9 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     }, []);
 
     if (!mounted) return (
-        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
+        <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="grid-overlay" />
-            <div className="container" style={{ paddingTop: '120px', textAlign: 'center' }}>
-                <p className="text-secondary">Loading Agent Intelligence...</p>
-            </div>
+            <NeuralLoader message="INITIALIZING INTERFACE..." />
         </div>
     );
 
@@ -181,9 +180,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
     }, [depositConfirmed]);
 
     if (loading) return (
-        <div className="container pt-xxl text-center">
-            <div className="neural-loading-orb mx-auto mb-lg" />
-            <p className="text-secondary font-mono text-sm animate-pulse">Establishing Neural Link with ${id}...</p>
+        <div className="container pt-xxl flex justify-center">
+            <NeuralLoader message={`ESTABLISHING NEURAL LINK: AGENT_${id}`} />
         </div>
     );
 
