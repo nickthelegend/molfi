@@ -1,51 +1,130 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { getOraclePrice, calculatePnL } from '@/lib/marketEngine';
 
 export async function GET() {
     try {
-        const { data: agents, error } = await supabaseAdmin
-            .from('AIAgent')
-            .select('*')
-            .order('createdAt', { ascending: false });
+        // Fetch agents and all trade logs in parallel
+        const [agentResult, tradeResult] = await Promise.all([
+            supabaseAdmin.from('AIAgent').select('*').order('createdAt', { ascending: false }),
+            supabaseAdmin.from('TradeLog').select('*').order('openedAt', { ascending: false }),
+        ]);
 
-        if (error) throw error;
+        if (agentResult.error) throw agentResult.error;
+        const agents = agentResult.data || [];
+        const allTrades = tradeResult.data || [];
 
-        // Enrich with UI-friendly data
-        const enrichedAgents = (agents || []).map(a => ({
-            ...a,
-            id: String(a.agentId),
-            agentId: a.agentId,
-            description: a.description || `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,
-            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${a.name}`,
-            owner: a.ownerAddress,
-            agentType: a.personality === 'Aggressive' ? 'trader' : 'fund-manager',
-            riskProfile: a.personality.toLowerCase(),
-            reputationScore: Math.floor(Math.random() * 20) + 80,
-            tvl: `$${(Math.random() * 10 + 1).toFixed(1)}M`,
-            aum: (Math.random() * 10000000 + 1000000),
-            apy: (Math.random() * 30 + 5).toFixed(1),
-            winRate: Math.floor(Math.random() * 30) + 60,
-            totalTrades: Math.floor(Math.random() * 200) + 50,
-            performance30d: `${(Math.random() * 40 - 5).toFixed(1)}%`,
-            targetAssets: ['ETH', 'BTC', 'SOL', 'MON'],
-            activePositions: [],
-            recentDecisions: [
-                {
-                    id: `dec-${a.agentId}`,
-                    timestamp: Date.now() - 1000 * 60 * 30,
-                    action: 'HOLD',
-                    reasoning: 'Analyzing market depth and parallel execution throughput on Monad.',
-                    pair: 'MON/USDT',
-                    price: 1.25,
-                    proof: '0xabc...def'
+        // Fetch live prices for open positions
+        const openTrades = allTrades.filter(t => t.status === 'OPEN');
+        const uniquePairs = [...new Set(openTrades.map(t => t.pair))];
+        const livePrices: Record<string, number> = {};
+
+        await Promise.allSettled(
+            uniquePairs.map(async (pair) => {
+                try {
+                    const pd = await getOraclePrice(pair);
+                    livePrices[pair] = pd.price;
+                } catch { /* skip */ }
+            })
+        );
+
+        // Enrich with REAL data from trade logs
+        const enrichedAgents = agents.map(a => {
+            const agentTrades = allTrades.filter(t => t.agentId === a.agentId);
+            const closedTrades = agentTrades.filter(t => t.status === 'CLOSED');
+            const agentOpenTrades = agentTrades.filter(t => t.status === 'OPEN');
+
+            // Realized PnL
+            const realizedPnL = closedTrades.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
+            const totalFees = agentTrades.reduce((sum, t) => sum + parseFloat(t.fees || '0'), 0);
+
+            // Unrealized PnL from open positions
+            let unrealizedPnL = 0;
+            const activePositions = agentOpenTrades.map(t => {
+                const currentPrice = livePrices[t.pair];
+                let uPnl = 0;
+                if (currentPrice) {
+                    uPnl = calculatePnL(
+                        t.side as 'LONG' | 'SHORT',
+                        parseFloat(t.entryPrice),
+                        currentPrice,
+                        parseFloat(t.size)
+                    );
+                    unrealizedPnL += uPnl;
                 }
-            ],
-            history: Array.from({ length: 20 }, (_, i) => ({
-                timestamp: Date.now() - (20 - i) * 1000 * 60 * 60 * 24,
-                pnl: 10 + Math.random() * 20
-            })),
-            apiKey: undefined // Don't expose API key in public list
-        }));
+                return {
+                    ...t,
+                    currentPrice: currentPrice || null,
+                    unrealizedPnl: parseFloat(uPnl.toFixed(4)),
+                };
+            });
+
+            // Win/Loss stats
+            const wins = closedTrades.filter(t => parseFloat(t.pnl || '0') > 0);
+            const winRate = closedTrades.length > 0 ? Math.round((wins.length / closedTrades.length) * 100) : 0;
+
+            // Total PnL and equity
+            const totalPnL = realizedPnL + unrealizedPnL;
+            const startingEquity = 10000;
+            const equity = startingEquity + totalPnL;
+            const roi = ((equity - startingEquity) / startingEquity) * 100;
+
+            // Total volume (AUM proxy)
+            const totalVolume = agentTrades.reduce((sum, t) => sum + parseFloat(t.size || '0'), 0);
+
+            // Calculate APY from ROI (annualize based on first trade date)
+            let apy = 0;
+            if (agentTrades.length > 0) {
+                const firstTradeDate = new Date(agentTrades[agentTrades.length - 1].openedAt);
+                const daysSinceFirst = Math.max(1, (Date.now() - firstTradeDate.getTime()) / (1000 * 60 * 60 * 24));
+                apy = (roi / daysSinceFirst) * 365;
+            }
+
+            return {
+                ...a,
+                id: String(a.agentId),
+                agentId: a.agentId,
+                description: a.description || `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,
+                avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${a.name}`,
+                owner: a.ownerAddress,
+                agentType: a.personality === 'Aggressive' ? 'trader' : 'fund-manager',
+                riskProfile: a.personality.toLowerCase(),
+
+                // REAL stats
+                equity: parseFloat(equity.toFixed(2)),
+                totalPnL: parseFloat(totalPnL.toFixed(4)),
+                realizedPnL: parseFloat(realizedPnL.toFixed(4)),
+                unrealizedPnL: parseFloat(unrealizedPnL.toFixed(4)),
+                totalFees: parseFloat(totalFees.toFixed(4)),
+                roi: parseFloat(roi.toFixed(2)),
+                apy: parseFloat(apy.toFixed(1)),
+                winRate,
+                totalTrades: agentTrades.length,
+                wins: wins.length,
+                losses: closedTrades.length - wins.length,
+                aum: totalVolume,
+                tvl: `$${(totalVolume / 1000).toFixed(1)}K`,
+                performance30d: `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%`,
+
+                // Live positions
+                openPositions: agentOpenTrades.length,
+                activePositions,
+                targetAssets: [...new Set(agentTrades.map(t => t.pair?.split('/')[0]).filter(Boolean))],
+
+                // Recent real decisions
+                recentDecisions: agentTrades.slice(0, 3).map(t => ({
+                    id: t.id,
+                    timestamp: new Date(t.openedAt).getTime(),
+                    action: t.side === 'LONG' ? 'BUY' : 'SELL',
+                    reasoning: `${t.side} ${t.pair} @ $${parseFloat(t.entryPrice).toLocaleString()} with ${t.leverage}x leverage`,
+                    pair: t.pair,
+                    price: parseFloat(t.entryPrice),
+                    proof: t.id?.slice(0, 12) || '0x...',
+                })),
+
+                apiKey: undefined, // Don't expose API key in public list
+            };
+        });
 
         return NextResponse.json({
             success: true,

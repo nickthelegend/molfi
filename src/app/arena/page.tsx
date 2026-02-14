@@ -47,6 +47,9 @@ interface Trade {
     fees?: number;
     openedAt: string;
     closedAt?: string;
+    currentPrice?: number | null;
+    unrealizedPnl?: number | null;
+    pnlPercent?: number | null;
 }
 
 interface LeaderboardAgent {
@@ -58,6 +61,8 @@ interface LeaderboardAgent {
     equity: number;
     roi: number;
     totalPnL: number;
+    realizedPnL: number;
+    unrealizedPnL: number;
     totalFees: number;
     winRate: number;
     wins: number;
@@ -68,6 +73,7 @@ interface LeaderboardAgent {
     tradesCount: number;
     openPositions: number;
     recentTrades: Trade[];
+    equityCurve: { time: number; value: number }[];
 }
 
 interface PriceData {
@@ -137,32 +143,32 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
 
         const colors = ['#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f43f5e', '#eab308'];
 
-        // Generate simulated equity curves based on real agent equity
-        const displayAgents = agents.length > 0 ? agents.slice(0, 5) : [
-            { name: 'Waiting...', equity: 10000 },
-        ];
+        // Use REAL equity curves from API data
+        const displayAgents = agents.length > 0 ? agents.slice(0, 7) : [];
 
         displayAgents.forEach((agent, i) => {
-            const data = [];
-            let current = 10000; // Starting equity
-            const target = agent.equity;
-            const steps = 100;
-            const stepSize = (target - 10000) / steps;
+            const curve = agent.equityCurve || [];
+            if (curve.length === 0) return;
 
-            for (let j = 0; j < steps; j++) {
-                current += stepSize + (Math.random() - 0.5) * (Math.abs(stepSize) * 3 || 50);
-                data.push({
-                    time: (Date.now() / 1000 - (steps - j) * 60) as any,
-                    value: Math.max(current, 0),
-                });
-            }
+            // De-duplicate timestamps (lightweight-charts requires unique ascending times)
+            const seen = new Set<number>();
+            const cleanData = curve
+                .map(p => ({ time: Math.floor(p.time) as any, value: p.value }))
+                .filter(p => {
+                    if (seen.has(p.time)) return false;
+                    seen.add(p.time);
+                    return true;
+                })
+                .sort((a: any, b: any) => a.time - b.time);
+
+            if (cleanData.length < 2) return;
 
             const lineSeries = chart.addSeries(LightweightCharts.LineSeries, {
                 color: colors[i % colors.length],
                 lineWidth: 2,
                 title: agent.name,
             });
-            lineSeries.setData(data);
+            lineSeries.setData(cleanData);
         });
 
         const handleResize = () => {
@@ -271,6 +277,12 @@ const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions
                                             <span className="value">${parseFloat(String(pos.entryPrice)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div className="stat">
+                                            <span className="label">Current</span>
+                                            <span className="value" style={{ color: '#eab308' }}>
+                                                {pos.currentPrice ? `$${pos.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                                            </span>
+                                        </div>
+                                        <div className="stat">
                                             <span className="label">Size</span>
                                             <span className="value">${parseFloat(String(pos.size)).toLocaleString()}</span>
                                         </div>
@@ -279,6 +291,26 @@ const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions
                                             <span className="value">${parseFloat(String(pos.collateral)).toLocaleString()}</span>
                                         </div>
                                     </div>
+                                    {pos.unrealizedPnl != null && (
+                                        <div style={{
+                                            padding: '6px 10px',
+                                            margin: '8px 0 4px',
+                                            borderRadius: 6,
+                                            background: pos.unrealizedPnl >= 0 ? 'rgba(0,255,136,0.08)' : 'rgba(255,77,77,0.08)',
+                                            border: `1px solid ${pos.unrealizedPnl >= 0 ? 'rgba(0,255,136,0.2)' : 'rgba(255,77,77,0.2)'}`,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            fontSize: 11,
+                                            fontFamily: 'var(--font-mono)',
+                                        }}>
+                                            <span style={{ color: '#888' }}>Unrealized PnL</span>
+                                            <span style={{ color: pos.unrealizedPnl >= 0 ? '#00ff88' : '#ff4d4d', fontWeight: 700 }}>
+                                                {pos.unrealizedPnl >= 0 ? '+' : ''}{pos.unrealizedPnl.toFixed(4)} USDT
+                                                {pos.pnlPercent != null && <span style={{ marginLeft: 6, opacity: 0.7 }}>({pos.pnlPercent >= 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%)</span>}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="agent-owner">
                                         <img src={pos.avatar} className="agent-avatar-tiny" alt="" />
                                         Managed by {pos.agentName}
@@ -441,8 +473,11 @@ const LeaderboardPanel = ({ agents }: { agents: LeaderboardAgent[] }) => {
                                     {agent.roi > 0 ? '+' : ''}{agent.roi}%
                                 </td>
                                 <td className={`pnl-col ${agent.totalPnL > 0 ? 'text-success' : agent.totalPnL < 0 ? 'text-error' : ''}`}>
-                                    {agent.totalPnL > 0 ? '+' : ''}${agent.totalPnL.toFixed(4)}
-                                    <ExternalLink size={10} className="inline ml-xs text-dim" />
+                                    <div>{agent.totalPnL > 0 ? '+' : ''}${agent.totalPnL.toFixed(4)}</div>
+                                    <div style={{ fontSize: 9, color: '#666', display: 'flex', gap: 6 }}>
+                                        <span style={{ color: '#10b981' }}>R: {agent.realizedPnL >= 0 ? '+' : ''}{agent.realizedPnL?.toFixed(2) || '0'}</span>
+                                        <span style={{ color: '#eab308' }}>U: {agent.unrealizedPnL >= 0 ? '+' : ''}{agent.unrealizedPnL?.toFixed(2) || '0'}</span>
+                                    </div>
                                 </td>
                                 <td>{agent.winRate}%</td>
                                 <td className="text-success">${agent.biggestWin.toFixed(4)}</td>
@@ -1201,7 +1236,7 @@ export default function ArenaPage() {
 
                 .pos-grid {
                     display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
+                    grid-template-columns: 1fr 1fr 1fr 1fr;
                     gap: 12px;
                     margin-bottom: 12px;
                 }

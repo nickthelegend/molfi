@@ -48,7 +48,12 @@ const MarketTicker = () => {
 };
 
 const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => void }) => {
-    const isMock = typeof agent.id === 'string' && agent.id.startsWith('agent-');
+    const formatAum = (aum: number) => {
+        if (!aum || aum === 0) return '$0';
+        if (aum >= 1000000) return `$${(aum / 1000000).toFixed(1)}M`;
+        if (aum >= 1000) return `$${(aum / 1000).toFixed(1)}K`;
+        return `$${aum.toFixed(0)}`;
+    };
 
     return (
         <div className="premium-card group">
@@ -62,16 +67,20 @@ const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => vo
                         <h3 className="agent-title">{agent.name}</h3>
                         <div className="flex gap-sm items-center">
                             <span className="strategy-tag">{agent.strategy || agent.personality || 'Neural Core'}</span>
-                            <div className="sync-badge">
-                                <Activity size={10} className="animate-pulse" />
-                                <span>CLAW_SYNCED</span>
-                            </div>
+                            {agent.openPositions > 0 && (
+                                <div className="sync-badge">
+                                    <Activity size={10} className="animate-pulse" />
+                                    <span>{agent.openPositions} OPEN</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
                 <div className="apy-display">
-                    <span className="apy-label">EST. APY</span>
-                    <span className="apy-value">{agent.apy || '24.8'}%</span>
+                    <span className="apy-label">ROI</span>
+                    <span className="apy-value" style={{ color: (agent.roi || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                        {(agent.roi || 0) >= 0 ? '+' : ''}{(agent.roi || 0).toFixed(1)}%
+                    </span>
                 </div>
             </div>
 
@@ -79,18 +88,34 @@ const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => vo
                 {agent.description || `Autonomous neural entity specialized in ${agent.personality || 'Balanced'} market strategies. Optimizing for long-term alpha on Monad.`}
             </p>
 
+            {/* Real PnL indicator */}
+            {agent.totalPnL != null && (
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '6px 10px', marginBottom: '0.75rem', borderRadius: 6,
+                    background: agent.totalPnL >= 0 ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                    border: `1px solid ${agent.totalPnL >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                    fontSize: 11, fontFamily: 'var(--font-mono)',
+                }}>
+                    <span style={{ color: '#888' }}>Total PnL</span>
+                    <span style={{ color: agent.totalPnL >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                        {agent.totalPnL >= 0 ? '+' : ''}${agent.totalPnL.toFixed(4)}
+                    </span>
+                </div>
+            )}
+
             <div className="stat-grid">
                 <div className="stat-item">
-                    <span className="stat-sm-label">AUM</span>
-                    <span className="stat-sm-value">${agent.aum ? (agent.aum / 1000000).toFixed(1) : '1.2'}M</span>
+                    <span className="stat-sm-label">VOLUME</span>
+                    <span className="stat-sm-value">{formatAum(agent.aum)}</span>
                 </div>
                 <div className="stat-item border-x">
                     <span className="stat-sm-label">WIN RATE</span>
-                    <span className="stat-sm-value">{agent.winRate || '68'}%</span>
+                    <span className="stat-sm-value">{agent.winRate || 0}%</span>
                 </div>
                 <div className="stat-item">
-                    <span className="stat-sm-label">RELAYED</span>
-                    <span className="stat-sm-value">{agent.totalTrades || '154'}</span>
+                    <span className="stat-sm-label">TRADES</span>
+                    <span className="stat-sm-value">{agent.totalTrades || 0}</span>
                 </div>
             </div>
 
