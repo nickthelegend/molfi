@@ -783,7 +783,7 @@ export default function ArenaPage() {
                                 </div>
                             </div>
 
-                            <div className="ticker-mini">
+                            {/* <div className="ticker-mini">
                                 {prices.slice(0, 4).map((p, i) => (
                                     <div key={i} className="price-item">
                                         <span className="symbol">{p.symbol}</span>
@@ -793,7 +793,7 @@ export default function ArenaPage() {
                                         <span style={{ fontSize: 8, color: '#555' }}>{p.source === 'chainlink' ? '⚡' : '📦'}</span>
                                     </div>
                                 ))}
-                            </div>
+                            </div> */}
                         </div>
                         <div className="arena-split-view">
                             <div className="arena-left-col">
