@@ -428,70 +428,62 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     </div>
 
                     <div className="investment-side">
-                        <div className="glass-container p-6 sticky top-32">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    <ShieldCheck size={18} className="text-primary-purple" />
-                                    AGENT ARCHITECTURE
-                                </h3>
-                                {agentData && (
-                                    <span className={`text-xs font-bold px-2 py-1 rounded border ${agentData.roi >= 0 ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                        API: {agentData.roi}%
-                                    </span>
-                                )}
+                    <div className="glass-container p-6 sticky top-32 architecture-card">
+                        <div className="architecture-header">
+                            <div className="architecture-title">
+                                <ShieldCheck size={18} className="text-primary-purple" />
+                                <span>Agent Architecture</span>
                             </div>
-
-                            {agentData ? (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-xs font-bold text-dim uppercase mb-2 block">Strategy Core</label>
-                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary">
-                                                    <BarChart3 size={16} />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-sm text-white">{agentData.strategy || 'Neural Momentum'}</div>
-                                                    <div className="text-xs text-secondary">{agentData.personality || 'Balanced'} Risk Profile</div>
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-dim leading-relaxed">
-                                                {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold text-dim uppercase mb-2 block">Performance Metrics</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
-                                                <div className="text-xs text-secondary mb-1">Win Rate</div>
-                                                <div className="text-lg font-bold text-white">{agentData.winRate}%</div>
-                                            </div>
-                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
-                                                <div className="text-xs text-secondary mb-1">Total Trades</div>
-                                                <div className="text-lg font-bold text-white">{agentData.totalTrades}</div>
-                                            </div>
-                                            <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center col-span-2">
-                                                <div className="text-xs text-secondary mb-1">Total Agent PnL</div>
-                                                <div className={`text-lg font-bold ${agentData.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                    {agentData.totalPnL >= 0 ? '+' : ''}{agentData.totalPnL.toFixed(2)} USDT
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <Link href={`/clawdex/agent/${agentData.agentId}`} className="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/5 border border-dashed border-primary/30 rounded-lg transition-colors">
-                                        View Full Agent Protocol
-                                    </Link>
-                                </div>
-                            ) : (
-                                <div className="py-8 text-center text-secondary">
-                                    <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
-                                    <span className="text-xs">Synchronizing Agent Data...</span>
-                                </div>
+                            {agentData && (
+                                <span className={`architecture-pill ${Number(agentData.apy ?? 0) >= 0 ? 'good' : 'bad'}`}>
+                                    APY {Number(agentData.apy ?? 0).toFixed(1)}%
+                                </span>
                             )}
                         </div>
+
+                        {agentData ? (
+                            <div className="architecture-body">
+                                <div className="architecture-core">
+                                    <div className="core-icon">
+                                        <BarChart3 size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="core-title">{agentData.strategy || 'Neural Momentum'}</div>
+                                        <div className="core-sub">{agentData.personality || 'Balanced'} Risk Profile</div>
+                                    </div>
+                                </div>
+                                <p className="core-desc">
+                                    {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
+                                </p>
+
+                                <div className="architecture-metrics">
+                                    <div className="metric-item">
+                                        <div className="metric-label">Win Rate</div>
+                                        <div className="metric-value">{Number(agentData.winRate ?? 0)}%</div>
+                                    </div>
+                                    <div className="metric-item">
+                                        <div className="metric-label">Trades</div>
+                                        <div className="metric-value">{Number(agentData.totalTrades ?? 0)}</div>
+                                    </div>
+                                    <div className="metric-item wide">
+                                        <div className="metric-label">Total Agent PnL</div>
+                                        <div className={`metric-value ${Number(agentData.totalPnL ?? 0) >= 0 ? 'plus' : 'minus'}`}>
+                                            {Number(agentData.totalPnL ?? 0) >= 0 ? '+' : ''}{Number(agentData.totalPnL ?? 0).toFixed(2)} USDT
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Link href={`/clawdex/agent/${agentData.agentId}`} className="architecture-link">
+                                    View Full Agent Protocol
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="py-8 text-center text-secondary">
+                                <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
+                                <span className="text-xs">Synchronizing Agent Data...</span>
+                            </div>
+                        )}
+                    </div>
                     </div>
                 </div>
             </div>
@@ -687,6 +679,130 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     .investment-side .glass-container {
                         position: static;
                     }
+                }
+
+                .architecture-card {
+                    border: 1px solid rgba(168, 85, 247, 0.2);
+                    background: linear-gradient(160deg, rgba(18, 18, 30, 0.9), rgba(10, 10, 15, 0.95));
+                }
+                .architecture-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    padding-bottom: 1rem;
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    margin-bottom: 1.25rem;
+                }
+                .architecture-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                    font-size: 0.95rem;
+                    font-weight: 800;
+                    letter-spacing: 0.12em;
+                    text-transform: uppercase;
+                }
+                .architecture-pill {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    letter-spacing: 0.12em;
+                    padding: 0.35rem 0.7rem;
+                    border-radius: 999px;
+                    border: 1px solid;
+                }
+                .architecture-pill.good {
+                    color: #10b981;
+                    border-color: rgba(16,185,129,0.4);
+                    background: rgba(16,185,129,0.1);
+                }
+                .architecture-pill.bad {
+                    color: #ef4444;
+                    border-color: rgba(239,68,68,0.4);
+                    background: rgba(239,68,68,0.08);
+                }
+                .architecture-body {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+                .architecture-core {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    padding: 0.9rem 1rem;
+                    border-radius: 14px;
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid rgba(255,255,255,0.06);
+                }
+                .core-icon {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 12px;
+                    background: rgba(168, 85, 247, 0.18);
+                    display: grid;
+                    place-items: center;
+                    color: var(--primary-purple);
+                }
+                .core-title {
+                    font-size: 1rem;
+                    font-weight: 800;
+                }
+                .core-sub {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                }
+                .core-desc {
+                    font-size: 0.78rem;
+                    color: var(--text-dim);
+                    line-height: 1.6;
+                }
+                .architecture-metrics {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 0.8rem;
+                }
+                .metric-item {
+                    padding: 0.85rem;
+                    background: rgba(0,0,0,0.25);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 12px;
+                    text-align: left;
+                }
+                .metric-item.wide {
+                    grid-column: 1 / -1;
+                }
+                .metric-label {
+                    font-size: 0.65rem;
+                    letter-spacing: 0.18em;
+                    text-transform: uppercase;
+                    color: var(--text-dim);
+                }
+                .metric-value {
+                    margin-top: 0.35rem;
+                    font-size: 1rem;
+                    font-weight: 800;
+                }
+                .metric-value.plus { color: #10b981; }
+                .metric-value.minus { color: #ef4444; }
+                .architecture-link {
+                    display: inline-flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 0.75rem 1rem;
+                    border-radius: 12px;
+                    font-size: 0.7rem;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    font-weight: 800;
+                    color: var(--primary-purple);
+                    border: 1px dashed rgba(168, 85, 247, 0.4);
+                    transition: all 0.2s;
+                }
+                .architecture-link:hover {
+                    background: rgba(168, 85, 247, 0.12);
+                    border-color: rgba(168, 85, 247, 0.6);
+                    color: white;
                 }
             `}</style>
         </div>
