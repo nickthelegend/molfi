@@ -26,34 +26,49 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const publicClient = usePublicClient();
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
+    const [scanStatus, setScanStatus] = useState<string>('');
+
+    // Auto-recovery effect
+    useEffect(() => {
+        if (!loading && !investment && !isScanning && !scanError) {
+            handleScan();
+        }
+    }, [loading, investment]);
 
     const handleScan = async () => {
         setIsScanning(true);
         setScanError(null);
+        setScanStatus("Initializing blockchain scan...");
+
         try {
-            if (!publicClient) throw new Error("Network connection failed.");
+            if (!publicClient) throw new Error("Network connection failed. Please connect your wallet.");
 
             // 1. Get Tx Receipt
+            setScanStatus(`Searching for transaction: ${shortenAddress(txHash)}...`);
             const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
-            if (!receipt) throw new Error("Transaction not found on-chain.");
+
+            if (!receipt) {
+                // Determine if we should wait/retry? (Simple logic for now)
+                throw new Error("Transaction not found on this chain. Check your network.");
+            }
 
             // 2. Fetch All Agents to get Vault Addresses
+            setScanStatus("Fetching agent protocols...");
             const agentsRes = await fetch('/api/agents');
             const agentsData = await agentsRes.json();
             const agents = agentsData.agents || [];
 
             // 3. Check for Vault interaction
+            setScanStatus("Analyzing transaction logs...");
             let foundAgent = null;
             let mintedShares = '0';
             let amount = '0';
 
             for (const agent of agents) {
                 if (agent.vaultAddress) {
-                    // Check logs for this vault
                     const vaultLog = receipt.logs.find(l => l.address.toLowerCase() === agent.vaultAddress.toLowerCase());
                     if (vaultLog) {
                         foundAgent = agent;
-                        // Try to parse Deposit event
                         try {
                             const event = decodeEventLog({
                                 abi: MolfiAgentVaultABI,
@@ -65,7 +80,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                 amount = formatEther((event.args as any).assets);
                             }
                         } catch (e) {
-                            // fallback if parsing fails, assume 1:1 or heuristic from tx value if available
+                            // ignore
                         }
                         break;
                     }
@@ -73,26 +88,33 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
             }
 
             if (foundAgent) {
+                setScanStatus(`Identified Investment in ${foundAgent.name}. Syncing...`);
+
                 // 4. Register Investment
-                await fetch('/api/investments/create', {
+                const createRes = await fetch('/api/investments/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         txHash: txHash,
                         agentId: foundAgent.agentId,
-                        userAddress: address || receipt.from, // Use receipt.from if wallet not connected
-                        amount: amount !== '0' ? amount : '0', // Should be parsed from logs
+                        userAddress: address || receipt.from,
+                        amount: amount !== '0' ? amount : '0',
                         shares: mintedShares !== '0' ? mintedShares : amount
                     })
                 });
+
+                if (!createRes.ok) throw new Error("Database sync failed. Please contact support.");
+
+                setScanStatus("Restoration complete. Reloading...");
                 window.location.reload();
             } else {
-                throw new Error("Transaction did not interact with any known Agent Vault.");
+                throw new Error("Transaction is valid but did not interact with any known Molfi Agent.");
             }
 
         } catch (err: any) {
             console.error("Scan failed:", err);
             setScanError(err.message || "Scan failed.");
+            setScanStatus("");
             setIsScanning(false);
         }
     };
