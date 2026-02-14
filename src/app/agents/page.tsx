@@ -153,21 +153,31 @@ export default function AgentsPage() {
                         <div className="novel-card" style={{ padding: '2rem' }}>
                             <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Live Agents</span>
                             <div className="flex items-center justify-center gap-sm">
-                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>2,481</h2>
-                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+12 today</span>
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>{loading ? '...' : agents.length.toLocaleString()}</h2>
+                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+3 today</span>
                             </div>
                         </div>
                         <div className="novel-card" style={{ padding: '2rem' }}>
                             <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Active TVL</span>
                             <div className="flex items-center justify-center gap-sm">
-                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>$42.8M</h2>
-                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+5.4%</span>
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>
+                                    ${loading ? '...' : (agents.reduce((acc, a) => {
+                                        const val = parseFloat(a.tvl?.replace(/[$KM]/g, '') || '0');
+                                        const mult = a.tvl?.includes('M') ? 1 : a.tvl?.includes('K') ? 0.001 : 0.000001;
+                                        return acc + (val * mult);
+                                    }, 0)).toFixed(1)}M
+                                </h2>
+                                <span className="text-xs text-success font-bold" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>+4.2%</span>
                             </div>
                         </div>
                         <div className="novel-card" style={{ padding: '2rem' }}>
                             <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Network Perf</span>
                             <div className="flex items-center justify-center gap-sm">
-                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>+28.4%</h2>
+                                <h2 className="m-0" style={{ fontSize: '2.5rem' }}>
+                                    {loading ? '...' : (agents.length > 0
+                                        ? (agents.reduce((acc, a) => acc + parseFloat(a.performance30d?.replace(/[+%]/g, '') || '0'), 0) / agents.length).toFixed(1)
+                                        : '0.0')}%
+                                </h2>
                                 <span className="text-xs text-primary font-bold" style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>AVG ROI</span>
                             </div>
                         </div>
