@@ -176,35 +176,49 @@ export default function Home() {
             ))
           ) : (
             agents.map((agent, i) => (
-              <Link href={`/clawdex/agent/${agent.id}`} key={agent.id}>
-                <div className="novel-card hover-lift h-full flex flex-col">
-                  <div className="flex justify-between mb-lg">
-                    <div className="agent-badge" style={{ background: i === 0 ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)', color: i === 0 ? 'var(--primary-purple)' : 'var(--text-dim)' }}>
+              <Link href={`/clawdex/agent/${agent.id}`} key={agent.id} style={{ textDecoration: 'none' }}>
+                <div className="novel-card hover-lift h-full flex flex-col" style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  textDecoration: 'none'
+                }}>
+                  <div className="flex justify-between mb-lg" style={{ pointerEvents: 'none' }}>
+                    <div className="agent-badge" style={{
+                      background: i === 0 ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.04)',
+                      color: i === 0 ? 'var(--primary-purple)' : 'rgba(255,255,255,0.6)',
+                      border: 'none',
+                      fontSize: '9px',
+                      padding: '0.3rem 0.6rem'
+                    }}>
                       {i === 0 ? 'ELITE_FUND' : 'HIGH_PERF'}
                     </div>
-                    {(agent.roi || 0) > 20 ? <ShieldCheck className="text-success" size={20} /> : <Activity className="text-primary" size={20} />}
+                    {(agent.roi || 0) > 20 ? <ShieldCheck className="text-success" size={16} /> : <Activity className="text-primary" size={16} />}
                   </div>
-                  <div className="flex items-center gap-md mb-md">
-                    <img
-                      src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
-                      alt={agent.name}
-                      style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid rgba(168, 85, 247, 0.2)' }}
-                    />
-                    <h3 className="m-0 text-xl">{agent.name}</h3>
+
+                  <div className="flex items-center gap-md mb-xl">
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
+                        alt={agent.name}
+                        style={{ width: '44px', height: '44px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', border: '2px solid #000' }} />
+                    </div>
+                    <h3 className="m-0 text-lg font-bold tracking-tight text-white" style={{ textDecoration: 'none' }}>{agent.name}</h3>
                   </div>
-                  <p className="text-secondary text-sm mb-xl flex-grow">
-                    {agent.description || `Autonomous neural strategy specializing in ${agent.personality || 'Balanced'} market cycles.`}
-                  </p>
-                  <div className="flex justify-between pt-lg border-t" style={{ borderColor: 'var(--glass-border)' }}>
-                    <div className="text-center">
+
+                  <div className="flex justify-between pt-lg border-t border-white/5 mt-auto">
+                    <div className="text-left">
                       <span className="text-[9px] text-dim uppercase font-bold tracking-widest block mb-1">Live ROI</span>
-                      <span className={`font-bold ${(agent.roi || 0) >= 0 ? 'text-success' : 'text-error'}`}>
+                      <span className={`text-base font-mono font-bold ${(agent.roi || 0) >= 0 ? 'text-success' : 'text-error'}`} style={{ textDecoration: 'none' }}>
                         {(agent.roi || 0) >= 0 ? '+' : ''}{(agent.roi || 0).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="text-center">
+                    <div className="text-right">
                       <span className="text-[9px] text-dim uppercase font-bold tracking-widest block mb-1">Assets (AUM)</span>
-                      <span className="font-bold text-white">${parseFloat(agent.aum || 0) > 1000000 ? (agent.aum / 1000000).toFixed(1) + 'M' : (agent.aum / 1000).toFixed(1) + 'K'}</span>
+                      <span className="text-base font-mono font-bold text-white tracking-tight" style={{ textDecoration: 'none' }}>
+                        ${parseFloat(agent.aum || 0) >= 1000000 ? (agent.aum / 1000000).toFixed(1) + 'M' : (agent.aum / 1000).toFixed(1) + 'K'}
+                      </span>
                     </div>
                   </div>
                 </div>
