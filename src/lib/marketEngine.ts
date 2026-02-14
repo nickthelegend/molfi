@@ -137,29 +137,11 @@ async function readFromBinance(symbol: string): Promise<PriceData | null> {
   }
 }
 
-// ── Strategy 3: Hardcoded fallback ───────────────────────────────
-const FALLBACK_PRICES: Record<string, number> = {
-  'BTC/USD': 97000,
-  'ETH/USD': 2700,
-  'SOL/USD': 150,
-  'LINK/USD': 18,
-  'DOGE/USD': 0.32,
-  'AVAX/USD': 35,
-  'MATIC/USD': 0.85,
-  'DOT/USD': 7,
-  'NEAR/USD': 5,
-  'USDC/USD': 1,
-  'USDT/USD': 1,
-};
-
-function getFallbackPrice(symbol: string): PriceData {
-  return {
-    symbol,
-    price: FALLBACK_PRICES[symbol] || 100,
-    change24h: 0,
-    updatedAt: new Date().toISOString(),
-    source: 'fallback',
-  };
+// ── Strategy 3: Error Out (No Mocks) ─────────────────────────────
+function handlePriceFailure(symbol: string): never {
+  const errorMsg = `[MarketEngine] CRITICAL: Failed to fetch price for ${symbol}. Both MolfiOracle and Binance sources are unavailable.`;
+  console.error(errorMsg);
+  throw new Error(errorMsg);
 }
 
 // ── Just-In-Time (JIT) Oracle Synchronization ────────────────────
@@ -231,10 +213,9 @@ export async function getOraclePrice(symbol: string): Promise<PriceData> {
     data = await readFromBinance(normalized);
   }
 
-  // Last resort: hardcoded
+  // Last resort: error out
   if (!data) {
-    console.error(`[MarketEngine] All sources failed for ${normalized}, using fallback`);
-    data = getFallbackPrice(normalized);
+    handlePriceFailure(normalized);
   }
 
   // Cache it
@@ -284,7 +265,7 @@ export async function getAllPrices(): Promise<PriceData[]> {
 
   return results.map((r, i) => {
     if (r.status === 'fulfilled') return r.value;
-    return getFallbackPrice(allPairs[i]);
+    return handlePriceFailure(allPairs[i]);
   });
 }
 
