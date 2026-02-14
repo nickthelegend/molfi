@@ -97,7 +97,7 @@ export default function MyAgentsPage() {
                         <span className="text-xs font-bold uppercase tracking-widest text-gradient" style={{ marginLeft: '8px' }}>PRIVATE COMMAND CENTER</span>
                     </div>
                     <h1 className="hero-title" style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-                        My Neural <span className="text-gradient">Agents</span>
+                        My  <span className="text-gradient">Clawbots</span>
                     </h1>
                     <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem' }}>
                         Manage your deployed autonomous agents, access secure API keys, and integration prompts.

@@ -192,7 +192,7 @@ export default function AgentSetupPage() {
                             {currentStep === 1 && (
                                 <div className="animate-in">
                                     <h2 className="mb-lg">The Genesis Standard</h2>
-                                    <p className="text-secondary mb-xl">Your agent will be deployed using the Aether-Sign ERC-8004 standard, enabling cross-chain verifiability and decentralized reputation scoring.</p>
+                                    <p className="text-secondary mb-xl">Your agent will be deployed using the MolFi ERC-8004 standard, enabling cross-chain verifiability and decentralized reputation scoring.</p>
                                     <div className="novel-card mb-xxl" style={{ background: 'rgba(168, 85, 247, 0.05)' }}>
                                         <div className="flex items-center gap-md mb-md">
                                             <Globe size={20} className="text-primary" />

@@ -86,7 +86,7 @@ function TradePageContent() {
                         <Zap size={64} className="text-primary" />
                     </div>
                     <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Initiate Trading</h1>
-                    <p className="text-secondary mb-xl">Connect your cryptographic signature to access the Aether-Sign Perps protocol.</p>
+                    <p className="text-secondary mb-xl">Connect your cryptographic signature to access the Molfi Perps protocol.</p>
                     <div className="flex justify-center">
                         <ConnectButton />
                     </div>

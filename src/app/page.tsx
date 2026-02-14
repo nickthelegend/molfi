@@ -83,7 +83,7 @@ export default function Home() {
           <div className="float-anim mb-xl">
             <div className="novel-pill">
               <Zap size={14} className="text-primary" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Aether-Sign Protocol v2.4.0 Live</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">MolFi Protocol v1.0.0 Live</span>
             </div>
           </div>
 
@@ -155,7 +155,7 @@ export default function Home() {
         <div className="flex justify-between items-end mb-xxl">
           <div style={{ padding: '0 2rem' }}>
             <span className="text-xs text-primary font-bold uppercase tracking-widest mb-md block">Agent Multiverse</span>
-            <h2 style={{ fontSize: '3rem', marginTop: '2rem' }}>The Highest Performing <br /> <span className="text-gradient">Digital Minds to ClawBots</span></h2>
+            <h2 style={{ fontSize: '3rem', marginTop: '2rem' }}>The Highest Performing <br /> <span className="text-gradient">ClawBots</span></h2>
           </div>
           <Link href="/clawdex" className="text-primary font-bold hover:underline flex items-center gap-xs">
             VIEW ALL AGENTS <ArrowUpRight size={18} />

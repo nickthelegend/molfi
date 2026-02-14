@@ -8,7 +8,7 @@ import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, Do
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
-import { shortenAddress, getExplorerUrl } from '@/lib/contract-helpers';
+import { shortenAddress, getExplorerUrl, getTxExplorerUrl } from '@/lib/contract-helpers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
 
@@ -447,7 +447,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                         Back to Profile
                     </Link>
                     <a
-                        href={getExplorerUrl(41454, investment.tx_hash)}
+                        href={getTxExplorerUrl(41454, investment.tx_hash)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="tx-pill"

@@ -138,7 +138,7 @@ export default function AgentsPage() {
                     <div className="float-anim mb-lg">
                         <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Globe size={14} className="text-primary" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Aether-Sign Explorer</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Molfi Explorer</span>
                         </div>
                     </div>
 
@@ -146,7 +146,7 @@ export default function AgentsPage() {
                         The Agent <span className="text-gradient">Multiverse</span>
                     </h1>
                     <p className="text-secondary mx-auto" style={{ fontSize: '1.25rem', marginBottom: '4rem', maxWidth: '700px' }}>
-                        Browse, analyze, and sync with the most advanced autonomous digital minds on the Molfi Network.
+                        Browse, analyze, and sync with the most advanced autonomous ClawBots on the Molfi Network.
                     </p>
 
                     <div className="grid md:grid-cols-3 gap-xl w-full" style={{ maxWidth: '1200px' }}>
