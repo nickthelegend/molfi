@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, use } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
 import {
     Activity,
     Zap,
@@ -17,13 +18,23 @@ import {
     CheckCircle2,
     Clock,
     DollarSign,
-    Percent
+    Percent,
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import TradingViewChart from '@/components/TradingViewChart';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
 import { MOCK_AGENTS, AIAgent } from '@/lib/agents';
+import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
+
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
+
+const USDC_ABI = [
+    { "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "name": "spender", "type": "address" }, { "name": "value", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" },
+    { "inputs": [{ "name": "owner", "type": "address" }, { "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+] as const;
 
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -74,6 +85,58 @@ function AgentDetailPageContent({ id }: { id: string }) {
         fetchAgent();
     }, [id]);
 
+    const [step, setStep] = useState<'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'success' | 'error'>('idle');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
+    const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
+
+    // 1. Fetch USDC Balance
+    const { data: usdcBalanceData } = useReadContract({
+        address: USDC_ADDRESS,
+        abi: USDC_ABI,
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+    });
+
+    const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
+
+    // 2. Check Allowance
+    const { data: allowance, refetch: refetchAllowance } = useReadContract({
+        address: USDC_ADDRESS,
+        abi: USDC_ABI,
+        functionName: "allowance",
+        args: address && agent?.vaultAddress ? [address, agent.vaultAddress as `0x${string}`] : undefined,
+    });
+
+    const { writeContractAsync } = useWriteContract();
+
+    // 3. Wait for approve tx confirmation
+    const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({
+        hash: approveTxHash,
+    });
+
+    // 4. Wait for deposit tx confirmation
+    const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({
+        hash: depositTxHash,
+    });
+
+    // When approve is confirmed, proceed to deposit
+    useEffect(() => {
+        if (approveConfirmed && step === 'waiting_approve') {
+            refetchAllowance();
+            executeDeposit();
+        }
+    }, [approveConfirmed]);
+
+    // When deposit is confirmed, show success
+    useEffect(() => {
+        if (depositConfirmed && step === 'waiting_deposit') {
+            setStep('success');
+            setStakeAmount('');
+            setTimeout(() => setStep('idle'), 3000);
+        }
+    }, [depositConfirmed]);
+
     if (loading) return (
         <div className="container pt-xxl text-center">
             <div className="neural-loading-orb mx-auto mb-lg" />
@@ -88,7 +151,31 @@ function AgentDetailPageContent({ id }: { id: string }) {
         </div>
     );
 
-    const handleStake = () => {
+    async function executeDeposit() {
+        if (!stakeAmount || !address || !agent?.vaultAddress) return;
+
+        setStep('depositing');
+        setErrorMsg(null);
+
+        try {
+            const parsedAmount = parseEther(stakeAmount);
+            const hash = await writeContractAsync({
+                address: agent.vaultAddress as `0x${string}`,
+                abi: MolfiAgentVaultABI,
+                functionName: "deposit",
+                args: [parsedAmount, address],
+            });
+
+            setDepositTxHash(hash);
+            setStep('waiting_deposit');
+        } catch (err: any) {
+            console.error("Deposit failed:", err);
+            setErrorMsg(err.shortMessage || err.message || "Deposit failed");
+            setStep('error');
+        }
+    };
+
+    async function handleStake() {
         if (!isConnected) {
             alert("Please connect your wallet to stake.");
             return;
@@ -97,8 +184,37 @@ function AgentDetailPageContent({ id }: { id: string }) {
             alert("Please enter a valid amount to stake.");
             return;
         }
-        alert(`Successfully allocated ${stakeAmount} USDT to ${agent.name}. Neural relay active.`);
-        setStakeAmount('');
+
+        if (!agent?.vaultAddress) {
+            alert("This agent does not have a vault deployed yet.");
+            return;
+        }
+
+        setStep('approving');
+        setErrorMsg(null);
+
+        try {
+            const parsedAmount = parseEther(stakeAmount);
+
+            // Check if approval is needed
+            if (!allowance || (allowance as bigint) < parsedAmount) {
+                const hash = await writeContractAsync({
+                    address: USDC_ADDRESS,
+                    abi: USDC_ABI,
+                    functionName: "approve",
+                    args: [agent.vaultAddress as `0x${string}`, parsedAmount],
+                });
+
+                setApproveTxHash(hash);
+                setStep('waiting_approve');
+            } else {
+                await executeDeposit();
+            }
+        } catch (err: any) {
+            console.error("Approval failed:", err);
+            setErrorMsg(err.shortMessage || err.message || "Approval failed");
+            setStep('error');
+        }
     };
 
     return (
@@ -247,7 +363,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             <div className="mb-xl">
                                 <div className="flex justify-between mb-xs">
                                     <label className="text-[9px] font-bold text-dim uppercase">Amount (USDT)</label>
-                                    <span className="text-[9px] text-primary cursor-pointer hover:underline">BAL: 1,240.22</span>
+                                    <span className="text-[9px] text-primary cursor-pointer hover:underline" onClick={() => setStakeAmount(formattedBalance)}>BAL: {parseFloat(formattedBalance).toLocaleString()}</span>
                                 </div>
                                 <div className="allocation-input-wrap">
                                     <span className="currency-prefix text-xs">$</span>
@@ -258,8 +374,9 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         style={{ fontSize: '1rem' }}
                                         value={stakeAmount}
                                         onChange={(e) => setStakeAmount(e.target.value)}
+                                        disabled={step !== 'idle'}
                                     />
-                                    <button className="max-btn" onClick={() => setStakeAmount('1240.22')}>MAX</button>
+                                    <button className="max-btn" onClick={() => setStakeAmount(formattedBalance)} disabled={step !== 'idle'}>MAX</button>
                                 </div>
                             </div>
 
@@ -274,9 +391,33 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                 </div>
                             </div>
 
-                            <button className="allocate-btn" onClick={handleStake}>
-                                CONFIRM DEPLOYMENT
-                            </button>
+                            {agent.vaultAddress ? (
+                                <>
+                                    <button
+                                        className={`allocate-btn ${step !== 'idle' && step !== 'success' && step !== 'error' ? 'loading' : ''}`}
+                                        onClick={handleStake}
+                                        disabled={step !== 'idle' && step !== 'success' && step !== 'error'}
+                                    >
+                                        {step === 'idle' && "Allocate capitall.."}
+                                        {step === 'approving' && "APPROVE IN WALLET..."}
+                                        {step === 'waiting_approve' && "CONFIRMING APPROVAL..."}
+                                        {step === 'depositing' && "DEPOSIT IN WALLET..."}
+                                        {step === 'waiting_deposit' && "CONFIRMING DEPOSIT..."}
+                                        {step === 'success' && "SUCCESS! RELAY ACTIVE"}
+                                        {step === 'error' && "FAILED - RETRY?"}
+                                    </button>
+                                    {errorMsg && (
+                                        <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
+                                            ERROR: {errorMsg}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="p-md bg-purple-500/5 border border-purple-500/20 rounded-xl text-center">
+                                    <div className="text-[10px] text-primary-purple font-bold uppercase tracking-widest mb-xs">Vault Status</div>
+                                    <div className="text-[11px] text-dim">Neural vault pending initialization.</div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Decision Timeline */}
