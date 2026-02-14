@@ -198,13 +198,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         fetchInvestors();
     }, [agent?.vaultAddress, publicClient]);
 
-    const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
-    const currentAssets = assetsFromShares ? (assetsFromShares as bigint) : 0n;
-    const maxWithdrawAmount = (maxWithdraw as bigint | undefined) || 0n;
-    const pnlAvailable = maxWithdrawAmount > netDeposits ? maxWithdrawAmount - netDeposits : 0n;
-    const currentAssetsDisplay = formatEther(currentAssets);
-    const netDepositsDisplay = formatEther(netDeposits);
-    const pnlAvailableDisplay = formatEther(pnlAvailable);
+
 
     // 2. Check Allowance
     const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -246,6 +240,15 @@ function AgentDetailPageContent({ id }: { id: string }) {
     });
 
     const { writeContractAsync } = useWriteContract();
+
+    // Derived State
+    const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
+    const currentAssets = assetsFromShares ? (assetsFromShares as bigint) : 0n;
+    const maxWithdrawAmount = (maxWithdraw as bigint | undefined) || 0n;
+    const pnlAvailable = maxWithdrawAmount > netDeposits ? maxWithdrawAmount - netDeposits : 0n;
+    const currentAssetsDisplay = formatEther(currentAssets);
+    const netDepositsDisplay = formatEther(netDeposits);
+    const pnlAvailableDisplay = formatEther(pnlAvailable);
 
     // 3. Wait for approve tx confirmation
     const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({
