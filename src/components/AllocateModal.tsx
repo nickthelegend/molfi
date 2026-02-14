@@ -11,17 +11,10 @@ import { parseEther, formatEther } from "viem";
 import {
     X,
     Loader2,
-    ShieldCheck,
-    Wallet,
     ArrowRight,
-    TrendingUp,
-    Clock,
-    Zap,
-    Lock,
-    AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react";
-import { shortenAddress } from "@/lib/contract-helpers";
 
 // ABIs
 const USDC_ABI = [
@@ -205,51 +198,25 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
             <div className="allocate-modal float-anim">
                 {/* Header */}
                 <div className="modal-header">
-                    <div className="flex items-center gap-md">
-                        <div className="modal-icon">
-                            <TrendingUp size={18} className="text-primary" />
-                        </div>
-                        <div>
-                            <h2 className="modal-title">ALLOCATE CAPITAL</h2>
-                            <p className="modal-subtitle">Deploy mUSD.dev into this agent's strategy.</p>
-                        </div>
+                    <div>
+                        <h2 className="modal-title">ALLOCATE</h2>
                     </div>
                     <button className="close-btn" onClick={handleClose}>
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 
-                {/* Info Box */}
-                <div className="info-box">
-                    <div className="flex justify-between items-center mb-sm">
-                        <div className="flex items-center gap-xs">
-                            <ShieldCheck size={14} className="text-primary" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">ClawBot Protocol Guarded</span>
-                        </div>
-                        <span className="text-[10px] text-primary font-mono bg-primary-10 px-xs py-2xs rounded">1:1 Backing</span>
-                    </div>
-                    <p className="text-xs text-secondary leading-relaxed">
-                        Capital is managed by the ClawBot protocol with 1:1 asset backing in vault:
-                        <span className="text-primary font-mono ml-xs">{shortenAddress(agent.vaultAddress)}</span>
-                    </p>
-                </div>
 
-                {/* Input Section */}
                 <div className="input-section">
-                    <div className="flex justify-between items-center mb-xs">
-                        <label className="input-label">Amount (mUSD.dev)</label>
-                        <div className="flex items-center gap-xs">
-                            <Wallet size={10} className="text-dim" />
-                            <span className="text-[10px] text-dim font-bold uppercase tracking-tighter hover:text-white transition-colors cursor-pointer" onClick={handleMax}>
-                                BAL: {Number(formattedBalance).toLocaleString()} mUSD.dev
-                            </span>
-                            <span className="text-[10px] text-primary font-bold uppercase tracking-tighter hover:text-white transition-colors cursor-pointer ml-xs" onClick={() => window.open('/faucet', '_blank')}>
-                                [GET TEST mUSD.dev]
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="input-label">Amount</label>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-dim font-bold uppercase cursor-pointer" onClick={handleMax}>
+                                BAL: {Number(formattedBalance).toLocaleString()}
                             </span>
                         </div>
                     </div>
                     <div className="premium-input-container">
-                        <span className="currency-symbol">$</span>
                         <input
                             type="number"
                             placeholder="0.00"
@@ -260,30 +227,22 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                         />
                         <button className="max-chip" onClick={handleMax} disabled={isProcessing}>MAX</button>
                     </div>
+                    <div className="mt-2 text-right">
+                        <span className="text-[9px] text-primary font-bold uppercase cursor-pointer hover:underline" onClick={() => window.open('/faucet', '_blank')}>
+                            Get test mUSD.dev
+                        </span>
+                    </div>
                 </div>
 
-                {/* Details Grid */}
-                <div className="details-grid">
-                    <div className="detail-item">
-                        <div className="flex items-center gap-xs mb-xs">
-                            <Zap size={10} className="text-dim" />
-                            <span className="detail-label">Claw Relay Fee</span>
-                        </div>
+                {/* Details List */}
+                <div className="simple-details">
+                    <div className="detail-row">
+                        <span className="detail-label">Fee</span>
                         <span className="detail-value">0.05%</span>
                     </div>
-                    <div className="detail-item border-x">
-                        <div className="flex items-center gap-xs mb-xs">
-                            <Clock size={10} className="text-dim" />
-                            <span className="detail-label">Lock Duration</span>
-                        </div>
-                        <span className="detail-value text-primary">None</span>
-                    </div>
-                    <div className="detail-item">
-                        <div className="flex items-center gap-xs mb-xs">
-                            <Lock size={10} className="text-dim" />
-                            <span className="detail-label">Exit Status</span>
-                        </div>
-                        <span className="detail-value">Neural Neutral</span>
+                    <div className="detail-row">
+                        <span className="detail-label">Lock Duration</span>
+                        <span className="detail-value">None</span>
                     </div>
                 </div>
 
@@ -305,7 +264,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                         </>
                     ) : (
                         <>
-                            CONFIRM ALLOCATION <ArrowRight size={18} />
+                            CONFIRM <ArrowRight size={16} />
                         </>
                     )}
                 </button>
@@ -320,7 +279,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
                 )}
 
                 <p className="footer-warning">
-                    Withdrawals are permitted only when the agent is in a neutral state.
+                    Withdrawals available when neutral.
                 </p>
             </div>
 
@@ -341,42 +300,24 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
           background: #0a0a0c;
           border: 1px solid var(--glass-border);
           box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.1);
-          border-radius: 32px;
+          border-radius: 24px;
           width: 100%;
-          max-width: 480px;
-          padding: 2.5rem;
+          max-width: 380px;
+          padding: 1.5rem;
           position: relative;
         }
 
         .modal-header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 2rem;
-        }
-
-        .modal-icon {
-          width: 40px;
-          height: 40px;
-          background: rgba(168, 85, 247, 0.1);
-          border-radius: 12px;
-          display: flex;
           align-items: center;
-          justify-content: center;
+          margin-bottom: 1.5rem;
         }
 
         .modal-title {
-          font-size: 1.5rem;
+          font-size: 1.1rem;
           font-weight: 800;
-          line-height: 1;
-          letter-spacing: -0.02em;
-          margin-bottom: 0.25rem;
-        }
-
-        .modal-subtitle {
-          font-size: 0.8rem;
-          color: var(--text-dim);
-          font-weight: 500;
+          letter-spacing: 0.05em;
         }
 
         .close-btn {
@@ -389,40 +330,26 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
         .close-btn:hover { color: white; }
 
-        .info-box {
-          background: rgba(168, 85, 247, 0.05);
-          border: 1px solid rgba(168, 85, 247, 0.1);
-          border-radius: 20px;
-          padding: 1.25rem;
-          margin-bottom: 2rem;
-        }
-
-        .input-section { margin-bottom: 2rem; }
-        .input-label { font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .input-section { margin-bottom: 1.25rem; }
+        .input-label { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 
         .premium-input-container {
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid var(--glass-border);
-          border-radius: 16px;
-          padding: 0.75rem 1.25rem;
+          border-radius: 12px;
+          padding: 0.6rem 1rem;
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           transition: 0.3s;
         }
 
-        .premium-input-container:focus-within {
-          border-color: var(--primary-purple);
-          background: rgba(168, 85, 247, 0.05);
-          box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
-        }
-
-        .currency-symbol { font-size: 1.5rem; font-weight: 700; color: var(--text-dim); }
+        .currency-symbol { font-size: 1.25rem; font-weight: 700; color: var(--text-dim); }
 
         .amount-input {
           background: transparent;
           border: none;
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 700;
           color: white;
           width: 100%;
@@ -444,36 +371,41 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
         .max-chip:hover { transform: scale(1.05); opacity: 0.9; }
 
-        .details-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+        .simple-details {
           background: rgba(0, 0, 0, 0.2);
           border: 1px solid var(--glass-border);
-          border-radius: 20px;
-          margin-bottom: 2.5rem;
+          border-radius: 16px;
+          margin-bottom: 1.5rem;
+          padding: 0.5rem 1rem;
         }
 
-        .detail-item { padding: 1.25rem; text-align: center; }
-        .detail-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); }
-        .detail-value { font-size: 0.9rem; font-weight: 700; color: white; }
-        .border-x { border-left: 1px solid var(--glass-border); border-right: 1px solid var(--glass-border); }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); }
+        .detail-value { font-size: 0.8rem; font-weight: 700; color: white; }
 
         .allocate-btn {
           width: 100%;
           background: var(--primary-purple);
           border: none;
-          border-radius: 20px;
-          padding: 1.25rem;
+          border-radius: 12px;
+          padding: 1rem;
           color: white;
           font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           cursor: pointer;
           transition: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
           box-shadow: var(--glow-purple);
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           letter-spacing: 0.05em;
         }
 
@@ -542,10 +474,10 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
         .footer-warning {
           text-align: center;
-          font-size: 0.7rem;
+          font-size: 0.6rem;
           color: var(--text-dim);
           font-weight: 500;
-          margin-top: 1.5rem;
+          margin-top: 1rem;
         }
 
         @keyframes floatModal {
