@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 import { shortenAddress, getExplorerUrl } from '@/lib/contract-helpers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import AgentPerformanceChart from '@/components/AgentPerformanceChart';
 
 export default function InvestmentDetailsPage({ params }: { params: Promise<{ txHash: string }> }) {
     const { txHash } = use(params);
@@ -565,6 +566,43 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                         ? '* Profit withdrawal enabled when position is in profit.'
                                         : 'Profit withdrawal uses on-chain share pricing.'}
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* INVESTMENT PERFORMANCE CHART */}
+                        <div className="glass-container investment-panel mt-6">
+                            <div className="panel-header">
+                                <h3 className="panel-title">
+                                    <TrendingUp size={18} className="text-primary" />
+                                    Investment Performance
+                                </h3>
+                                <span className="panel-tag">Return Over Time</span>
+                            </div>
+                            <div className="panel-body no-padding overflow-hidden">
+                                {agentData?.equityCurve ? (
+                                    <div className="py-2">
+                                        <AgentPerformanceChart
+                                            data={agentData.equityCurve.map((point: any) => {
+                                                const initialAmount = parseFloat(investment?.amount || '0') > 0
+                                                    ? parseFloat(investment.amount)
+                                                    : parseFloat(fallbackAmount);
+
+                                                // Scale Agent Equity ($10k base) to User Investment size
+                                                const userValue = (point.value / 10000) * initialAmount;
+                                                return {
+                                                    time: point.time,
+                                                    value: parseFloat(userValue.toFixed(2))
+                                                };
+                                            })}
+                                            height={350}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="py-20 text-center text-secondary opacity-50">
+                                        <Activity size={32} className="mx-auto mb-2 animate-pulse" />
+                                        <p className="text-sm">Generating Performance Data...</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
