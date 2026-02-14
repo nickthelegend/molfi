@@ -5,6 +5,20 @@ const nextConfig: NextConfig = {
   compiler: {
     styledComponents: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/agents/:id',
+        destination: '/clawdex/agent/:id',
+        permanent: true,
+      },
+      {
+        source: '/agent/:id',
+        destination: '/clawdex/agent/:id',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

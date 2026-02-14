@@ -46,7 +46,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
 
     return (
         <Link
-            href={`/agents/${agent.id}`}
+            href={`/clawdex/agent/${agent.id}`}
             className="glass-container"
             style={{
                 padding: '1.5rem',
