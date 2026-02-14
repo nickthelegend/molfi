@@ -27,7 +27,13 @@ const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
 const BINANCE_MAP = {
     'BTCUSDT': 'BTC/USD',
     'ETHUSDT': 'ETH/USD',
+    'SOLUSDT': 'SOL/USD',
     'LINKUSDT': 'LINK/USD',
+    'DOGEUSDT': 'DOGE/USD',
+    'AVAXUSDT': 'AVAX/USD',
+    'MATICUSDT': 'MATIC/USD',
+    'DOTUSDT': 'DOT/USD',
+    'NEARUSDT': 'NEAR/USD',
 };
 
 const ORACLE_ABI = [

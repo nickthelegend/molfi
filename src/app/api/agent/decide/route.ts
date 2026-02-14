@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { getOraclePrice } from '@/lib/marketEngine';
 
 /**
@@ -35,34 +35,34 @@ export async function POST(req: Request) {
     let leverage = 1.0;
 
     if (manager.riskLevel === 'DEGENERATE') {
-        if (random > 0.3) action = 'OPEN';
-        side = Math.random() > 0.5 ? 'LONG' : 'SHORT';
-        leverage = 25.0;
+      if (random > 0.3) action = 'OPEN';
+      side = Math.random() > 0.5 ? 'LONG' : 'SHORT';
+      leverage = 25.0;
     } else if (manager.riskLevel === 'AGGRESSIVE') {
-        if (random > 0.6) action = 'OPEN';
-        side = 'LONG';
-        leverage = 10.0;
+      if (random > 0.6) action = 'OPEN';
+      side = 'LONG';
+      leverage = 10.0;
     } else {
-        if (random > 0.8) action = 'OPEN';
-        leverage = 3.0;
+      if (random > 0.8) action = 'OPEN';
+      leverage = 3.0;
     }
 
     if (action === 'OPEN') {
-        // Call our internal position opener
-        const baseUrl = new URL(req.url).origin;
-        const res = await fetch(`${baseUrl}/api/positions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                vaultId: manager.vault[0].id,
-                symbol: 'BTC-USD',
-                side,
-                leverage,
-                size: 0.1 // 0.1 BTC
-            })
-        });
-        const posData = await res.json();
-        return NextResponse.json({ success: true, manager: manager.name, decision: `OPENED ${side} @ 10x`, details: posData });
+      // Call our internal position opener
+      const baseUrl = new URL(req.url).origin;
+      const res = await fetch(`${baseUrl}/api/positions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vaultId: manager.vault[0].id,
+          symbol: 'BTC-USD',
+          side,
+          leverage,
+          size: 0.1 // 0.1 BTC
+        })
+      });
+      const posData = await res.json();
+      return NextResponse.json({ success: true, manager: manager.name, decision: `OPENED ${side} @ 10x`, details: posData });
     }
 
     return NextResponse.json({ success: true, manager: manager.name, decision: 'HOLDING', details: 'No entry signal detected.' });

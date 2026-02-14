@@ -21,6 +21,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useLivePrices } from '@/lib/useLivePrices';
 import { MOCK_AGENTS, AIAgent, Position, TradingDecision } from '@/lib/agents';
 import AllocateModal from '@/components/AllocateModal';
+import { CryptoIcon } from '@ledgerhq/crypto-icons';
 
 // --- Sub-components ---
 
@@ -33,7 +34,8 @@ const MarketTicker = () => {
             <div className="ticker-content">
                 {[...tickerItems, ...tickerItems].map((item, i) => (
                     <span key={i} className="ticker-item">
-                        <span className="ticker-symbol">{item.symbol}</span>
+                        <CryptoIcon ledgerId={LEDGER_IDS[item.symbol] || 'bitcoin'} ticker={item.symbol.split('/')[0]} size="16px" />
+                        <span className="ticker-symbol" style={{ marginLeft: '4px' }}>{item.symbol}</span>
                         <span className="ticker-price">${item.price.toLocaleString()}</span>
                         <span className={`ticker-change ${item.change24h >= 0 ? 'up' : 'down'}`}>
                             {item.change24h >= 0 ? '▲' : '▼'} {Math.abs(item.change24h).toFixed(2)}%
@@ -104,72 +106,97 @@ const AgentCard = ({ agent, onStake }: { agent: any; onStake: (agent: any) => vo
     );
 };
 
-const DecisionLog = () => {
-    const [signals, setSignals] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+const PAIR_ICONS: Record<string, string> = {
+    'BTC/USDT': '₿', 'ETH/USDT': 'Ξ', 'SOL/USDT': '◎',
+    'LINK/USDT': '⬡', 'DOGE/USDT': 'Ð', 'AVAX/USDT': '▲',
+    'MATIC/USDT': '⬠', 'DOT/USDT': '●', 'NEAR/USDT': 'Ⓝ',
+};
 
-    useEffect(() => {
-        const fetchSignals = async () => {
-            try {
-                const res = await fetch('/api/signals');
-                const data = await res.json();
-                if (data.success) {
-                    setSignals(data.signals);
-                }
-            } catch (err) {
-                console.error("Failed to fetch signals:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
+const PAIR_COLORS: Record<string, string> = {
+    'BTC/USDT': '#f7931a', 'ETH/USDT': '#627eea', 'SOL/USDT': '#00ffa3',
+    'LINK/USDT': '#2a5ada', 'DOGE/USDT': '#c3a634', 'AVAX/USDT': '#e84142',
+    'MATIC/USDT': '#8247e5', 'DOT/USDT': '#e6007a', 'NEAR/USDT': '#00c1de',
+};
 
-        fetchSignals();
-        const interval = setInterval(fetchSignals, 5000);
-        return () => clearInterval(interval);
-    }, []);
+const LEDGER_IDS: Record<string, string> = {
+    'BTC/USDT': 'bitcoin',
+    'ETH/USDT': 'ethereum',
+    'SOL/USDT': 'solana',
+    'LINK/USDT': 'ethereum/erc20/chainlink',
+    'DOGE/USDT': 'dogecoin',
+    'AVAX/USDT': 'avalanche_c_chain',
+    'MATIC/USDT': 'polygon',
+    'DOT/USDT': 'polkadot',
+    'NEAR/USDT': 'near',
+};
 
-    const displaySignals = signals;
+const TradingPairsPanel = () => {
+    const prices = useLivePrices();
+
+    const allPairs = [
+        'BTC/USDT', 'ETH/USDT', 'SOL/USDT',
+        'LINK/USDT', 'DOGE/USDT', 'AVAX/USDT',
+        'MATIC/USDT', 'DOT/USDT', 'NEAR/USDT',
+    ];
 
     return (
         <div className="neural-stream-container">
             <div className="stream-header">
                 <div className="flex items-center gap-sm">
                     <div className="neural-icon">
-                        <Zap size={16} />
+                        <BarChart3 size={16} />
                     </div>
-                    <span className="header-text">Neural Transmission Stream</span>
+                    <span className="header-text">Available Trading Pairs</span>
                 </div>
                 <div className="live-status">
                     <div className="pulse-dot" />
-                    <span>LATEST SIGS</span>
+                    <span>LIVE</span>
                 </div>
             </div>
 
-            <div className="stream-content custom-scrollbar">
-                {loading && signals.length === 0 ? (
-                    <div className="p-xl text-center text-dim text-xs animate-pulse">Syncing with ClawBot Network...</div>
-                ) : (
-                    displaySignals.map((sig, i) => (
-                        <div key={sig.id || i} className="stream-item fade-in">
-                            <div className="item-top">
-                                <span className={`side-label ${sig.isLong || sig.action === 'BUY' ? 'long' : 'short'}`}>
-                                    {sig.isLong || sig.action === 'BUY' ? 'BUY / LONG' : sig.action === 'HOLD' ? 'STAY / HOLD' : 'SELL / SHORT'}
-                                </span>
-                                <span className="item-time">
-                                    {sig.createdAt ? new Date(sig.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}
-                                </span>
+            <div className="pairs-grid">
+                {allPairs.map((pair) => {
+                    const data = prices.get(pair);
+                    const icon = PAIR_ICONS[pair] || '◆';
+                    const color = PAIR_COLORS[pair] || '#a855f7';
+                    const price = data?.price ?? 0;
+                    const change = data?.change24h ?? 0;
+                    const volume = data?.volume24h ?? 0;
+                    const isUp = change >= 0;
+                    const base = pair.split('/')[0];
+
+                    return (
+                        <div key={pair} className="pair-row">
+                            <div className="pair-left">
+                                <div className="pair-icon-wrap" style={{ background: `${color}15`, borderColor: `${color}40`, overflow: 'hidden' }}>
+                                    <CryptoIcon ledgerId={LEDGER_IDS[pair] || 'bitcoin'} ticker={base} size="20px" />
+                                </div>
+                                <div>
+                                    <div className="pair-name">{base}<span className="pair-quote">/USDT</span></div>
+                                    <div className="pair-label">{base}</div>
+                                </div>
                             </div>
-                            <div className="item-pair">{sig.pair}</div>
-                            <p className="item-reasoning">
-                                {sig.reasoning || `Detected high-alpha opportunity on ${sig.pair}. Executing with ${sig.leverage || 10}x leverage via ClawBot relay.`}
-                            </p>
-                            <div className="item-footer">
-                                <span className="sig-hash">SIG_AUTH: {sig.id?.slice(0, 12) || sig.proof || '0x...8004'}</span>
-                                <Activity size={12} className="text-dim opacity-50" />
+
+                            <div className="pair-center">
+                                <div className="pair-price">
+                                    {price > 0 ? `$${price < 1 ? price.toFixed(4) : price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                </div>
+                                <div className={`pair-change ${isUp ? 'up' : 'down'}`}>
+                                    {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
+                                </div>
+                            </div>
+
+                            <div className="pair-right">
+                                <div className="pair-vol-bar">
+                                    <div className="pair-vol-fill" style={{ width: `${Math.min(100, Math.max(10, (volume / 50000) * 100))}%`, background: color }} />
+                                </div>
+                                <span className="pair-vol-text">
+                                    {volume > 1e6 ? `${(volume / 1e6).toFixed(1)}M` : volume > 1e3 ? `${(volume / 1e3).toFixed(0)}K` : '—'}
+                                </span>
                             </div>
                         </div>
-                    ))
-                )}
+                    );
+                })}
             </div>
         </div>
     );
@@ -297,7 +324,7 @@ function ClawDexPageContent() {
                     </div>
 
                     <div className="col-span-4 flex flex-col gap-xl">
-                        <DecisionLog />
+                        <TradingPairsPanel />
 
                         <div className="novel-card" style={{ background: 'rgba(168, 85, 247, 0.02)', borderColor: 'var(--glass-border)' }}>
                             <h3 className="mb-lg flex items-center gap-sm" style={{ fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -351,6 +378,19 @@ function ClawDexPageContent() {
                     display: flex;
                     align-items: center;
                     overflow: hidden;
+                }
+                .ticker-content {
+                    display: flex;
+                    white-space: nowrap;
+                    animation: ticker-scroll 60s linear infinite;
+                    will-change: transform;
+                }
+                @keyframes ticker-scroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .ticker-content:hover {
+                    animation-play-state: paused;
                 }
                 .ticker-item {
                     display: inline-flex;
@@ -481,6 +521,104 @@ function ClawDexPageContent() {
                 .live-status span { font-size: 8px; font-weight: 900; color: var(--primary-purple); letter-spacing: 0.05em; }
 
                 .stream-content { height: 500px; overflow-y: auto; padding: 1rem; }
+
+                .pairs-grid {
+                    padding: 0.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    overflow-y: auto;
+                    max-height: 560px;
+                }
+                .pair-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 0.85rem 1rem;
+                    border-radius: 14px;
+                    border: 1px solid transparent;
+                    transition: all 0.25s;
+                    cursor: pointer;
+                }
+                .pair-row:hover {
+                    background: rgba(255,255,255,0.03);
+                    border-color: rgba(168, 85, 247, 0.2);
+                }
+                .pair-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    min-width: 100px;
+                }
+                .pair-icon-wrap {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    border: 1px solid;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+                .pair-name {
+                    font-size: 0.85rem;
+                    font-weight: 800;
+                    color: white;
+                    letter-spacing: 0.02em;
+                }
+                .pair-quote {
+                    color: var(--text-dim);
+                    font-weight: 500;
+                    font-size: 0.7rem;
+                }
+                .pair-label {
+                    font-size: 9px;
+                    color: var(--text-dim);
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                }
+                .pair-center {
+                    text-align: right;
+                    min-width: 90px;
+                }
+                .pair-price {
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    color: white;
+                    font-family: var(--font-mono);
+                }
+                .pair-change {
+                    font-size: 10px;
+                    font-weight: 700;
+                    font-family: var(--font-mono);
+                    margin-top: 2px;
+                }
+                .pair-change.up { color: #10b981; }
+                .pair-change.down { color: #ef4444; }
+                .pair-right {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 3px;
+                    min-width: 60px;
+                }
+                .pair-vol-bar {
+                    width: 48px;
+                    height: 4px;
+                    background: rgba(255,255,255,0.06);
+                    border-radius: 99px;
+                    overflow: hidden;
+                }
+                .pair-vol-fill {
+                    height: 100%;
+                    border-radius: 99px;
+                    transition: width 0.5s ease;
+                }
+                .pair-vol-text {
+                    font-size: 8px;
+                    color: var(--text-dim);
+                    font-family: var(--font-mono);
+                }
+
                 .stream-item {
                     padding: 1.25rem;
                     margin-bottom: 0.5rem;

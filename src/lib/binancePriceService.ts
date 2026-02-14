@@ -17,18 +17,24 @@ class BinancePriceService {
     private listeners: Set<(prices: Map<string, PriceData>) => void> = new Set();
     private reconnectTimeout: NodeJS.Timeout | null = null;
 
-    // Binance symbol mapping
+    // Binance symbol mapping — 9 supported USDT pairs
     private symbolMap: Record<string, string> = {
         'BTC/USDT': 'btcusdt',
         'ETH/USDT': 'ethusdt',
         'SOL/USDT': 'solusdt',
+        'LINK/USDT': 'linkusdt',
+        'DOGE/USDT': 'dogeusdt',
+        'AVAX/USDT': 'avaxusdt',
+        'MATIC/USDT': 'maticusdt',
+        'DOT/USDT': 'dotusdt',
+        'NEAR/USDT': 'nearusdt',
     };
 
     connect() {
         if (typeof window === 'undefined') return;
 
-        const symbols = Object.values(this.symbolMap).join('/');
-        const wsUrl = `wss://stream.binance.com:9443/stream?streams=${symbols}@ticker`;
+        const streams = Object.values(this.symbolMap).map(s => `${s}@ticker`).join('/');
+        const wsUrl = `wss://stream.binance.com:9443/stream?streams=${streams}`;
 
         this.ws = new WebSocket(wsUrl);
 

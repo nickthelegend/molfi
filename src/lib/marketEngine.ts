@@ -34,10 +34,19 @@ const RPC_URLS = [
 const BINANCE_SYMBOLS: Record<string, string> = {
   'BTC/USD': 'BTCUSDT',
   'ETH/USD': 'ETHUSDT',
+  'SOL/USD': 'SOLUSDT',
   'LINK/USD': 'LINKUSDT',
+  'DOGE/USD': 'DOGEUSDT',
+  'AVAX/USD': 'AVAXUSDT',
+  'MATIC/USD': 'MATICUSDT',
+  'DOT/USD': 'DOTUSDT',
+  'NEAR/USD': 'NEARUSDT',
 };
 
-export const SUPPORTED_PAIRS = ['BTC/USD', 'ETH/USD', 'LINK/USD'];
+export const SUPPORTED_PAIRS = [
+  'BTC/USD', 'ETH/USD', 'SOL/USD', 'LINK/USD', 'DOGE/USD',
+  'AVAX/USD', 'MATIC/USD', 'DOT/USD', 'NEAR/USD',
+];
 
 // ── Types ────────────────────────────────────────────────────────
 export interface PriceData {
@@ -132,7 +141,13 @@ async function readFromBinance(symbol: string): Promise<PriceData | null> {
 const FALLBACK_PRICES: Record<string, number> = {
   'BTC/USD': 97000,
   'ETH/USD': 2700,
+  'SOL/USD': 150,
   'LINK/USD': 18,
+  'DOGE/USD': 0.32,
+  'AVAX/USD': 35,
+  'MATIC/USD': 0.85,
+  'DOT/USD': 7,
+  'NEAR/USD': 5,
   'USDC/USD': 1,
   'USDT/USD': 1,
 };
