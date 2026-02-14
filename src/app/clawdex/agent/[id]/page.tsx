@@ -567,104 +567,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             </div>
                         </div>
 
-                        {/* Positions Table */}
-                        <div className="premium-panel">
-                            <div className="panel-header flex justify-between items-center">
-                                <h3>{posTab === 'active' ? 'ACTIVE CIRCUITS' : 'COMPLETED CIRCUITS'}</h3>
-                                <div className="tab-control">
-                                    <button
-                                        className={`tab-btn ${posTab === 'active' ? 'active' : ''}`}
-                                        onClick={() => setPosTab('active')}
-                                    >
-                                        ACTIVE
-                                    </button>
-                                    <button
-                                        className={`tab-btn ${posTab === 'completed' ? 'active' : ''}`}
-                                        onClick={() => setPosTab('completed')}
-                                    >
-                                        HISTORY
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="panel-body no-padding">
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table className="premium-table">
-                                        <thead>
-                                            <tr>
-                                                <th>ASSET</th>
-                                                <th>SIDE</th>
-                                                <th>{posTab === 'active' ? 'LEVERAGE' : 'PnL'}</th>
-                                                <th>SIZE</th>
-                                                <th>{posTab === 'active' ? 'PnL (UNREALIZED)' : 'EXIT PRICE'}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {posTab === 'active' ? (
-                                                <>
-                                                    {agent.activePositions?.map((pos: any) => (
-                                                        <tr key={pos.id}>
-                                                            <td className="font-bold">{pos.pair}</td>
-                                                            <td>
-                                                                <span className={`side-tag ${pos.side}`}>
-                                                                    {pos.side}
-                                                                </span>
-                                                            </td>
-                                                            <td className="font-mono">{pos.leverage || '10'}x</td>
-                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
-                                                            <td>
-                                                                <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
-                                                                    {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {(!agent.activePositions || agent.activePositions.length === 0) && (
-                                                        <tr>
-                                                            <td colSpan={5} className="empty-state">
-                                                                No active positions. Monitoring for high-precision entry.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {agent.completedPositions?.map((pos: any) => (
-                                                        <tr key={pos.id}>
-                                                            <td className="font-bold">{pos.pair}</td>
-                                                            <td>
-                                                                <span className={`side-tag ${pos.side}`}>
-                                                                    {pos.side}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div className={`pnl-display ${(pos.pnl || 0) >= 0 ? 'plus' : 'minus'}`}>
-                                                                    {(pos.pnl || 0) >= 0 ? '+' : ''}${pos.pnl || '0.00'} ({(pos.pnlPercent || 0).toFixed(2)}%)
-                                                                </div>
-                                                            </td>
-                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
-                                                            <td className="font-mono text-dim">${pos.exitPrice || '---'}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {(!agent.completedPositions || agent.completedPositions.length === 0) && (
-                                                        <tr>
-                                                            <td colSpan={5} className="empty-state">
-                                                                No completed trades on record.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: Verified Decisions & Staking */}
-                    <div className="col-span-4 flex flex-col gap-xl">
-                        {/* Staking Panel */}
-                        <div className="allocation-panel">
+                        {/* Allocate Capital */}
+                        <div className="allocation-panel mb-xl">
                             <div className="flex justify-between items-center mb-xl">
                                 <h3 className="m-0 flex items-center gap-sm text-[12px] font-bold tracking-wider">
                                     <Percent size={14} className="text-primary" />
@@ -768,6 +672,102 @@ function AgentDetailPageContent({ id }: { id: string }) {
                             )}
                         </div>
 
+                        {/* Positions Table */}
+                        <div className="premium-panel">
+                            <div className="panel-header flex justify-between items-center">
+                                <h3>{posTab === 'active' ? 'ACTIVE CIRCUITS' : 'COMPLETED CIRCUITS'}</h3>
+                                <div className="tab-control">
+                                    <button
+                                        className={`tab-btn ${posTab === 'active' ? 'active' : ''}`}
+                                        onClick={() => setPosTab('active')}
+                                    >
+                                        ACTIVE
+                                    </button>
+                                    <button
+                                        className={`tab-btn ${posTab === 'completed' ? 'active' : ''}`}
+                                        onClick={() => setPosTab('completed')}
+                                    >
+                                        HISTORY
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="panel-body no-padding">
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table className="premium-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ASSET</th>
+                                                <th>SIDE</th>
+                                                <th>{posTab === 'active' ? 'LEVERAGE' : 'PnL'}</th>
+                                                <th>SIZE</th>
+                                                <th>{posTab === 'active' ? 'PnL (UNREALIZED)' : 'EXIT PRICE'}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {posTab === 'active' ? (
+                                                <>
+                                                    {agent.activePositions?.map((pos: any) => (
+                                                        <tr key={pos.id}>
+                                                            <td className="font-bold">{pos.pair}</td>
+                                                            <td>
+                                                                <span className={`side-tag ${pos.side}`}>
+                                                                    {pos.side}
+                                                                </span>
+                                                            </td>
+                                                            <td className="font-mono">{pos.leverage || '10'}x</td>
+                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
+                                                            <td>
+                                                                <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                                    {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {(!agent.activePositions || agent.activePositions.length === 0) && (
+                                                        <tr>
+                                                            <td colSpan={5} className="empty-state">
+                                                                No active positions. Monitoring for high-precision entry.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {agent.completedPositions?.map((pos: any) => (
+                                                        <tr key={pos.id}>
+                                                            <td className="font-bold">{pos.pair}</td>
+                                                            <td>
+                                                                <span className={`side-tag ${pos.side}`}>
+                                                                    {pos.side}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div className={`pnl-display ${(pos.pnl || 0) >= 0 ? 'plus' : 'minus'}`}>
+                                                                    {(pos.pnl || 0) >= 0 ? '+' : ''}${pos.pnl || '0.00'} ({(pos.pnlPercent || 0).toFixed(2)}%)
+                                                                </div>
+                                                            </td>
+                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
+                                                            <td className="font-mono text-dim">${pos.exitPrice || '---'}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {(!agent.completedPositions || agent.completedPositions.length === 0) && (
+                                                        <tr>
+                                                            <td colSpan={5} className="empty-state">
+                                                                No completed trades on record.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Verified Decisions & Staking */}
+                    <div className="col-span-4 flex flex-col gap-xl">
                         {/* Reputation Log - ON CHAIN DATA */}
                         <div className="premium-panel">
                             <div className="panel-header">
