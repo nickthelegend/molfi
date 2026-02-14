@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { syncOraclePrice, calculateLiquidationPrice, SUPPORTED_PAIRS } from '@/lib/marketEngine';
+import { recordTradeOpen } from '@/lib/reputationService';
 
 export async function POST(request: NextRequest) {
     try {
@@ -75,6 +76,18 @@ export async function POST(request: NextRequest) {
 
         console.log(`[TRADE_OPEN] Agent ${agent.name} (#${agent.agentId}) opened ${tradeSide} ${normalizedPair} @ $${entryPrice.toFixed(2)} | Size: ${size} | Lev: ${lev}x`);
 
+        // Submit on-chain reputation (fire-and-forget)
+        const reputation = await recordTradeOpen({
+            agentId: agent.agentId,
+            agentName: agent.name,
+            pair: normalizedPair,
+            side: tradeSide,
+            size: parseFloat(size),
+            leverage: lev,
+            entryPrice,
+            tradeId: trade.id,
+        });
+
         return NextResponse.json({
             success: true,
             tradeId: trade.id,
@@ -92,6 +105,11 @@ export async function POST(request: NextRequest) {
                 liquidationPrice: parseFloat(liqPrice.toFixed(2)),
                 fees: parseFloat(tradingFee.toFixed(4)),
                 priceSource: priceData.source,
+            },
+            proof: {
+                hash: reputation.proofHash,
+                txHash: reputation.txHash || null,
+                onChain: reputation.success,
             },
             timestamp: Date.now(),
         });

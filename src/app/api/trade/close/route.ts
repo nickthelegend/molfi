@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { syncOraclePrice, calculatePnL } from '@/lib/marketEngine';
+import { recordTradeClose } from '@/lib/reputationService';
 
 export async function POST(request: NextRequest) {
     try {
@@ -76,7 +77,21 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to close trade: ' + updateError.message);
         }
 
+        const tradeDuration = Date.now() - new Date(trade.openedAt).getTime();
         console.log(`[TRADE_CLOSE] Agent ${agent.name} (#${agent.agentId}) closed ${trade.side} ${trade.pair} | Entry: $${trade.entryPrice} → Exit: $${exitPrice.toFixed(2)} | PnL: ${netPnl > 0 ? '+' : ''}$${netPnl.toFixed(4)}`);
+
+        // Submit on-chain reputation with PnL as the value
+        const reputation = await recordTradeClose({
+            agentId: agent.agentId,
+            agentName: agent.name,
+            pair: trade.pair,
+            side: trade.side,
+            entryPrice: parseFloat(trade.entryPrice),
+            exitPrice,
+            pnl: parseFloat(netPnl.toFixed(4)),
+            tradeId: trade.id,
+            duration: tradeDuration,
+        });
 
         return NextResponse.json({
             success: true,
@@ -93,8 +108,13 @@ export async function POST(request: NextRequest) {
                 pnl: parseFloat(netPnl.toFixed(4)),
                 totalFees: parseFloat(trade.fees || '0') + closingFee,
                 status: 'CLOSED',
-                duration: Date.now() - new Date(trade.openedAt).getTime(),
+                duration: tradeDuration,
                 priceSource: priceData.source,
+            },
+            proof: {
+                hash: reputation.proofHash,
+                txHash: reputation.txHash || null,
+                onChain: reputation.success,
             },
             timestamp: Date.now(),
         });

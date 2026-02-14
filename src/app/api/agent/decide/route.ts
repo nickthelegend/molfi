@@ -1,73 +1,146 @@
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getOraclePrice } from '@/lib/marketEngine';
+import { recordDecision, generateProofHash } from '@/lib/reputationService';
 
 /**
  * POST /api/agent/decide
- * Mocking the AI decision process for the hackathon.
- * In production, this would send the prompt + market data to an LLM.
+ * Records an AI agent's trading decision with on-chain Proof of Trade.
+ * 
+ * Body: { apiKey, agentId, action, pair, reasoning, confidence }
+ * 
+ * Flow:
+ *   1. Authenticate agent via API key
+ *   2. Fetch current market price for the pair
+ *   3. Log the decision to Supabase (AgentSignal table)
+ *   4. Submit reputation feedback on-chain (Proof of Trade)
+ *   5. Return decision details with proof hash + tx hash
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { managerId } = body;
+    const { apiKey, agentId, action, pair, reasoning, confidence } = body;
 
-    if (!managerId) return NextResponse.json({ error: 'Missing managerId' }, { status: 400 });
+    // --- Auth: Validate API Key ---
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key required. Pass "apiKey" in request body.' }, { status: 401 });
+    }
 
-    // 1. Fetch Manager Info
-    const { data: manager, error: mError } = await supabaseAdmin
-      .from('FundManager')
-      .select('*, vault:Vault(*)')
-      .eq('id', managerId)
+    const { data: agent, error: authError } = await supabaseAdmin
+      .from('AIAgent')
+      .select('*')
+      .eq('apiKey', apiKey)
       .single();
 
-    if (mError || !manager) throw new Error('Manager not found');
-
-    // 2. Fetch Market Data
-    const market = await getOraclePrice('BTC-USD');
-
-    // 3. AI Logic Simulation (Simplified)
-    // Here we simulate a decision based on risk level
-    const random = Math.random();
-    let action: 'OPEN' | 'HOLD' = 'HOLD';
-    let side: 'LONG' | 'SHORT' = 'LONG';
-    let leverage = 1.0;
-
-    if (manager.riskLevel === 'DEGENERATE') {
-      if (random > 0.3) action = 'OPEN';
-      side = Math.random() > 0.5 ? 'LONG' : 'SHORT';
-      leverage = 25.0;
-    } else if (manager.riskLevel === 'AGGRESSIVE') {
-      if (random > 0.6) action = 'OPEN';
-      side = 'LONG';
-      leverage = 10.0;
-    } else {
-      if (random > 0.8) action = 'OPEN';
-      leverage = 3.0;
+    if (authError || !agent) {
+      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
     }
 
-    if (action === 'OPEN') {
-      // Call our internal position opener
-      const baseUrl = new URL(req.url).origin;
-      const res = await fetch(`${baseUrl}/api/positions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vaultId: manager.vault[0].id,
-          symbol: 'BTC-USD',
-          side,
-          leverage,
-          size: 0.1 // 0.1 BTC
-        })
-      });
-      const posData = await res.json();
-      return NextResponse.json({ success: true, manager: manager.name, decision: `OPENED ${side} @ 10x`, details: posData });
+    // Use provided agentId or fall back to authenticated agent's ID
+    const resolvedAgentId = agentId || agent.agentId;
+
+    // Verify agent owns this agentId
+    if (resolvedAgentId !== agent.agentId) {
+      return NextResponse.json({ error: 'Agent ID mismatch' }, { status: 403 });
     }
 
-    return NextResponse.json({ success: true, manager: manager.name, decision: 'HOLDING', details: 'No entry signal detected.' });
+    // --- Validation ---
+    if (!action || !pair) {
+      return NextResponse.json({ error: 'Missing required fields: action, pair' }, { status: 400 });
+    }
+
+    const validActions = ['BUY', 'SELL', 'HOLD'];
+    const normalizedAction = action.toUpperCase();
+    if (!validActions.includes(normalizedAction)) {
+      return NextResponse.json({ error: `Invalid action: ${action}. Must be one of: ${validActions.join(', ')}` }, { status: 400 });
+    }
+
+    const normalizedPair = pair.replace('-', '/').toUpperCase();
+    const conf = Math.min(Math.max(parseFloat(confidence) || 0.5, 0), 1);
+
+    // --- Get Current Market Price ---
+    let currentPrice = 0;
+    try {
+      const priceData = await getOraclePrice(normalizedPair);
+      currentPrice = priceData.price;
+    } catch {
+      currentPrice = 0; // Non-critical — we log the decision regardless
+    }
+
+    // --- Generate proof hash ---
+    const proofHash = generateProofHash({
+      agentId: resolvedAgentId,
+      action: 'DECISION',
+      pair: normalizedPair,
+      value: Math.round(conf * 100),
+      decimals: 0,
+      metadata: {
+        tradeAction: normalizedAction,
+        reasoning: reasoning || '',
+        confidence: conf,
+        price: currentPrice,
+      },
+    });
+
+    // --- Log Decision to Supabase ---
+    const { data: signal, error: insertError } = await supabaseAdmin
+      .from('AgentSignal')
+      .insert({
+        agentId: resolvedAgentId,
+        type: normalizedAction,
+        pair: normalizedPair,
+        confidence: conf,
+        reasoning: reasoning || `Agent decision: ${normalizedAction} ${normalizedPair}`,
+        price: currentPrice,
+        proofHash,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Signal insert error:', insertError);
+      // Non-critical — continue even if Supabase insert fails
+    }
+
+    console.log(`[DECISION] Agent ${agent.name} (#${resolvedAgentId}) → ${normalizedAction} ${normalizedPair} @ $${currentPrice.toFixed(2)} | Confidence: ${(conf * 100).toFixed(0)}%`);
+
+    // --- Submit On-Chain Reputation (Proof of Trade) ---
+    const reputation = await recordDecision({
+      agentId: resolvedAgentId,
+      agentName: agent.name,
+      action: normalizedAction,
+      pair: normalizedPair,
+      reasoning: reasoning || '',
+      confidence: conf,
+    });
+
+    return NextResponse.json({
+      success: true,
+      agent: {
+        id: resolvedAgentId,
+        name: agent.name,
+      },
+      decision: {
+        action: normalizedAction,
+        pair: normalizedPair,
+        confidence: conf,
+        reasoning: reasoning || '',
+        price: currentPrice,
+      },
+      proof: {
+        hash: reputation.proofHash,
+        txHash: reputation.txHash || null,
+        onChain: reputation.success,
+      },
+      signal: signal ? { id: signal.id } : null,
+      timestamp: Date.now(),
+    });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error in /api/agent/decide:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to record decision' },
+      { status: 500 }
+    );
   }
 }
