@@ -8,6 +8,7 @@ export async function GET(
 ) {
     const { txHash } = await params;
     try {
+        console.log(`[API] Fetching investment for hash: ${txHash}`);
         // Fetch investment details from Supabase
         const { data: investment, error } = await supabaseAdmin
             .from('investments')
@@ -15,16 +16,20 @@ export async function GET(
                 *,
                 agents (
                     id,
-                    agentId,
+                    agentId: agent_id,
                     name,
                     vault_address,
-                    owner_address
+                    owner_address,
+                    personality
                 )
             `)
             .ilike('tx_hash', txHash)
             .single();
 
-        if (error) return NextResponse.json({ success: false, error: 'Investment not found' }, { status: 404 });
+        if (error) {
+            console.error(`[API] Investment not found or error for ${txHash}:`, error.message);
+            return NextResponse.json({ success: false, error: 'Investment not found' }, { status: 404 });
+        }
 
         return NextResponse.json({ success: true, investment });
     } catch (error: any) {

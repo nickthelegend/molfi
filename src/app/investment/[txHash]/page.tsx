@@ -6,6 +6,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { formatEther, parseEther, decodeEventLog } from 'viem';
 import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, DollarSign, Lock, BarChart3, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 import { shortenAddress, getExplorerUrl } from '@/lib/contract-helpers';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -27,13 +28,24 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const [isScanning, setIsScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
     const [scanStatus, setScanStatus] = useState<string>('');
+    const [hasAutoScanned, setHasAutoScanned] = useState(false);
+    const searchParams = useSearchParams();
+
+    // Check for withdraw action in URL
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'withdraw') {
+            setWithdrawMode('all');
+        }
+    }, [searchParams]);
 
     // Auto-recovery effect
     useEffect(() => {
-        if (!loading && !investment && !isScanning && !scanError) {
+        if (!loading && !investment && !isScanning && !scanError && !hasAutoScanned) {
+            setHasAutoScanned(true);
             handleScan();
         }
-    }, [loading, investment]);
+    }, [loading, investment, isScanning, scanError, hasAutoScanned]);
 
     const handleScan = async () => {
         setIsScanning(true);
@@ -103,10 +115,16 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     })
                 });
 
-                if (!createRes.ok) throw new Error("Database sync failed. Please contact support.");
+                if (!createRes.ok) {
+                    const errorData = await createRes.json();
+                    throw new Error(errorData.error || "Database sync failed.");
+                }
 
-                setScanStatus("Restoration complete. Reloading...");
-                window.location.reload();
+                setScanStatus("Restoration complete.");
+
+                // Update local state instead of reloading
+                await fetchInvestment(true);
+                setIsScanning(false);
             } else {
                 throw new Error("Transaction is valid but did not interact with any known Molfi Agent.");
             }
@@ -119,27 +137,28 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         }
     };
 
-    // Fetch investment data
-    useEffect(() => {
-        const fetchInvestment = async () => {
-            try {
-                const res = await fetch(`/api/investments/${txHash}`);
-                const data = await res.json();
-                if (data.success) {
-                    setInvestment(data.investment);
-                    // Fetch agent details for "Agent Archi" (Architecture/Stats)
-                    if (data.investment.agents?.agentId) {
-                        fetchAgentDetails(data.investment.agents.agentId);
-                    }
+    const fetchInvestment = async (silently = false) => {
+        if (!silently) setLoading(true);
+        try {
+            const res = await fetch(`/api/investments/${txHash}`);
+            const data = await res.json();
+            if (data.success) {
+                setInvestment(data.investment);
+                // Fetch agent details for "Agent Archi" (Architecture/Stats)
+                if (data.investment.agents?.agentId) {
+                    fetchAgentDetails(data.investment.agents.agentId);
                 }
-            } catch (error) {
-                console.error('Failed to fetch investment:', error);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (error) {
+            console.error('Failed to fetch investment:', error);
+        } finally {
+            if (!silently) setLoading(false);
+        }
+    };
 
-        fetchInvestment();
+    // Initial Fetch
+    useEffect(() => {
+        if (txHash) fetchInvestment();
     }, [txHash]);
 
     const fetchAgentDetails = async (agentId: string) => {

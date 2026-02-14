@@ -18,7 +18,7 @@ export async function GET(
                     agent_id
                 )
             `)
-            .eq('user_address', address)
+            .ilike('user_address', address)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

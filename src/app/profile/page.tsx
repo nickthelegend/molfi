@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { User, Bot, TrendingUp, Trophy, Zap, Plus, ExternalLink } from 'lucide-react';
+import { User, Bot, TrendingUp, Trophy, Zap, Plus, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/contract-helpers';
 import { formatEther, parseEther } from 'viem';
@@ -55,11 +55,174 @@ export default function ProfilePage() {
     const publicClient = usePublicClient();
     const [investments, setInvestments] = useState<InvestmentItem[]>([]);
     const [investmentsLoading, setInvestmentsLoading] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Real Data States
     const [myAgents, setMyAgents] = useState<Agent[]>([]);
     const [agentsLoading, setAgentsLoading] = useState(true);
     const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+    const loadData = useCallback(async (shouldSync = true) => {
+        if (!address || !publicClient) return;
+
+        setInvestmentsLoading(true);
+        setAgentsLoading(true);
+        try {
+            const res = await fetch('/api/agents');
+            const data = await res.json();
+
+            if (!data.success) {
+                setInvestments([]);
+                setMyAgents([]);
+                return;
+            }
+
+            const allAgents = data.agents || [];
+
+            // Filter My Agents
+            const userAgents = allAgents.filter((a: any) =>
+                a.owner?.toLowerCase() === address.toLowerCase()
+            );
+            setMyAgents(userAgents);
+
+            // Aggregate Activity from My Agents
+            const allActivity: ActivityItem[] = [];
+            userAgents.forEach((agent: any) => {
+                if (agent.recentDecisions) {
+                    agent.recentDecisions.forEach((d: any) => {
+                        allActivity.push({
+                            id: d.id || `${agent.id}-${d.timestamp}`,
+                            agent: agent.name,
+                            action: d.action === 'BUY' ? 'Position Opened' : 'Trade Executed',
+                            result: d.action === 'BUY' ? 'Pending' : (d.profit >= 0 ? 'Win' : 'Loss'),
+                            profit: d.profit ? (d.profit >= 0 ? `+$${d.profit}` : `-$${Math.abs(d.profit)}`) : '--',
+                            time: new Date(d.timestamp).toLocaleDateString(),
+                            timestamp: d.timestamp
+                        });
+                    });
+                }
+            });
+            setActivities(allActivity.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10));
+
+            // Process Investments from DB
+            const investmentsRes = await fetch(`/api/investments/user/${address}`);
+            const investmentsData = await investmentsRes.json();
+            let initialInvestments = investmentsData.success ? investmentsData.investments : [];
+
+            // BACKGROUND SYNC LOGIC
+            if (shouldSync && allAgents.length > 0) {
+                setIsSyncing(true);
+                const knownHashes = new Set(initialInvestments.map((inv: any) => inv.tx_hash.toLowerCase()));
+                let foundNew = false;
+
+                // Scan all agents for deposits from this user
+                for (const agent of allAgents) {
+                    if (!agent.vaultAddress) continue;
+
+                    try {
+                        const logs = await publicClient.getLogs({
+                            address: agent.vaultAddress as `0x${string}`,
+                            event: {
+                                type: 'event',
+                                name: 'Deposit',
+                                inputs: [
+                                    { type: 'address', indexed: true, name: 'sender' },
+                                    { type: 'address', indexed: true, name: 'owner' },
+                                    { type: 'uint256', indexed: false, name: 'assets' },
+                                    { type: 'uint256', indexed: false, name: 'shares' }
+                                ]
+                            },
+                            args: { owner: address },
+                            fromBlock: 0n
+                        });
+
+                        for (const log of logs) {
+                            const txHash = log.transactionHash.toLowerCase();
+                            if (!knownHashes.has(txHash)) {
+                                console.log(`[Sync] Found missing investment: ${txHash}`);
+                                const assets = formatEther((log.args as any).assets || 0n);
+                                const shares = formatEther((log.args as any).shares || 0n);
+
+                                await fetch('/api/investments/create', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        txHash,
+                                        agentId: agent.agentId,
+                                        userAddress: address,
+                                        amount: assets,
+                                        shares: shares !== '0' ? shares : assets
+                                    })
+                                });
+                                foundNew = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.error(`Sync failed for agent ${agent.name}:`, e);
+                    }
+                }
+
+                if (foundNew) {
+                    const refreshRes = await fetch(`/api/investments/user/${address}`);
+                    const refreshData = await refreshRes.json();
+                    initialInvestments = refreshData.success ? refreshData.investments : [];
+                }
+                setIsSyncing(false);
+            }
+
+            // Map to UI objects
+            const investmentItems = await Promise.all(
+                initialInvestments.map(async (inv: any) => {
+                    if (!inv.agents?.vault_address) return null;
+                    const vaultAddress = inv.agents.vault_address as `0x${string}`;
+
+                    try {
+                        const currentAssets = await publicClient.readContract({
+                            address: vaultAddress,
+                            abi: MolfiAgentVaultABI,
+                            functionName: "convertToAssets",
+                            args: [parseEther(inv.shares?.toString() || '0')],
+                        }) as bigint;
+
+                        const deposited = parseFloat(inv.amount);
+                        const currentValue = parseFloat(formatEther(currentAssets));
+                        const pnl = currentValue - deposited;
+
+                        return {
+                            agentId: Number(inv.agents.agent_id),
+                            name: inv.agents.name,
+                            vaultAddress,
+                            deposited,
+                            currentValue,
+                            pnl,
+                            apy: 0,
+                            txHash: inv.tx_hash,
+                        };
+                    } catch (err) {
+                        return {
+                            agentId: Number(inv.agents.agent_id),
+                            name: inv.agents.name,
+                            vaultAddress,
+                            deposited: parseFloat(inv.amount),
+                            currentValue: 0,
+                            pnl: 0,
+                            apy: 0,
+                            txHash: inv.tx_hash,
+                        };
+                    }
+                })
+            );
+
+            setInvestments(investmentItems.filter((i): i is InvestmentItem => i !== null));
+        } catch (err) {
+            console.error("Failed to fetch data", err);
+            setInvestments([]);
+        } finally {
+            setInvestmentsLoading(false);
+            setAgentsLoading(false);
+            setIsSyncing(false);
+        }
+    }, [address, publicClient]);
 
     useEffect(() => {
         if (!isConnected || !address || !publicClient) {
@@ -70,112 +233,8 @@ export default function ProfilePage() {
             return;
         }
 
-        const loadData = async () => {
-            setInvestmentsLoading(true);
-            setAgentsLoading(true);
-            try {
-                const res = await fetch('/api/agents');
-                const data = await res.json();
-
-                if (!data.success) {
-                    setInvestments([]);
-                    setMyAgents([]);
-                    return;
-                }
-
-                const allAgents = data.agents || [];
-
-                // Filter My Agents
-                const userAgents = allAgents.filter((a: any) =>
-                    a.owner?.toLowerCase() === address.toLowerCase()
-                );
-                setMyAgents(userAgents);
-
-                // Aggregate Activity from My Agents
-                const allActivity: ActivityItem[] = [];
-                userAgents.forEach((agent: any) => {
-                    if (agent.recentDecisions) {
-                        agent.recentDecisions.forEach((d: any) => {
-                            allActivity.push({
-                                id: d.id || `${agent.id}-${d.timestamp}`,
-                                agent: agent.name,
-                                action: d.action === 'BUY' ? 'Position Opened' : 'Trade Executed', // Map to UI terms
-                                result: d.action === 'BUY' ? 'Pending' : (d.profit >= 0 ? 'Win' : 'Loss'), // Logic check
-                                profit: d.profit ? (d.profit >= 0 ? `+$${d.profit}` : `-$${Math.abs(d.profit)}`) : '--',
-                                time: new Date(d.timestamp).toLocaleDateString(),
-                                timestamp: d.timestamp
-                            });
-                        });
-                    }
-                });
-                // Sort by time desc
-                setActivities(allActivity.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10));
-
-                // Process Investments
-                // Process Investments (Optimized via Supabase)
-                const investmentsRes = await fetch(`/api/investments/user/${address}`);
-                const investmentsData = await investmentsRes.json();
-
-                let investmentItems: InvestmentItem[] = [];
-
-                if (investmentsData.success && investmentsData.investments) {
-                    investmentItems = await Promise.all(
-                        investmentsData.investments.map(async (inv: any) => {
-                            if (!inv.agents?.vault_address) return null;
-                            const vaultAddress = inv.agents.vault_address as `0x${string}`;
-
-                            try {
-                                // Get current value of shares
-                                const currentAssets = await publicClient.readContract({
-                                    address: vaultAddress,
-                                    abi: MolfiAgentVaultABI,
-                                    functionName: "convertToAssets",
-                                    args: [parseEther(inv.shares.toString())], // Use stored shares
-                                }) as bigint;
-
-                                const deposited = parseFloat(inv.amount);
-                                const currentValue = parseFloat(formatEther(currentAssets));
-                                const pnl = currentValue - deposited;
-
-                                return {
-                                    agentId: Number(inv.agents.agent_id),
-                                    name: inv.agents.name,
-                                    vaultAddress,
-                                    deposited,
-                                    currentValue,
-                                    pnl,
-                                    apy: 0, // Calculate if needed based on time
-                                    txHash: inv.tx_hash, // Pass txHash for linking
-                                } as InvestmentItem & { txHash: string };
-                            } catch (err) {
-                                console.error(`Failed to fetch value for investment ${inv.id}:`, err);
-                                return {
-                                    agentId: Number(inv.agents.agent_id),
-                                    name: inv.agents.name,
-                                    vaultAddress,
-                                    deposited: parseFloat(inv.amount),
-                                    currentValue: 0,
-                                    pnl: 0,
-                                    apy: 0,
-                                    txHash: inv.tx_hash,
-                                };
-                            }
-                        })
-                    );
-                }
-
-                setInvestments(investmentItems.filter((i): i is InvestmentItem => i !== null));
-            } catch (err) {
-                console.error("Failed to fetch data", err);
-                setInvestments([]);
-            } finally {
-                setInvestmentsLoading(false);
-                setAgentsLoading(false);
-            }
-        };
-
-        loadData();
-    }, [isConnected, address, publicClient]);
+        loadData(true);
+    }, [isConnected, address, publicClient, loadData]);
 
     if (!isConnected) {
         return (
@@ -191,9 +250,7 @@ export default function ProfilePage() {
     }
 
     const totalTVL = myAgents.reduce((sum, agent) => sum + (agent.aum || 0), 0);
-    // Format TVL for display
     const totalTVLDisplay = totalTVL >= 1000 ? `${(totalTVL / 1000).toFixed(1)}K` : totalTVL.toFixed(0);
-
     const totalTrades = myAgents.reduce((sum, agent) => sum + agent.totalTrades, 0);
     const avgWinRate = myAgents.length > 0
         ? myAgents.reduce((sum, agent) => sum + agent.winRate, 0) / myAgents.length
@@ -301,36 +358,64 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* Investments */}
+            {/* My Investments */}
             <div style={{ marginBottom: '3rem' }}>
-                <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
-                    My Investments
-                </h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.75rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
+                        My Investments
+                        {isSyncing && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-primary-purple animate-pulse">
+                                <RefreshCw size={10} className="animate-spin" /> SYNCING_ON_CHAIN...
+                            </span>
+                        )}
+                    </h2>
+                    <button
+                        onClick={() => loadData(true)}
+                        disabled={isSyncing || investmentsLoading}
+                        className="text-[11px] font-bold text-dim hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                        <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+                        REFRESH_DATA
+                    </button>
+                </div>
 
                 {investmentsLoading ? (
                     <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
                         Loading investments...
                     </div>
-                ) : investments.length === 0 ? (
-                    <div className="glass-container" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        No active investments found yet.
+                ) : (investments.length === 0 && !isSyncing) ? (
+                    <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <AlertCircle size={32} className="mx-auto mb-3 opacity-20" />
+                        <p className="mb-4">No active investments found in our registry.</p>
+                        <button
+                            onClick={() => loadData(true)}
+                            className="neon-button secondary"
+                            style={{ fontSize: '0.8rem' }}
+                        >
+                            Deep Scan Blockchain
+                        </button>
+                    </div>
+                ) : (investments.length === 0 && isSyncing) ? (
+                    <div className="glass-container" style={{ padding: '3rem', textAlign: 'center' }}>
+                        <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-primary-purple" />
+                        <p className="font-mono text-xs tracking-widest">SCANNING_PROTOCOLS_FOR_DEPOSITS...</p>
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
                         {investments.map((inv) => (
-                            <div key={inv.agentId} className="glass-container" style={{ padding: '1.5rem' }}>
+                            <div key={inv.txHash} className="glass-container" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <div>
                                         <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
                                         <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
                                     </div>
-                                    <Link href={`/investment/${(inv as any).txHash}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
+                                    <Link href={`/investment/${inv.txHash}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
                                         Details <ExternalLink size={12} style={{ marginLeft: '6px' }} />
                                     </Link>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div>
                                         <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Deposited</p>
                                         <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -352,6 +437,15 @@ export default function ProfilePage() {
                                         </p>
                                     </div>
                                 </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+                                    <Link href={`/investment/${inv.txHash}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
+                                        VIEW_DETAILS
+                                    </Link>
+                                    <Link href={`/investment/${inv.txHash}?action=withdraw`} className="neon-button secondary" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
+                                        WITHDRAW
+                                    </Link>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -369,73 +463,20 @@ export default function ProfilePage() {
                     <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
                         Loading your agents...
                     </div>
-                ) : myAgents.length === 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                        <Link
-                            href="/setup"
-                            className="glass-container"
-                            style={{
-                                padding: '1.5rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                minHeight: '300px',
-                                textDecoration: 'none',
-                                border: '2px dashed var(--glass-border)',
-                                transition: 'all 0.3s',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--primary-purple)';
-                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.05)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                e.currentTarget.style.background = 'transparent';
-                            }}
-                        >
-                            <Plus size={48} style={{ color: 'var(--primary-purple)', marginBottom: '1rem' }} />
-                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Deploy New Agent</h3>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem', textAlign: 'center' }}>
-                                Create and deploy a new AI agent
-                            </p>
-                        </Link>
-                    </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
                         {myAgents.map((agent) => (
                             <div key={agent.id} className="glass-container" style={{ padding: '1.5rem', position: 'relative' }}>
-                                {/* Status Badge */}
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        top: '1rem',
-                                        right: '1rem',
-                                        padding: '0.25rem 0.75rem',
-                                        background: '#10b981', // Default to active for now
-                                        borderRadius: '12px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 600,
-                                        textTransform: 'uppercase',
-                                    }}
-                                >
+                                <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.25rem 0.75rem', background: '#10b981', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
                                     ACTIVE
                                 </div>
+                                <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--primary-purple)' }}>{agent.name}</h3>
+                                <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '1.5rem', textTransform: 'capitalize' }}>{agent.agentType.replace('-', ' ')}</p>
 
-                                <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--primary-purple)' }}>
-                                    {agent.name}
-                                </h3>
-                                <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '1.5rem', textTransform: 'capitalize' }}>
-                                    {agent.agentType.replace('-', ' ')}
-                                </p>
-
-                                {/* Stats */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
                                     <div>
                                         <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>TVL</p>
-                                        <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary-purple)' }}>
-                                            {agent.tvl || '$0'}
-                                        </p>
+                                        <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary-purple)' }}>{agent.tvl || '$0'}</p>
                                     </div>
                                     <div>
                                         <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>30d Performance</p>
@@ -451,7 +492,6 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                {/* Actions */}
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                     <Link href={`/clawdex/agent/${agent.agentId}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.875rem' }}>
                                         View Details
@@ -462,36 +502,14 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         ))}
-
-                        {/* Add New Agent Card */}
                         <Link
                             href="/setup"
                             className="glass-container"
-                            style={{
-                                padding: '1.5rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                minHeight: '300px',
-                                textDecoration: 'none',
-                                border: '2px dashed var(--glass-border)',
-                                transition: 'all 0.3s',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--primary-purple)';
-                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.05)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                e.currentTarget.style.background = 'transparent';
-                            }}
+                            style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', textDecoration: 'none', border: '2px dashed var(--glass-border)', transition: 'all 0.3s' }}
                         >
                             <Plus size={48} style={{ color: 'var(--primary-purple)', marginBottom: '1rem' }} />
                             <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Deploy New Agent</h3>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem', textAlign: 'center' }}>
-                                Create and deploy a new AI agent
-                            </p>
+                            <p className="text-secondary" style={{ fontSize: '0.875rem', textAlign: 'center' }}>Create and deploy a new AI agent</p>
                         </Link>
                     </div>
                 )}
@@ -519,9 +537,7 @@ export default function ProfilePage() {
                             <tbody>
                                 {activities.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                            No recent activity detected on-chain.
-                                        </td>
+                                        <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No recent activity detected on-chain.</td>
                                     </tr>
                                 ) : (
                                     activities.map((activity) => (
@@ -531,24 +547,12 @@ export default function ProfilePage() {
                                             </td>
                                             <td style={{ padding: '1rem' }}>{activity.action}</td>
                                             <td style={{ padding: '1rem' }}>
-                                                <span
-                                                    style={{
-                                                        padding: '0.25rem 0.75rem',
-                                                        background: activity.result === 'Win' ? 'rgba(16, 185, 129, 0.2)' : activity.result === 'Loss' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(107, 114, 128, 0.2)',
-                                                        border: `1px solid ${activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280'}`,
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 600,
-                                                        color: activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280',
-                                                    }}
-                                                >
+                                                <span style={{ padding: '0.25rem 0.75rem', background: activity.result === 'Win' ? 'rgba(16, 185, 129, 0.2)' : activity.result === 'Loss' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(107, 114, 128, 0.2)', border: `1px solid ${activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280'}`, borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, color: activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280' }}>
                                                     {activity.result}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1rem' }}>
-                                                <span style={{ color: activity.profit.startsWith('+') ? 'var(--accent-purple)' : activity.profit.startsWith('-') ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>
-                                                    {activity.profit}
-                                                </span>
+                                                <span style={{ color: activity.profit.startsWith('+') ? 'var(--accent-purple)' : activity.profit.startsWith('-') ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>{activity.profit}</span>
                                             </td>
                                             <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{activity.time}</td>
                                         </tr>

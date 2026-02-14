@@ -95,6 +95,7 @@ export async function GET() {
 
             return {
                 ...a,
+                dbId: a.id,
                 id: String(a.agent_id),
                 agentId: a.agent_id,
                 description: a.description || `${a.name} is a ${a.personality.toLowerCase()} neural agent operating on the Monad network. Optimized for high-frequency strategies.`,

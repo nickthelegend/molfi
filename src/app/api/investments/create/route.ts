@@ -5,28 +5,35 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { txHash, agentId, userAddress, amount, shares } = body;
+        let { txHash, agentId, userAddress, amount, shares } = body;
 
-        if (!txHash || !agentId || !userAddress || !amount || !shares) {
-            return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+        // Ensure agentId is a number for bigint column mapping
+        const numericAgentId = parseInt(agentId);
+
+        if (!txHash || isNaN(numericAgentId) || !userAddress || !amount || !shares) {
+            return NextResponse.json({ success: false, error: 'Missing or invalid required fields' }, { status: 400 });
         }
 
         const { data, error } = await supabaseAdmin
             .from('investments')
-            .insert([
+            .upsert(
                 {
                     tx_hash: txHash,
-                    agent_id: agentId,
+                    agent_id: numericAgentId,
                     user_address: userAddress,
                     amount,
                     shares,
                     status: 'ACTIVE'
-                }
-            ])
+                },
+                { onConflict: 'tx_hash' }
+            )
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase error creating investment:', error);
+            return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true, investment: data });
     } catch (error: any) {
