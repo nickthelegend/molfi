@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ethers } from 'ethers';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { syncOraclePrice, calculatePnL } from '@/lib/marketEngine';
 import { recordTradeClose } from '@/lib/reputationService';
@@ -59,6 +60,72 @@ export async function POST(request: NextRequest) {
         const closingFee = parseFloat(trade.size) * 0.001; // 0.1%
         const netPnl = pnl - closingFee - parseFloat(trade.fees || '0');
 
+        // --- ON-CHAIN EXECUTION: Close Perp Position ---
+        let onChainData = { success: false, txHash: null };
+
+        if (agent.vaultAddress) {
+            try {
+                const RPC_URL = 'https://testnet-rpc.monad.xyz';
+                const provider = new ethers.JsonRpcProvider(RPC_URL);
+                const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY || '', provider);
+
+                // 1. Get Vault and DEX
+                const vault = new ethers.Contract(
+                    agent.vaultAddress,
+                    [
+                        "function closePerpPosition(uint256) external",
+                        "function perpDEX() public view returns (address)"
+                    ],
+                    wallet
+                );
+
+                const dexAddress = await vault.perpDEX();
+                const dex = new ethers.Contract(
+                    dexAddress,
+                    [
+                        "function getAgentPositions(address) external view returns (uint256[])",
+                        "function getPosition(uint256) external view returns (tuple(uint256 id, address trader, address agent, string pair, uint256 size, uint256 collateral, uint256 entryPrice, uint256 leverage, bool isLong, uint256 timestamp, int256 fundingIndex, bool isOpen))"
+                    ],
+                    provider
+                );
+
+                // 2. Find the on-chain position ID
+                const positionIds = await dex.getAgentPositions(agent.vaultAddress);
+                let targetPositionId = null;
+
+                console.log(`[ON-CHAIN] Searching for position to close for Agent #${agent.agentId} (${trade.pair})...`);
+
+                // Search from newest to oldest
+                for (let i = positionIds.length - 1; i >= 0; i--) {
+                    const posId = positionIds[i];
+                    const pos = await dex.getPosition(posId);
+
+                    const isCorrectSide = (trade.side === 'LONG' && pos.isLong) || (trade.side === 'SHORT' && !pos.isLong);
+                    if (pos.isOpen && pos.pair === trade.pair && isCorrectSide) {
+                        targetPositionId = posId;
+                        break;
+                    }
+                }
+
+                if (targetPositionId !== null) {
+                    console.log(`[ON-CHAIN] Found matching position: ${targetPositionId}. Sending close tx...`);
+                    const tx = await vault.closePerpPosition(targetPositionId, { gasLimit: 500000 });
+                    console.log(`[ON-CHAIN] Close TX Sent: ${tx.hash}`);
+                    await tx.wait(1);
+
+                    onChainData = {
+                        success: true,
+                        txHash: tx.hash
+                    };
+                    console.log(`[ON-CHAIN] Position Closed ✅ tx: ${tx.hash}`);
+                } else {
+                    console.warn(`[ON-CHAIN] No matching open position found for agent #${agent.agentId} on ${trade.pair}`);
+                }
+            } catch (err: any) {
+                console.error('[ON-CHAIN] Close execution failed:', err.message);
+            }
+        }
+
         // --- Update Trade in Supabase ---
         const { data: closedTrade, error: updateError } = await supabaseAdmin
             .from('TradeLog')
@@ -68,6 +135,7 @@ export async function POST(request: NextRequest) {
                 fees: parseFloat(trade.fees || '0') + closingFee,
                 status: 'CLOSED',
                 closedAt: new Date().toISOString(),
+                closeTxHash: onChainData.txHash, // Storing close tx hash
             })
             .eq('id', tradeId)
             .select()
@@ -110,8 +178,9 @@ export async function POST(request: NextRequest) {
                 status: 'CLOSED',
                 duration: tradeDuration,
                 priceSource: priceData.source,
+                closeTxHash: onChainData.txHash,
             },
-            proof: {
+            reputation: {
                 hash: reputation.proofHash,
                 txHash: reputation.txHash || null,
                 onChain: reputation.success,
