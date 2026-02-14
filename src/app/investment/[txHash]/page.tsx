@@ -2,8 +2,8 @@
 "use client";
 
 import { use, useEffect, useState } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { formatEther, parseEther } from 'viem';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { formatEther, parseEther, decodeEventLog } from 'viem';
 import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, DollarSign, Lock, BarChart3, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
@@ -23,6 +23,79 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
     // Wagmi hooks for withdrawal
     const { writeContractAsync, isPending: isWithdrawing } = useWriteContract();
+    const publicClient = usePublicClient();
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanError, setScanError] = useState<string | null>(null);
+
+    const handleScan = async () => {
+        setIsScanning(true);
+        setScanError(null);
+        try {
+            if (!publicClient) throw new Error("Network connection failed.");
+
+            // 1. Get Tx Receipt
+            const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+            if (!receipt) throw new Error("Transaction not found on-chain.");
+
+            // 2. Fetch All Agents to get Vault Addresses
+            const agentsRes = await fetch('/api/agents');
+            const agentsData = await agentsRes.json();
+            const agents = agentsData.agents || [];
+
+            // 3. Check for Vault interaction
+            let foundAgent = null;
+            let mintedShares = '0';
+            let amount = '0';
+
+            for (const agent of agents) {
+                if (agent.vaultAddress) {
+                    // Check logs for this vault
+                    const vaultLog = receipt.logs.find(l => l.address.toLowerCase() === agent.vaultAddress.toLowerCase());
+                    if (vaultLog) {
+                        foundAgent = agent;
+                        // Try to parse Deposit event
+                        try {
+                            const event = decodeEventLog({
+                                abi: MolfiAgentVaultABI,
+                                data: vaultLog.data,
+                                topics: vaultLog.topics,
+                            });
+                            if (event.eventName === 'Deposit') {
+                                mintedShares = formatEther((event.args as any).shares);
+                                amount = formatEther((event.args as any).assets);
+                            }
+                        } catch (e) {
+                            // fallback if parsing fails, assume 1:1 or heuristic from tx value if available
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (foundAgent) {
+                // 4. Register Investment
+                await fetch('/api/investments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        txHash: txHash,
+                        agentId: foundAgent.agentId,
+                        userAddress: address || receipt.from, // Use receipt.from if wallet not connected
+                        amount: amount !== '0' ? amount : '0', // Should be parsed from logs
+                        shares: mintedShares !== '0' ? mintedShares : amount
+                    })
+                });
+                window.location.reload();
+            } else {
+                throw new Error("Transaction did not interact with any known Agent Vault.");
+            }
+
+        } catch (err: any) {
+            console.error("Scan failed:", err);
+            setScanError(err.message || "Scan failed.");
+            setIsScanning(false);
+        }
+    };
 
     // Fetch investment data
     useEffect(() => {
@@ -149,13 +222,35 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     if (!investment) {
         return (
             <div className="container pt-32 text-center">
-                <div className="glass-container inline-block p-8">
+                <div className="glass-container inline-block p-8 max-w-lg w-full">
                     <AlertCircle size={48} className="mx-auto mb-4 text-red-500" />
                     <h1 className="text-2xl font-bold mb-2">Investment Not Found</h1>
-                    <p className="text-secondary mb-6">Could not find investment details for this transaction.</p>
-                    <Link href="/profile" className="neon-button">
-                        Back to Profile
-                    </Link>
+                    <p className="text-secondary mb-6">
+                        Could not find investment details in our database.
+                        <br />
+                        <span className="text-sm opacity-70">If you just deposited, it might need to be synced.</span>
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={handleScan}
+                            disabled={isScanning}
+                            className="neon-button w-full flex items-center justify-center gap-2"
+                        >
+                            {isScanning ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                            {isScanning ? "SCANNING BLOCKCHAIN..." : "SCAN & RECOVER INVESTMENT"}
+                        </button>
+
+                        <Link href="/profile" className="neon-button secondary w-full">
+                            Back to Profile
+                        </Link>
+                    </div>
+
+                    {scanError && (
+                        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                            {scanError}
+                        </div>
+                    )}
                 </div>
             </div>
         );

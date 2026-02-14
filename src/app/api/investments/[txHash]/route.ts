@@ -21,7 +21,7 @@ export async function GET(
                     owner_address
                 )
             `)
-            .eq('tx_hash', txHash)
+            .ilike('tx_hash', txHash)
             .single();
 
         if (error) return NextResponse.json({ success: false, error: 'Investment not found' }, { status: 404 });

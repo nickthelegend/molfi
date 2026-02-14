@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { parseEther, formatEther, decodeEventLog } from 'viem';
 import {
     Activity,
     Zap,
@@ -21,7 +21,8 @@ import {
     Percent,
     Loader2,
     Users,
-    Wallet
+    Wallet,
+    RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -81,7 +82,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         fetchAgent();
     }, [id]);
 
-    const [step, setStep] = useState<'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'success' | 'error'>('idle');
+    const [step, setStep] = useState<'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'success' | 'error' | 'syncing'>('idle');
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
     const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
@@ -198,8 +199,6 @@ function AgentDetailPageContent({ id }: { id: string }) {
         fetchInvestors();
     }, [agent?.vaultAddress, publicClient]);
 
-
-
     // 2. Check Allowance
     const { data: allowance, refetch: refetchAllowance } = useReadContract({
         address: USDC_ADDRESS,
@@ -256,7 +255,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
     });
 
     // 4. Wait for deposit tx confirmation
-    const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({
+    const { isSuccess: depositConfirmed, data: depositReceipt } = useWaitForTransactionReceipt({
         hash: depositTxHash,
     });
 
@@ -274,13 +273,67 @@ function AgentDetailPageContent({ id }: { id: string }) {
     }, [approveConfirmed]);
 
     // When deposit is confirmed, show success
+    // When deposit is confirmed, show success and register investment
     useEffect(() => {
         if (depositConfirmed && step === 'waiting_deposit') {
-            setStep('success');
-            setStakeAmount('');
-            setTimeout(() => setStep('idle'), 3000);
+            const registerInvestment = async () => {
+                setStep('syncing');
+                try {
+                    let mintedShares = stakeAmount; // Default to 1:1 fallback
+
+                    if (depositReceipt) {
+                        for (const log of depositReceipt.logs) {
+                            try {
+                                if (log.address.toLowerCase() === agent.vaultAddress.toLowerCase()) {
+                                    const event = decodeEventLog({
+                                        abi: MolfiAgentVaultABI,
+                                        data: log.data,
+                                        topics: log.topics,
+                                    });
+                                    if (event.eventName === 'Deposit') {
+                                        // args: { sender, owner, assets, shares }
+                                        if (event.args && (event.args as any).shares) {
+                                            mintedShares = formatEther((event.args as any).shares);
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore parsing errors for non-matching logs
+                            }
+                        }
+                    }
+
+                    console.log("Registering investment:", {
+                        txHash: depositTxHash,
+                        agentId: agent.agentId,
+                        shares: mintedShares,
+                        amount: stakeAmount
+                    });
+
+                    await fetch('/api/investments/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            txHash: depositTxHash,
+                            agentId: agent.agentId,
+                            userAddress: address,
+                            amount: stakeAmount,
+                            shares: mintedShares
+                        })
+                    });
+
+                } catch (e) {
+                    console.error("Failed to register investment:", e);
+                }
+
+                setStep('success');
+                setStakeAmount('');
+                setTimeout(() => setStep('idle'), 3000);
+            };
+
+            registerInvestment();
         }
-    }, [depositConfirmed]);
+    }, [depositConfirmed, depositReceipt]);
 
     // When withdraw is confirmed, show success
     useEffect(() => {
@@ -291,7 +344,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         }
     }, [withdrawConfirmed]);
 
-    // Compute net deposits for current wallet
+    // Compute net deposits for current wallet AND Sync missing investments
     useEffect(() => {
         if (!agent?.vaultAddress || !publicClient || !address) {
             setNetDeposits(0n);
@@ -300,6 +353,17 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
         const fetchNetDeposits = async () => {
             try {
+                // 1. Fetch DB Investments to check for sync status
+                const dbRes = await fetch(`/api/investments/user/${address}`);
+                const dbData = await dbRes.json();
+                const dbInvestments = dbData.success ? dbData.investments : [];
+                // Filter ensuring we match agentId and lowercase hash
+                const knownTxHashes = new Set(
+                    dbInvestments
+                        .filter((i: any) => String(i.agent_id) === String(agent.agentId))
+                        .map((i: any) => i.tx_hash.toLowerCase())
+                );
+
                 const [depositLogs, withdrawLogs] = await Promise.all([
                     publicClient.getLogs({
                         address: agent.vaultAddress as `0x${string}`,
@@ -334,6 +398,28 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     })
                 ]);
 
+                // Sync Logic: Check for missing investments
+                for (const log of depositLogs) {
+                    if (!knownTxHashes.has(log.transactionHash.toLowerCase())) {
+                        console.log("SYNC: Auto-recovering missing investment:", log.transactionHash);
+                        const shares = formatEther((log.args as any).shares || 0n);
+                        const amount = formatEther((log.args as any).assets || 0n);
+
+                        // Fire and forget sync request
+                        fetch('/api/investments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                txHash: log.transactionHash,
+                                agentId: agent.agentId,
+                                userAddress: address,
+                                amount,
+                                shares: shares !== '0' ? shares : amount
+                            })
+                        }).catch(e => console.error("Sync failed for tx:", log.transactionHash, e));
+                    }
+                }
+
                 const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
                 const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
                 const net = deposits > withdrawals ? deposits - withdrawals : 0n;
@@ -345,7 +431,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         };
 
         fetchNetDeposits();
-    }, [agent?.vaultAddress, publicClient, address]);
+    }, [agent?.vaultAddress, publicClient, address, agent?.agentId]);
 
     if (loading) return (
         <div className="container pt-xxl flex justify-center">
@@ -639,6 +725,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         {step === 'waiting_approve' && "CONFIRMING APPROVAL..."}
                                         {step === 'depositing' && "DEPOSIT IN WALLET..."}
                                         {step === 'waiting_deposit' && "CONFIRMING DEPOSIT..."}
+                                        {step === 'syncing' && "SYNCING INVESTMENT..."}
                                         {step === 'success' && "SUCCESS! RELAY ACTIVE"}
                                         {step === 'error' && "FAILED - RETRY?"}
                                     </button>
