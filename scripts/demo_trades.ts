@@ -21,7 +21,7 @@ async function openTrades() {
         if (!agent.apiKey) continue;
 
         const pair = pairs[Math.floor(Math.random() * pairs.length)];
-        const side = Math.random() > 0.5 ? 'LONG' : 'SHORT';
+        const side = 'LONG';
 
         console.log(`Opening ${side} ${pair} for ${agent.name}...`);
 

@@ -1112,7 +1112,7 @@ export default function ArenaPage() {
                 /* Main Content Layout */
                 .arena-main {
                     flex: 1;
-                    max-width: 1600px;
+                    max-width: 1800px;
                     margin: 0 auto;
                     width: 100%;
                     padding: 0;
@@ -1124,14 +1124,14 @@ export default function ArenaPage() {
                 }
 
                 .arena-left-col {
-                    flex: 7;
+                    flex: 6;
                     border-right: 1px solid var(--arena-border);
                     display: flex;
                     flex-direction: column;
                 }
 
                 .arena-right-col {
-                    flex: 3;
+                    flex: 4;
                     background: var(--arena-panel);
                     display: flex;
                     flex-direction: column;
@@ -1248,8 +1248,8 @@ export default function ArenaPage() {
 
                 .panel-tab-v2 {
                     flex: 1;
-                    padding: 12px 4px;
-                    font-size: 10px;
+                    padding: 14px 4px;
+                    font-size: 11px;
                     font-weight: 800;
                     color: #555;
                     text-transform: uppercase;
@@ -1288,10 +1288,10 @@ export default function ArenaPage() {
                 .feed-header {
                     display: grid;
                     grid-template-columns: 1.5fr 1.5fr 1fr;
-                    padding: 8px 12px;
+                    padding: 10px 16px;
                     background: rgba(255, 255, 255, 0.02);
                     border-bottom: 1px solid var(--arena-border);
-                    font-size: 9px;
+                    font-size: 10px;
                     text-transform: uppercase;
                     color: #444;
                     font-weight: 800;
@@ -1300,11 +1300,11 @@ export default function ArenaPage() {
                 .feed-row {
                     display: grid;
                     grid-template-columns: 1.5fr 1.5fr 1fr;
-                    padding: 12px;
+                    padding: 16px;
                     border-bottom: 1px solid var(--arena-border);
                     align-items: center;
                     transition: background 0.2s;
-                    gap: 12px;
+                    gap: 16px;
                 }
 
                 .feed-row:hover {
@@ -1312,7 +1312,7 @@ export default function ArenaPage() {
                 }
 
                 .agent-name {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 700;
                     color: white;
                 }
@@ -1324,20 +1324,20 @@ export default function ArenaPage() {
                 }
 
                 .side-label {
-                    font-size: 9px;
+                    font-size: 10px;
                     font-weight: 900;
                     text-transform: uppercase;
-                    padding: 1px 4px;
-                    border-radius: 2px;
+                    padding: 2px 6px;
+                    border-radius: 3px;
                     width: fit-content;
-                    margin-bottom: 2px;
+                    margin-bottom: 4px;
                 }
 
                 .side-label.long { color: var(--text-success); background: rgba(0, 255, 136, 0.1); }
                 .side-label.short { color: var(--text-error); background: rgba(255, 77, 77, 0.1); }
 
                 .exec-price {
-                    font-size: 10px;
+                    font-size: 11px;
                     color: #aaa;
                     font-family: monospace;
                 }
@@ -1518,7 +1518,7 @@ export default function ArenaPage() {
 
                 .rank-col { font-weight: 900; font-size: 1.2rem; color: #888; }
                 .agent-avatar-small { width: 32px; height: 32px; border-radius: 4px; }
-                .agent-avatar-tiny { width: 24px; height: 24px; border-radius: 50%; outline: 1px solid #333; }
+                .agent-avatar-tiny { width: 28px; height: 28px; border-radius: 50%; outline: 1px solid #333; }
 
                 /* Ticker Footer */
                 .arena-ticker {
