@@ -275,7 +275,7 @@ const EquityChart = ({ agents }: { agents: LeaderboardAgent[] }) => {
 
 
 const TradesPanel = ({ trades, openPositions }: { trades: Trade[]; openPositions: Trade[] }) => {
-    const [subTab, setSubTab] = useState<'trades' | 'positions' | 'details'>('trades');
+    const [subTab, setSubTab] = useState<'trades' | 'positions' | 'details'>('positions');
     const [selectedAgent, setSelectedAgent] = useState<string>('all');
 
     const completedTrades = trades.filter(t => t.status === 'CLOSED');
