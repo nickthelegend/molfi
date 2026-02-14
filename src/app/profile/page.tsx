@@ -1,10 +1,13 @@
 "use client";
 
-import { useAccount } from 'wagmi';
+import { useEffect, useState } from 'react';
+import { useAccount, usePublicClient } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { User, Bot, TrendingUp, Trophy, Zap, Plus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/contract-helpers';
+import { formatEther } from 'viem';
+import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 
 // Mock agent data - will be replaced with real data from contracts
 const MOCK_AGENTS = [
@@ -37,8 +40,132 @@ const MOCK_ACTIVITY = [
     { id: 4, agent: 'SafeYield', action: 'Trade Executed', result: 'Win', profit: '+$890', time: '2 days ago' },
 ];
 
+type InvestmentItem = {
+    agentId: number;
+    name: string;
+    vaultAddress: `0x${string}`;
+    deposited: number;
+    currentValue: number;
+    pnl: number;
+    apy?: number;
+};
+
 export default function ProfilePage() {
     const { isConnected, address } = useAccount();
+    const publicClient = usePublicClient();
+    const [investments, setInvestments] = useState<InvestmentItem[]>([]);
+    const [investmentsLoading, setInvestmentsLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isConnected || !address || !publicClient) {
+            setInvestments([]);
+            return;
+        }
+
+        const loadInvestments = async () => {
+            setInvestmentsLoading(true);
+            try {
+                const res = await fetch('/api/agents');
+                const data = await res.json();
+                if (!data.success) {
+                    setInvestments([]);
+                    return;
+                }
+
+                const agents = data.agents || [];
+                const investmentItems = await Promise.all(
+                    agents.map(async (agent: any) => {
+                        if (!agent.vaultAddress) return null;
+                        const vaultAddress = agent.vaultAddress as `0x${string}`;
+
+                        try {
+                            const shareBalance = await publicClient.readContract({
+                                address: vaultAddress,
+                                abi: MolfiAgentVaultABI,
+                                functionName: "balanceOf",
+                                args: [address],
+                            }) as bigint;
+
+                            const currentAssets = shareBalance > 0n
+                                ? await publicClient.readContract({
+                                    address: vaultAddress,
+                                    abi: MolfiAgentVaultABI,
+                                    functionName: "convertToAssets",
+                                    args: [shareBalance],
+                                }) as bigint
+                                : 0n;
+
+                            const [depositLogs, withdrawLogs] = await Promise.all([
+                                publicClient.getLogs({
+                                    address: vaultAddress,
+                                    event: {
+                                        type: 'event',
+                                        name: 'Deposit',
+                                        inputs: [
+                                            { type: 'address', indexed: true, name: 'sender' },
+                                            { type: 'address', indexed: true, name: 'owner' },
+                                            { type: 'uint256', indexed: false, name: 'assets' },
+                                            { type: 'uint256', indexed: false, name: 'shares' }
+                                        ]
+                                    },
+                                    args: { owner: address },
+                                    fromBlock: 'earliest'
+                                }),
+                                publicClient.getLogs({
+                                    address: vaultAddress,
+                                    event: {
+                                        type: 'event',
+                                        name: 'Withdraw',
+                                        inputs: [
+                                            { type: 'address', indexed: true, name: 'sender' },
+                                            { type: 'address', indexed: true, name: 'receiver' },
+                                            { type: 'address', indexed: true, name: 'owner' },
+                                            { type: 'uint256', indexed: false, name: 'assets' },
+                                            { type: 'uint256', indexed: false, name: 'shares' }
+                                        ]
+                                    },
+                                    args: { owner: address },
+                                    fromBlock: 'earliest'
+                                })
+                            ]);
+
+                            const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+                            const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+                            const netDeposits = deposits > withdrawals ? deposits - withdrawals : 0n;
+
+                            const deposited = Number(formatEther(netDeposits));
+                            const currentValue = Number(formatEther(currentAssets));
+                            const pnl = currentValue - deposited;
+
+                            if (deposited <= 0 && currentValue <= 0) return null;
+
+                            return {
+                                agentId: Number(agent.agentId),
+                                name: agent.name,
+                                vaultAddress,
+                                deposited,
+                                currentValue,
+                                pnl,
+                                apy: agent.apy,
+                            } as InvestmentItem;
+                        } catch (err) {
+                            console.error("Investment fetch failed:", err);
+                            return null;
+                        }
+                    })
+                );
+
+                setInvestments(investmentItems.filter(Boolean));
+            } catch (err) {
+                console.error("Failed to fetch investments", err);
+                setInvestments([]);
+            } finally {
+                setInvestmentsLoading(false);
+            }
+        };
+
+        loadInvestments();
+    }, [isConnected, address, publicClient]);
 
     if (!isConnected) {
         return (
@@ -104,9 +231,14 @@ export default function ProfilePage() {
                         </p>
                     </div>
 
-                    <Link href="/setup" className="neon-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Plus size={18} /> Deploy New Agent
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <Link href="/my-agents" className="neon-button secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Bot size={18} /> My Agents
+                        </Link>
+                        <Link href="/setup" className="neon-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Plus size={18} /> Deploy New Agent
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -167,6 +299,63 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Investments */}
+            <div style={{ marginBottom: '3rem' }}>
+                <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
+                    My Investments
+                </h2>
+
+                {investmentsLoading ? (
+                    <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
+                        Loading investments...
+                    </div>
+                ) : investments.length === 0 ? (
+                    <div className="glass-container" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        No active investments found yet.
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                        {investments.map((inv) => (
+                            <div key={inv.agentId} className="glass-container" style={{ padding: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <div>
+                                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
+                                        <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
+                                    </div>
+                                    <Link href={`/clawdex/agent/${inv.agentId}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
+                                        View <ExternalLink size={12} style={{ marginLeft: '6px' }} />
+                                    </Link>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div>
+                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Deposited</p>
+                                        <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Current Value</p>
+                                        <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>PnL</p>
+                                        <p style={{ fontSize: '1.1rem', fontWeight: 700, color: inv.pnl >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {inv.pnl >= 0 ? '+' : ''}${inv.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>APY</p>
+                                        <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                            {inv.apy ? `${inv.apy}%` : '--'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* My Agents */}

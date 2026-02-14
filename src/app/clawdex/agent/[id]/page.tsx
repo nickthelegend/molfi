@@ -86,6 +86,10 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const [approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
     const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
     const [reputationLogs, setReputationLogs] = useState<any[]>([]);
+    const [netDeposits, setNetDeposits] = useState<bigint>(0n);
+    const [withdrawStep, setWithdrawStep] = useState<'idle' | 'withdrawing' | 'waiting_withdraw' | 'success' | 'error'>('idle');
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
+    const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
 
     const REPUTATION_REGISTRY = process.env.NEXT_PUBLIC_REPUTATION_REGISTRY as `0x${string}`;
     const PROTOCOL_CLIENT = '0xcCED528A5b70e16c8131Cb2de424564dD938fD3B' as `0x${string}`; // Deployer address
@@ -195,6 +199,12 @@ function AgentDetailPageContent({ id }: { id: string }) {
     }, [agent?.vaultAddress, publicClient]);
 
     const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
+    const currentAssets = assetsFromShares ? (assetsFromShares as bigint) : 0n;
+    const maxWithdrawAmount = (maxWithdraw as bigint | undefined) || 0n;
+    const pnlAvailable = maxWithdrawAmount > netDeposits ? maxWithdrawAmount - netDeposits : 0n;
+    const currentAssetsDisplay = formatEther(currentAssets);
+    const netDepositsDisplay = formatEther(netDeposits);
+    const pnlAvailableDisplay = formatEther(pnlAvailable);
 
     // 2. Check Allowance
     const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -202,6 +212,37 @@ function AgentDetailPageContent({ id }: { id: string }) {
         abi: USDC_ABI,
         functionName: "allowance",
         args: address && agent?.vaultAddress ? [address, agent.vaultAddress as `0x${string}`] : undefined,
+    });
+
+    // 2b. Fetch User Share Balance + Max Withdraw
+    const { data: shareBalance } = useReadContract({
+        address: agent?.vaultAddress as `0x${string}`,
+        abi: MolfiAgentVaultABI,
+        functionName: "balanceOf",
+        args: address ? [address] : undefined,
+        query: {
+            enabled: !!agent?.vaultAddress && !!address,
+        },
+    });
+
+    const { data: maxWithdraw } = useReadContract({
+        address: agent?.vaultAddress as `0x${string}`,
+        abi: MolfiAgentVaultABI,
+        functionName: "maxWithdraw",
+        args: address ? [address] : undefined,
+        query: {
+            enabled: !!agent?.vaultAddress && !!address,
+        },
+    });
+
+    const { data: assetsFromShares } = useReadContract({
+        address: agent?.vaultAddress as `0x${string}`,
+        abi: MolfiAgentVaultABI,
+        functionName: "convertToAssets",
+        args: shareBalance ? [shareBalance as bigint] : undefined,
+        query: {
+            enabled: !!agent?.vaultAddress && !!address && !!shareBalance,
+        },
     });
 
     const { writeContractAsync } = useWriteContract();
@@ -214,6 +255,11 @@ function AgentDetailPageContent({ id }: { id: string }) {
     // 4. Wait for deposit tx confirmation
     const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({
         hash: depositTxHash,
+    });
+
+    // 4b. Wait for withdraw tx confirmation
+    const { isSuccess: withdrawConfirmed } = useWaitForTransactionReceipt({
+        hash: withdrawTxHash,
     });
 
     // When approve is confirmed, proceed to deposit
@@ -232,6 +278,71 @@ function AgentDetailPageContent({ id }: { id: string }) {
             setTimeout(() => setStep('idle'), 3000);
         }
     }, [depositConfirmed]);
+
+    // When withdraw is confirmed, show success
+    useEffect(() => {
+        if (withdrawConfirmed && withdrawStep === 'waiting_withdraw') {
+            setWithdrawStep('success');
+            setWithdrawError(null);
+            setTimeout(() => setWithdrawStep('idle'), 3000);
+        }
+    }, [withdrawConfirmed]);
+
+    // Compute net deposits for current wallet
+    useEffect(() => {
+        if (!agent?.vaultAddress || !publicClient || !address) {
+            setNetDeposits(0n);
+            return;
+        }
+
+        const fetchNetDeposits = async () => {
+            try {
+                const [depositLogs, withdrawLogs] = await Promise.all([
+                    publicClient.getLogs({
+                        address: agent.vaultAddress as `0x${string}`,
+                        event: {
+                            type: 'event',
+                            name: 'Deposit',
+                            inputs: [
+                                { type: 'address', indexed: true, name: 'sender' },
+                                { type: 'address', indexed: true, name: 'owner' },
+                                { type: 'uint256', indexed: false, name: 'assets' },
+                                { type: 'uint256', indexed: false, name: 'shares' }
+                            ]
+                        },
+                        args: { owner: address },
+                        fromBlock: 'earliest'
+                    }),
+                    publicClient.getLogs({
+                        address: agent.vaultAddress as `0x${string}`,
+                        event: {
+                            type: 'event',
+                            name: 'Withdraw',
+                            inputs: [
+                                { type: 'address', indexed: true, name: 'sender' },
+                                { type: 'address', indexed: true, name: 'receiver' },
+                                { type: 'address', indexed: true, name: 'owner' },
+                                { type: 'uint256', indexed: false, name: 'assets' },
+                                { type: 'uint256', indexed: false, name: 'shares' }
+                            ]
+                        },
+                        args: { owner: address },
+                        fromBlock: 'earliest'
+                    })
+                ]);
+
+                const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+                const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+                const net = deposits > withdrawals ? deposits - withdrawals : 0n;
+                setNetDeposits(net);
+            } catch (err) {
+                console.error("Error fetching net deposits:", err);
+                setNetDeposits(0n);
+            }
+        };
+
+        fetchNetDeposits();
+    }, [agent?.vaultAddress, publicClient, address]);
 
     if (loading) return (
         <div className="container pt-xxl flex justify-center">
@@ -312,6 +423,40 @@ function AgentDetailPageContent({ id }: { id: string }) {
         }
     };
 
+    async function handleWithdrawPnL() {
+        if (!isConnected || !address || !agent?.vaultAddress) {
+            alert("Please connect your wallet to withdraw.");
+            return;
+        }
+
+        const maxWithdrawValue = (maxWithdraw as bigint | undefined) || 0n;
+        const pnlAvailable = maxWithdrawValue > netDeposits ? maxWithdrawValue - netDeposits : 0n;
+
+        if (pnlAvailable <= 0n) {
+            alert("No PnL available to withdraw yet.");
+            return;
+        }
+
+        setWithdrawStep('withdrawing');
+        setWithdrawError(null);
+
+        try {
+            const hash = await writeContractAsync({
+                address: agent.vaultAddress as `0x${string}`,
+                abi: MolfiAgentVaultABI,
+                functionName: "withdraw",
+                args: [pnlAvailable, address, address],
+            });
+
+            setWithdrawTxHash(hash);
+            setWithdrawStep('waiting_withdraw');
+        } catch (err: any) {
+            console.error("Withdraw failed:", err);
+            setWithdrawError(err.shortMessage || err.message || "Withdraw failed");
+            setWithdrawStep('error');
+        }
+    }
+
     return (
         <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
             <div className="grid-overlay" />
@@ -370,6 +515,33 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                 <span>CONSENSUS VERIFIED</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="agent-stats-row">
+                    <div className="stat-card">
+                        <div className="stat-label">ROI</div>
+                        <div className={`stat-value ${Number(agent.roi || 0) >= 0 ? 'plus' : 'minus'}`}>
+                            {Number(agent.roi || 0) >= 0 ? '+' : ''}{Number(agent.roi || 0).toFixed(2)}%
+                        </div>
+                        <div className="stat-sub">Since inception</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-label">WIN RATE</div>
+                        <div className="stat-value">{agent.winRate || 0}%</div>
+                        <div className="stat-sub">{agent.totalTrades || 0} total trades</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-label">TOTAL PNL</div>
+                        <div className={`stat-value ${Number(agent.totalPnL || 0) >= 0 ? 'plus' : 'minus'}`}>
+                            {Number(agent.totalPnL || 0) >= 0 ? '+' : ''}${Number(agent.totalPnL || 0).toFixed(2)}
+                        </div>
+                        <div className="stat-sub">Realized + Unrealized</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-label">AUM</div>
+                        <div className="stat-value">${parseFloat(vaultBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="stat-sub">Vault TVL</div>
                     </div>
                 </div>
 
@@ -520,6 +692,23 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                 </div>
                             </div>
 
+                            <div className="allocation-metrics">
+                                <div className="allocation-metric">
+                                    <span className="metric-label">Net Deposits</span>
+                                    <span className="metric-value">${Number(netDepositsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="allocation-metric">
+                                    <span className="metric-label">Current Value</span>
+                                    <span className="metric-value">${Number(currentAssetsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="allocation-metric highlight">
+                                    <span className="metric-label">PnL Available</span>
+                                    <span className={`metric-value ${Number(pnlAvailableDisplay) >= 0 ? 'plus' : 'minus'}`}>
+                                        {Number(pnlAvailableDisplay) >= 0 ? '+' : ''}${Number(pnlAvailableDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+
                             <div className="flex flex-col gap-xs mb-xl pb-md border-b border-white/5">
                                 <div className="flex justify-between text-[10px]">
                                     <span className="text-dim/60">Execution Fee</span>
@@ -538,7 +727,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         onClick={handleStake}
                                         disabled={step !== 'idle' && step !== 'success' && step !== 'error'}
                                     >
-                                        {step === 'idle' && "Allocate capitall.."}
+                                        {step === 'idle' && "Allocate capital"}
                                         {step === 'approving' && "APPROVE IN WALLET..."}
                                         {step === 'waiting_approve' && "CONFIRMING APPROVAL..."}
                                         {step === 'depositing' && "DEPOSIT IN WALLET..."}
@@ -546,9 +735,25 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         {step === 'success' && "SUCCESS! RELAY ACTIVE"}
                                         {step === 'error' && "FAILED - RETRY?"}
                                     </button>
+                                    <button
+                                        className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' ? 'loading' : ''}`}
+                                        onClick={handleWithdrawPnL}
+                                        disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
+                                    >
+                                        {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
+                                        {withdrawStep === 'withdrawing' && "WITHDRAW IN WALLET..."}
+                                        {withdrawStep === 'waiting_withdraw' && "CONFIRMING WITHDRAW..."}
+                                        {withdrawStep === 'success' && "PNL WITHDRAWN"}
+                                        {withdrawStep === 'error' && "WITHDRAW FAILED - RETRY?"}
+                                    </button>
                                     {errorMsg && (
                                         <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
                                             ERROR: {errorMsg}
+                                        </div>
+                                    )}
+                                    {withdrawError && (
+                                        <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
+                                            WITHDRAW ERROR: {withdrawError}
                                         </div>
                                     )}
                                 </>
@@ -641,6 +846,37 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 .tab-btn.active {
                     background: var(--primary-purple);
                     color: white;
+                }
+
+                .agent-stats-row {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                    gap: 1rem;
+                    margin-bottom: 2.5rem;
+                }
+                .stat-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    border-radius: 16px;
+                    padding: 1.25rem;
+                }
+                .stat-label {
+                    font-size: 10px;
+                    letter-spacing: 0.2em;
+                    font-weight: 800;
+                    color: var(--text-dim);
+                }
+                .stat-value {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    margin-top: 0.5rem;
+                }
+                .stat-value.plus { color: #10b981; }
+                .stat-value.minus { color: #ef4444; }
+                .stat-sub {
+                    font-size: 10px;
+                    color: var(--text-dim);
+                    margin-top: 0.35rem;
                 }
 
                 .reputation-list {
@@ -791,6 +1027,16 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 .pnl-display.plus { color: #10b981; }
                 .pnl-display.minus { color: #ef4444; }
 
+                .terminal-grid {
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+                    align-items: start;
+                }
+                @media (max-width: 1200px) {
+                    .terminal-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
                 .allocation-panel {
                     background: rgba(255, 255, 255, 0.02);
                     border: 1px solid rgba(168, 85, 247, 0.2);
@@ -810,6 +1056,32 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 .allocation-input { background: transparent; border: none; color: white; font-weight: 700; font-size: 1.25rem; width: 100%; outline: none; }
                 .max-btn { background: rgba(168, 85, 247, 0.2); color: var(--primary-purple); border: none; font-size: 10px; font-weight: 800; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; }
 
+                .allocation-metrics {
+                    display: grid;
+                    gap: 0.5rem;
+                    margin-bottom: 1rem;
+                    padding: 0.75rem 0;
+                }
+                .allocation-metric {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 10px;
+                    color: var(--text-dim);
+                    letter-spacing: 0.05em;
+                    text-transform: uppercase;
+                }
+                .allocation-metric .metric-value {
+                    font-size: 11px;
+                    font-weight: 800;
+                    color: white;
+                }
+                .allocation-metric .metric-value.plus { color: #10b981; }
+                .allocation-metric .metric-value.minus { color: #ef4444; }
+                .allocation-metric.highlight {
+                    padding-top: 0.5rem;
+                    border-top: 1px solid rgba(255,255,255,0.05);
+                }
+
                 .allocate-btn {
                     width: 100%;
                     background: var(--primary-purple);
@@ -824,6 +1096,22 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     transition: all 0.3s;
                 }
                 .allocate-btn:hover { background: var(--secondary-purple); transform: translateY(-1px); }
+                .withdraw-btn {
+                    width: 100%;
+                    margin-top: 0.6rem;
+                    background: rgba(255, 255, 255, 0.06);
+                    color: white;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    height: 44px;
+                    border-radius: 12px;
+                    font-weight: 800;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.08em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+                .withdraw-btn:hover { border-color: var(--primary-purple); color: var(--primary-purple); }
+                .withdraw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
                 .neural-timeline { position: relative; padding-left: 24px; }
                 .neural-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: rgba(168, 85, 247, 0.2); }
