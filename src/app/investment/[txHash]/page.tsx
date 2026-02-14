@@ -4,7 +4,7 @@
 import { use, useEffect, useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { formatEther, parseEther, decodeEventLog } from 'viem';
-import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, DollarSign, Lock, BarChart3, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, DollarSign, Lock, BarChart3, ShieldCheck, Activity, Bot } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
@@ -265,6 +265,18 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         }
     });
 
+    const [pnlBreakdown, setPnlBreakdown] = useState({ realized: '0', unrealized: '0' });
+
+    const { data: totalSupply } = useReadContract({
+        address: investment?.agents?.vault_address as `0x${string}`,
+        abi: MolfiAgentVaultABI,
+        functionName: 'totalSupply',
+        query: {
+            enabled: !!investment?.agents?.vault_address,
+            refetchInterval: 30000,
+        }
+    });
+
     // Update PnL when share value is fetched
     useEffect(() => {
         if (shareValue && (investment || parseFloat(fallbackAmount) > 0)) {
@@ -276,12 +288,27 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 : parseFloat(fallbackAmount);
 
             const currentAmount = parseFloat(currentVal);
-            const pnlValue = currentAmount - initialAmount;
+            const totalPnlValue = currentAmount - initialAmount;
 
-            setPnl(pnlValue.toFixed(4));
-            setPnlPercentage(initialAmount > 0 ? ((pnlValue / initialAmount) * 100).toFixed(2) : "0.00");
+            setPnl(totalPnlValue.toFixed(4));
+            setPnlPercentage(initialAmount > 0 ? ((totalPnlValue / initialAmount) * 100).toFixed(2) : "0.00");
+
+            // Calculate breakdown if agent data exists
+            if (agentData && totalSupply && parseFloat(activeShares) > 0) {
+                const totalSharesNum = parseFloat(formatEther(totalSupply as bigint));
+                const ownership = parseFloat(activeShares) / totalSharesNum;
+
+                // Unrealized PnL for user is their share of agent's unrealized profit
+                const uPnL = ownership * (agentData.unrealizedPnL || 0);
+                const rPnL = totalPnlValue - uPnL;
+
+                setPnlBreakdown({
+                    realized: rPnL.toFixed(4),
+                    unrealized: uPnL.toFixed(4)
+                });
+            }
         }
-    }, [shareValue, investment, fallbackAmount]);
+    }, [shareValue, investment, fallbackAmount, agentData, totalSupply, activeShares]);
 
     const handleWithdraw = async (mode: 'profit' | 'all') => {
         if (!investment?.agents?.vault_address) return;
@@ -446,6 +473,14 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                         <div className={`perf-sub ${isProfitable ? 'plus' : 'minus'}`}>
                             {isProfitable ? '+' : ''}{pnl} USDT
                         </div>
+                        <div className="perf-breakdown">
+                            <div className={Number(pnlBreakdown.realized) >= 0 ? 'plus' : 'minus'}>
+                                Realized: {Number(pnlBreakdown.realized) >= 0 ? '+' : ''}{pnlBreakdown.realized}
+                            </div>
+                            <div className={Number(pnlBreakdown.unrealized) >= 0 ? 'plus' : 'minus'}>
+                                Floating: {Number(pnlBreakdown.unrealized) >= 0 ? '+' : ''}{pnlBreakdown.unrealized}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -471,7 +506,10 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                             <TrendingUp size={14} className={isProfitable ? 'text-green-500' : 'text-red-500'} />
                             {parseFloat(currentValue).toFixed(2)} USDT
                         </div>
-                        <div className="stat-meta">Mark-to-market</div>
+                        <div className="stat-meta breakdown">
+                            <span>Rel: {Number(pnlBreakdown.realized) >= 0 ? '+' : ''}{parseFloat(pnlBreakdown.realized).toFixed(2)}</span>
+                            <span>Unrel: {Number(pnlBreakdown.unrealized) >= 0 ? '+' : ''}{parseFloat(pnlBreakdown.unrealized).toFixed(2)}</span>
+                        </div>
                     </div>
                     <div className="stat-tile">
                         <div className="stat-label">Vault State</div>
@@ -523,6 +561,59 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                         ? '* Profit withdrawal enabled when position is in profit.'
                                         : 'Profit withdrawal uses on-chain share pricing.'}
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* LIVE AGENT ACTIVITY */}
+                        <div className="glass-container investment-panel mt-6">
+                            <div className="panel-header">
+                                <h3 className="panel-title">
+                                    <Activity size={18} className="text-primary" />
+                                    Live Agent Activity
+                                </h3>
+                                <span className="panel-tag">Active Positions</span>
+                            </div>
+                            <div className="panel-body no-padding">
+                                {agentData?.activePositions && agentData.activePositions.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="active-positions-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Asset</th>
+                                                    <th>Side</th>
+                                                    <th>Leverage</th>
+                                                    <th>Size</th>
+                                                    <th className="text-right">Unrealized PnL</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {agentData.activePositions.map((pos: any, idx: number) => (
+                                                    <tr key={idx}>
+                                                        <td className="font-bold">{pos.pair}</td>
+                                                        <td>
+                                                            <span className={`side-tag ${pos.side.toLowerCase()}`}>
+                                                                {pos.side}
+                                                            </span>
+                                                        </td>
+                                                        <td className="font-mono text-xs">{pos.leverage}x</td>
+                                                        <td className="font-mono text-xs">${parseFloat(pos.size).toLocaleString()}</td>
+                                                        <td className={`text-right font-mono ${pos.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {pos.unrealizedPnl >= 0 ? '+' : ''}{pos.unrealizedPnl} USDT
+                                                            <div className="text-[10px] opacity-70">
+                                                                ({pos.unrealizedPnlPercent >= 0 ? '+' : ''}{pos.unrealizedPnlPercent}%)
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="py-12 text-center">
+                                        <Bot size={40} className="mx-auto mb-3 opacity-20" />
+                                        <p className="text-secondary text-sm">Agent is currently analyzing market for entry...</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -679,6 +770,17 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 }
                 .perf-sub.plus { color: #10b981; }
                 .perf-sub.minus { color: #ef4444; }
+                .perf-breakdown {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.2rem;
+                    margin-top: 0.8rem;
+                    font-size: 0.65rem;
+                    font-family: var(--font-mono);
+                    opacity: 0.8;
+                }
+                .perf-breakdown .plus { color: #10b981; }
+                .perf-breakdown .minus { color: #ef4444; }
 
                 .investment-stats {
                     display: grid;
@@ -710,6 +812,13 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     font-size: 0.75rem;
                     color: var(--text-secondary);
                     margin-top: 0.4rem;
+                }
+                .stat-meta.breakdown {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.65rem;
+                    font-family: var(--font-mono);
+                    color: var(--text-dim);
                 }
                 .stat-meta.link {
                     color: var(--primary-purple);
@@ -779,6 +888,45 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     .investment-side .glass-container {
                         position: static;
                     }
+                }
+
+                .active-positions-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 0.85rem;
+                }
+                .active-positions-table th {
+                    text-align: left;
+                    padding: 0.75rem 1rem;
+                    color: var(--text-dim);
+                    font-size: 0.65rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+                .active-positions-table td {
+                    padding: 0.8rem 1rem;
+                    border-bottom: 1px solid rgba(255,255,255,0.03);
+                }
+                .active-positions-table tr:last-child td {
+                    border-bottom: none;
+                }
+                .side-tag {
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                }
+                .side-tag.long {
+                    background: rgba(16, 185, 129, 0.1);
+                    color: #10b981;
+                }
+                .side-tag.short {
+                    background: rgba(239, 68, 68, 0.1);
+                    color: #ef4444;
+                }
+                .no-padding {
+                    padding: 0 !important;
                 }
 
                 .architecture-card {

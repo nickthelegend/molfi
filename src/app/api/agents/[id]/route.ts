@@ -7,28 +7,40 @@ export async function GET(req: Request, { params }: { params: any }) {
         const { id } = await params;
 
         // Try to find by integer agentId first, then by UUID id
-        let query = supabaseAdmin.from('AIAgent').select('*');
+        let query = supabaseAdmin.from('agents').select('*');
         if (!isNaN(parseInt(id))) {
-            query = query.eq('agentId', parseInt(id));
+            query = query.eq('agent_id', parseInt(id));
         } else {
             query = query.eq('id', id);
         }
 
         const { data: agent, error } = await query.single();
         if (error || !agent) {
+            console.error(`[API] Agent not found: ${id}`, error?.message);
             return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 });
         }
 
-        // Fetch ALL trades for this agent to compute stats
-        const { data: allTrades } = await supabaseAdmin
-            .from('TradeLog')
+        // Fetch ALL trade signals/logs for this agent
+        const { data: allTradesData } = await supabaseAdmin
+            .from('trade_signals')
             .select('*')
-            .eq('agentId', agent.agentId)
-            .order('openedAt', { ascending: true });
+            .eq('agent_id', agent.agent_id)
+            .order('opened_at', { ascending: true });
 
-        const trades = allTrades || [];
-        const closedTrades = trades.filter(t => t.status === 'CLOSED');
-        const openTrades = trades.filter(t => t.status === 'OPEN');
+        const allTrades = (allTradesData || []).map(t => ({
+            ...t,
+            agentId: t.agent_id,
+            openedAt: t.opened_at || t.created_at,
+            entryPrice: t.entry_price || '0',
+            size: t.size || '0',
+            side: t.side || (t.is_long ? 'LONG' : 'SHORT'),
+            pnl: t.pnl || '0',
+            fees: t.fees || '0',
+            status: t.status || 'CLOSED'
+        }));
+
+        const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
+        const openTrades = allTrades.filter(t => t.status === 'OPEN');
 
         // Get live prices for open positions
         const uniquePairs = [...new Set(openTrades.map(t => t.pair))];
@@ -58,7 +70,7 @@ export async function GET(req: Request, { params }: { params: any }) {
                 ...t,
                 currentPrice,
                 unrealizedPnl: parseFloat(uPnl.toFixed(4)),
-                unrealizedPnlPercent: parseFloat(((uPnl / parseFloat(t.size)) * 100).toFixed(2))
+                unrealizedPnlPercent: parseFloat(t.size) > 0 ? parseFloat(((uPnl / parseFloat(t.size)) * 100).toFixed(2)) : 0
             };
         });
 
@@ -67,18 +79,17 @@ export async function GET(req: Request, { params }: { params: any }) {
         const currentEquityValue = startingEquity + totalPnL;
         const roi = ((currentEquityValue - startingEquity) / startingEquity) * 100;
 
-        // Build REAL equity curve
+        // Build equity curve
         let runningEquity = startingEquity;
-        const equityCurve = [{ time: Math.floor(new Date(agent.createdAt).getTime() / 1000), value: runningEquity }];
+        const equityCurve = [{ time: Math.floor(new Date(agent.created_at).getTime() / 1000), value: runningEquity }];
         closedTrades.forEach(t => {
             runningEquity += parseFloat(t.pnl || '0');
             equityCurve.push({
-                time: Math.floor(new Date(t.closedAt || t.openedAt).getTime() / 1000),
+                time: Math.floor(new Date(t.closed_at || t.opened_at).getTime() / 1000),
                 value: parseFloat(runningEquity.toFixed(2))
             });
         });
 
-        // Add current point if there are open positions or time has passed
         if (openTrades.length > 0 || equityCurve.length === 1) {
             equityCurve.push({
                 time: Math.floor(Date.now() / 1000),
@@ -86,34 +97,27 @@ export async function GET(req: Request, { params }: { params: any }) {
             });
         }
 
-        // Fetch recent signals
-        const { data: signals } = await supabaseAdmin
-            .from('TradeSignal')
-            .select('*')
-            .eq('agentId', agent.agentId)
-            .order('createdAt', { ascending: false })
-            .limit(10);
-
         return NextResponse.json({
             success: true,
             agent: {
                 ...agent,
-                id: String(agent.agentId),
-                owner: agent.ownerAddress,
+                agentId: agent.agent_id,
+                id: String(agent.agent_id),
+                owner: agent.owner_address,
+                vaultAddress: agent.vault_address,
                 equityCurve,
                 totalPnL: parseFloat(totalPnL.toFixed(4)),
                 realizedPnL: parseFloat(realizedPnL.toFixed(4)),
                 unrealizedPnL: parseFloat(unrealizedPnL.toFixed(4)),
                 roi: parseFloat(roi.toFixed(2)),
                 winRate: closedTrades.length > 0 ? Math.round((closedTrades.filter(t => parseFloat(t.pnl || '0') > 0).length / closedTrades.length) * 100) : 0,
-                totalTrades: trades.length,
+                totalTrades: allTrades.length,
                 activePositions,
                 completedPositions: closedTrades.map(t => ({
                     ...t,
                     pnl: parseFloat(parseFloat(t.pnl || '0').toFixed(4)),
                     pnlPercent: t.size && parseFloat(t.size) > 0 ? parseFloat(((parseFloat(t.pnl || '0') / parseFloat(t.size)) * 100).toFixed(2)) : 0
                 })).reverse(),
-                recentDecisions: signals || []
             }
         });
     } catch (error: any) {
@@ -121,3 +125,4 @@ export async function GET(req: Request, { params }: { params: any }) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
