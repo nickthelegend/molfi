@@ -21,6 +21,8 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const [pnl, setPnl] = useState<string>('0');
     const [pnlPercentage, setPnlPercentage] = useState<string>('0');
     const [withdrawMode, setWithdrawMode] = useState<'profit' | 'all' | null>(null);
+    const [fallbackAmount, setFallbackAmount] = useState<string>('0');
+    const [fallbackShares, setFallbackShares] = useState<string>('0');
 
     // Wagmi hooks for withdrawal
     const { writeContractAsync, isPending: isWithdrawing } = useWriteContract();
@@ -161,6 +163,40 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         if (txHash) fetchInvestment();
     }, [txHash]);
 
+    useEffect(() => {
+        if (!investment || !publicClient) return;
+        if (!investment.agents?.vault_address) return;
+
+        const hasDbAmount = parseFloat(investment.amount || '0') > 0;
+        const hasDbShares = parseFloat(investment.shares || '0') > 0;
+        if (hasDbAmount && hasDbShares) return;
+
+        const hydrateFromReceipt = async () => {
+            try {
+                const receipt = await publicClient.getTransactionReceipt({ hash: investment.tx_hash as `0x${string}` });
+                const vaultLog = receipt.logs.find(
+                    (l) => l.address.toLowerCase() === investment.agents.vault_address.toLowerCase()
+                );
+                if (!vaultLog) return;
+                const event = decodeEventLog({
+                    abi: MolfiAgentVaultABI,
+                    data: vaultLog.data,
+                    topics: vaultLog.topics,
+                });
+                if (event.eventName === 'Deposit') {
+                    const assets = formatEther((event.args as any).assets);
+                    const shares = formatEther((event.args as any).shares);
+                    setFallbackAmount(assets);
+                    setFallbackShares(shares);
+                }
+            } catch (err) {
+                console.error("Failed to hydrate investment from receipt:", err);
+            }
+        };
+
+        hydrateFromReceipt();
+    }, [investment, publicClient]);
+
     const fetchAgentDetails = async (agentId: string) => {
         try {
             const res = await fetch(`/api/agents/${agentId}`);
@@ -178,9 +214,18 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         address: investment?.agents?.vault_address as `0x${string}`,
         abi: MolfiAgentVaultABI,
         functionName: 'previewRedeem',
-        args: [investment ? parseEther(investment.shares.toString()) : 0n],
+        args: [
+            investment
+                ? parseEther(
+                    (parseFloat(investment.shares || '0') > 0
+                        ? investment.shares
+                        : fallbackShares
+                    ).toString()
+                )
+                : 0n
+        ],
         query: {
-            enabled: !!investment?.agents?.vault_address && !!investment?.shares,
+            enabled: !!investment?.agents?.vault_address && (parseFloat(investment?.shares || '0') > 0 || parseFloat(fallbackShares || '0') > 0),
         }
     });
 
@@ -190,7 +235,9 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
             const currentVal = formatEther(shareValue as bigint);
             setCurrentValue(currentVal);
 
-            const initialAmount = parseFloat(investment.amount);
+            const initialAmount = parseFloat(investment.amount || '0') > 0
+                ? parseFloat(investment.amount)
+                : parseFloat(fallbackAmount || '0');
             const currentAmount = parseFloat(currentVal);
             const pnlValue = currentAmount - initialAmount;
 
@@ -205,6 +252,10 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
         try {
             let tx;
+            const sharesToUse = parseFloat(investment.shares || '0') > 0
+                ? investment.shares
+                : fallbackShares;
+
             if (mode === 'all') {
                 // Redeem full shares
                 tx = await writeContractAsync({
@@ -212,7 +263,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     abi: MolfiAgentVaultABI,
                     functionName: 'redeem',
                     args: [
-                        parseEther(investment.shares.toString()),
+                        parseEther(sharesToUse.toString()),
                         address,
                         address
                     ],
@@ -220,7 +271,9 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
             } else {
                 // Withdraw Profit Only
                 // Profit = Current Value - Initial Investment
-                const initialAmount = parseFloat(investment.amount);
+                const initialAmount = parseFloat(investment.amount || '0') > 0
+                    ? parseFloat(investment.amount)
+                    : parseFloat(fallbackAmount || '0');
                 const currentVal = parseFloat(currentValue);
                 const profit = currentVal - initialAmount;
 
@@ -362,8 +415,18 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 <div className="investment-stats">
                     <div className="stat-tile">
                         <div className="stat-label">Initial Capital</div>
-                        <div className="stat-number">{parseFloat(investment.amount).toFixed(2)} USDT</div>
-                        <div className="stat-meta">{parseFloat(investment.shares).toFixed(4)} shares owned</div>
+                        <div className="stat-number">
+                            {(parseFloat(investment.amount || '0') > 0
+                                ? parseFloat(investment.amount)
+                                : parseFloat(fallbackAmount || '0')
+                            ).toFixed(2)} USDT
+                        </div>
+                        <div className="stat-meta">
+                            {(parseFloat(investment.shares || '0') > 0
+                                ? parseFloat(investment.shares)
+                                : parseFloat(fallbackShares || '0')
+                            ).toFixed(4)} shares owned
+                        </div>
                     </div>
                     <div className="stat-tile">
                         <div className="stat-label">Current Value</div>
