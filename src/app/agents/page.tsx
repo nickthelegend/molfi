@@ -220,52 +220,58 @@ export default function AgentsPage() {
                 <div className="terminal-grid">
                     {filteredAgents.map(agent => (
                         <div key={agent.id} className="col-span-4">
-                            <div className="premium-card group hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
-                                <div className="flex justify-between mb-lg">
-                                    <div className="flex items-center gap-md">
-                                        <div className="agent-orb">
-                                            <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
-                                            <div className="orb-ring" />
+                            <div className="premium-card group hover-lift" style={{ height: '100%', display: 'flex', flexDirection: 'column', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+                                <Link href={`/clawdex/agent/${agent.id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <div className="flex justify-between mb-lg">
+                                        <div className="flex items-center gap-md">
+                                            <div className="agent-orb">
+                                                <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                                                <div className="orb-ring" />
+                                            </div>
+                                            <div>
+                                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.1rem', fontWeight: '700' }}>{agent.name}</h3>
+                                                <span className="text-[10px] text-dim font-mono">{agent.owner}</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.1rem', fontWeight: '700' }}>{agent.name}</h3>
-                                            <span className="text-[10px] text-dim font-mono">{agent.owner}</span>
-                                        </div>
-                                    </div>
-                                    <div className="sync-badge">
-                                        <Activity size={10} className="animate-pulse" />
-                                        <span>LIVE</span>
-                                    </div>
-                                </div>
-
-                                <p className="description-text" style={{ flex: 1, marginBottom: '2rem' }}>{agent.description}</p>
-
-                                <div className="stat-grid" style={{ marginBottom: '2rem' }}>
-                                    <div className="stat-item">
-                                        <span className="stat-sm-label">30D ROI</span>
-                                        <span className="stat-sm-value text-success">{agent.performance30d}</span>
-                                    </div>
-                                    <div className="stat-item border-x">
-                                        <span className="stat-sm-label">REP SCORE</span>
-                                        <div className="flex items-center justify-center gap-xs">
-                                            <span className="stat-sm-value text-primary">{agent.reputationScore}</span>
-                                            <ShieldCheck size={14} className="text-primary" />
+                                        <div className="sync-badge">
+                                            <Activity size={10} className="animate-pulse" />
+                                            <span>LIVE</span>
                                         </div>
                                     </div>
-                                    <div className="stat-item">
-                                        <span className="stat-sm-label">TVL</span>
-                                        <span className="stat-sm-value">{agent.tvl}</span>
-                                    </div>
-                                </div>
 
-                                <div className="flex items-center justify-between">
+                                    <p className="description-text" style={{ flex: 1, marginBottom: '2rem' }}>{agent.description}</p>
+
+                                    <div className="stat-grid" style={{ marginBottom: '2rem' }}>
+                                        <div className="stat-item">
+                                            <span className="stat-sm-label">30D ROI</span>
+                                            <span className="stat-sm-value text-success">{agent.performance30d}</span>
+                                        </div>
+                                        <div className="stat-item border-x">
+                                            <span className="stat-sm-label">REP SCORE</span>
+                                            <div className="flex items-center justify-center gap-xs">
+                                                <span className="stat-sm-value text-primary">{agent.reputationScore}</span>
+                                                <ShieldCheck size={14} className="text-primary" />
+                                            </div>
+                                        </div>
+                                        <div className="stat-item">
+                                            <span className="stat-sm-label">TVL</span>
+                                            <span className="stat-sm-value">{agent.tvl}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+
+                                <div className="flex items-center justify-between" style={{ zIndex: 10 }}>
                                     <div className="flex items-center gap-xs">
                                         {agent.targetAssets?.map(asset => (
                                             <span key={asset} className="asset-tag">{asset}</span>
                                         ))}
                                     </div>
                                     <button
-                                        onClick={() => openStakeModal(agent)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openStakeModal(agent);
+                                        }}
                                         className="stake-button"
                                         style={{ padding: '0.6rem 1rem' }}
                                     >

@@ -173,7 +173,6 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                     PERFORMANCE ANALYSIS
                                 </h3>
                                 <div className="panel-actions">
-                                    <span className="text-[10px] text-dim mr-md font-mono">EQUITY_CURVE_v1.0</span>
                                     <span className="time-tag active">ALL</span>
                                 </div>
                             </div>
@@ -235,45 +234,48 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     <div className="col-span-4 flex flex-col gap-xl">
                         {/* Staking Panel */}
                         <div className="allocation-panel">
-                            <h3 className="mb-md flex items-center gap-sm">
-                                <Percent size={18} className="text-primary" />
-                                ALLOCATE CAPITAL
-                            </h3>
-                            <p className="text-[11px] text-secondary mb-xl leading-relaxed">
-                                Deploy USDT into this agent's strategy. Capital is managed by the ClawBot protocol with 1:1 asset backing in vault: {agent.vaultAddress?.slice(0, 10)}...
-                            </p>
+                            <div className="flex justify-between items-center mb-xl">
+                                <h3 className="m-0 flex items-center gap-sm text-[12px] font-bold tracking-wider">
+                                    <Percent size={14} className="text-primary" />
+                                    ALLOCATE CAPITAL
+                                </h3>
+                                <div className="text-[10px] text-dim font-mono">
+                                    NODE: {agent.agentId || '001'}
+                                </div>
+                            </div>
 
                             <div className="mb-xl">
-                                <div className="flex justify-between mb-sm">
-                                    <label className="text-[10px] font-bold text-dim uppercase">Amount (USDT)</label>
-                                    <span className="text-[10px] text-primary cursor-pointer hover:underline">BAL: 1,240.22</span>
+                                <div className="flex justify-between mb-xs">
+                                    <label className="text-[9px] font-bold text-dim uppercase">Amount (USDT)</label>
+                                    <span className="text-[9px] text-primary cursor-pointer hover:underline">BAL: 1,240.22</span>
                                 </div>
                                 <div className="allocation-input-wrap">
-                                    <span className="currency-prefix">$</span>
+                                    <span className="currency-prefix text-xs">$</span>
                                     <input
                                         type="number"
                                         placeholder="0.00"
                                         className="allocation-input"
+                                        style={{ fontSize: '1rem' }}
                                         value={stakeAmount}
                                         onChange={(e) => setStakeAmount(e.target.value)}
                                     />
-                                    <button className="max-btn">MAX</button>
+                                    <button className="max-btn" onClick={() => setStakeAmount('1240.22')}>MAX</button>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-sm mb-xl">
-                                <div className="flex justify-between text-[11px]">
-                                    <span className="text-dim">Claw Relay Fee</span>
-                                    <span className="text-primary-purple">0.05%</span>
+                            <div className="flex flex-col gap-xs mb-xl pb-md border-b border-white/5">
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-dim/60">Execution Fee</span>
+                                    <span className="text-primary-purple font-bold">0.05%</span>
                                 </div>
-                                <div className="flex justify-between text-[11px]">
-                                    <span className="text-dim">Lock Duration</span>
-                                    <span>Neutral State Only</span>
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-dim/60">Strategy Lock</span>
+                                    <span className="font-bold">Neutral Only</span>
                                 </div>
                             </div>
 
                             <button className="allocate-btn" onClick={handleStake}>
-                                CONFIRM ALLOCATION
+                                CONFIRM DEPLOYMENT
                             </button>
                         </div>
 
@@ -461,11 +463,10 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 .pnl-display.minus { color: #ef4444; }
 
                 .allocation-panel {
-                    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(10, 10, 15, 0.9) 100%);
-                    border: 1px solid var(--primary-purple);
-                    border-radius: 24px;
-                    padding: 2rem;
-                    box-shadow: 0 10px 40px rgba(168, 85, 247, 0.1);
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(168, 85, 247, 0.2);
+                    border-radius: 20px;
+                    padding: 1.5rem;
                 }
                 .allocation-input-wrap {
                     background: rgba(0,0,0,0.3);
@@ -485,14 +486,15 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     background: var(--primary-purple);
                     color: white;
                     border: none;
-                    height: 54px;
-                    border-radius: 14px;
+                    height: 48px;
+                    border-radius: 12px;
                     font-weight: 800;
-                    letter-spacing: 0.1em;
+                    font-size: 0.8rem;
+                    letter-spacing: 0.05em;
                     cursor: pointer;
                     transition: all 0.3s;
                 }
-                .allocate-btn:hover { background: var(--secondary-purple); transform: translateY(-2px); box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4); }
+                .allocate-btn:hover { background: var(--secondary-purple); transform: translateY(-1px); }
 
                 .neural-timeline { position: relative; padding-left: 24px; }
                 .neural-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: rgba(168, 85, 247, 0.2); }
