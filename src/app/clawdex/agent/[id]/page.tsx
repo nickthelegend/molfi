@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import {
     Activity,
@@ -19,7 +19,9 @@ import {
     Clock,
     DollarSign,
     Percent,
-    Loader2
+    Loader2,
+    Users,
+    Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -139,6 +141,58 @@ function AgentDetailPageContent({ id }: { id: string }) {
         functionName: "balanceOf",
         args: address ? [address] : undefined,
     });
+
+    // 1b. Fetch Vault Balance (Total Assets)
+    const { data: vaultAssets } = useReadContract({
+        address: agent?.vaultAddress as `0x${string}`,
+        abi: MolfiAgentVaultABI,
+        functionName: "totalAssets",
+        args: undefined,
+        query: {
+            enabled: !!agent?.vaultAddress,
+        } // Fix: Use query object for enabled
+    });
+
+    const vaultBalance = vaultAssets ? formatEther(vaultAssets as bigint) : "0.00";
+
+    // 1c. Fetch Investor Count via Events
+    const publicClient = usePublicClient();
+    const [investorCount, setInvestorCount] = useState<number>(0);
+
+    useEffect(() => {
+        if (!agent?.vaultAddress || !publicClient) return;
+
+        const fetchInvestors = async () => {
+            try {
+                // Get Deposit content hash from ABI or known signature
+                // Event: Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+                // Keccak256("Deposit(address,address,uint256,uint256)")
+                // = 0xdcbc1c05240f31ff3ad067ef1ee35cebc99cdc8e96f9a0ddc743fdacaa648873 (standard ERC4626)
+
+                const logs = await publicClient.getLogs({
+                    address: agent.vaultAddress as `0x${string}`,
+                    event: {
+                        type: 'event',
+                        name: 'Deposit',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'sender' },
+                            { type: 'address', indexed: true, name: 'owner' },
+                            { type: 'uint256', indexed: false, name: 'assets' },
+                            { type: 'uint256', indexed: false, name: 'shares' }
+                        ]
+                    },
+                    fromBlock: 'earliest'
+                });
+
+                const uniqueInvestors = new Set(logs.map(log => log.args.owner));
+                setInvestorCount(uniqueInvestors.size);
+            } catch (err) {
+                console.error("Error fetching investor count:", err);
+            }
+        };
+
+        fetchInvestors();
+    }, [agent?.vaultAddress, publicClient]);
 
     const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
 
@@ -296,10 +350,10 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         <Bot size={14} /> CLAW_AGENT_v2
                                     </span>
                                     <span className="hero-stat">
-                                        <Lock size={14} /> MULTI_SIG_VAULT
+                                        <Users size={14} /> {investorCount} {investorCount === 1 ? 'INVESTOR' : 'INVESTORS'}
                                     </span>
                                     <span className="hero-stat">
-                                        <Globe size={14} /> MONAD_NATIVE
+                                        <Wallet size={14} /> ${parseFloat(vaultBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TVL
                                     </span>
                                 </div>
                                 <p className="hero-description">

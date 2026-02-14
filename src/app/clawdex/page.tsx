@@ -301,7 +301,7 @@ function ClawDexPageContent() {
                     <div className="float-anim mb-md" style={{ display: 'flex', justifyContent: 'center' }}>
                         <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Zap size={14} className="text-primary animate-pulse" />
-                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">Neural Circuit Registry v2.0</span>
+                            <span className="text-xs text-gradient-purple font-bold uppercase tracking-widest">ClawBot Registry v2.0</span>
                         </div>
                     </div>
 
