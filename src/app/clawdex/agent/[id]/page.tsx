@@ -25,7 +25,7 @@ import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import TradingViewChart from '@/components/TradingViewChart';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
-import NeuralLoader from '@/components/NeuralLoader';
+import ClawbotLoader from '@/components/ClawbotLoader';
 import { AIAgent } from '@/lib/agents';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 
@@ -48,7 +48,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     if (!mounted) return (
         <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="grid-overlay" />
-            <NeuralLoader message="INITIALIZING INTERFACE..." />
+            <ClawbotLoader message="INITIALIZING INTERFACE..." />
         </div>
     );
 
@@ -181,7 +181,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
     if (loading) return (
         <div className="container pt-xxl flex justify-center">
-            <NeuralLoader message={`ESTABLISHING NEURAL LINK: AGENT_${id}`} />
+            <ClawbotLoader message={`ESTABLISHING CLAWBOT LINK: AGENT_${id}`} />
         </div>
     );
 

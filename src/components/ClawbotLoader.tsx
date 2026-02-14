@@ -1,9 +1,9 @@
 import React from 'react';
 import { Cpu, Zap } from 'lucide-react';
 
-const NeuralLoader = ({ message = "ESTABLISHING NEURAL LINK" }: { message?: string }) => {
+const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: string }) => {
     return (
-        <div className="neural-loader-container">
+        <div className="clawbot-loader-container">
             <div className="loader-core">
                 <div className="core-inner" />
                 <div className="core-ring" />
@@ -24,8 +24,8 @@ const NeuralLoader = ({ message = "ESTABLISHING NEURAL LINK" }: { message?: stri
                 </div>
             </div>
 
-            <style jsx>{`
-        .neural-loader-container {
+            <style jsx global>{`
+        .clawbot-loader-container {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -143,4 +143,4 @@ const NeuralLoader = ({ message = "ESTABLISHING NEURAL LINK" }: { message?: stri
     );
 };
 
-export default NeuralLoader;
+export default ClawbotLoader;
