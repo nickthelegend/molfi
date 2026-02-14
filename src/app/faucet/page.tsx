@@ -99,14 +99,12 @@ export default function FaucetPage() {
                 </header>
 
                 <div className="faucet-card animate-in">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="icon-box">
-                                <Zap size={20} fill="currentColor" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold uppercase tracking-wider">mUSD.dev</h3>
-                                <p className="text-[10px] text-dim font-bold">MONAD TESTNET</p>
+                    <div className="flex justify-between items-center mb-8">
+                        <div className="flex items-center gap-4">
+
+                            <div className="flex flex-col justify-center">
+                                <h3 className="header-label">mUSD.dev</h3>
+                                <p className="header-sublabel">MONAD TESTNET</p>
                             </div>
                         </div>
                         <div className="verified-badge">
@@ -229,16 +227,34 @@ export default function FaucetPage() {
                     box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
                 }
 
+                .header-label {
+                    font-size: 14px;
+                    font-weight: 900;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    line-height: 1.2;
+                    margin: 0;
+                }
+
+                .header-sublabel {
+                    font-size: 10px;
+                    font-weight: 800;
+                    color: var(--text-dim);
+                    letter-spacing: 0.05em;
+                    margin: 0;
+                }
+
                 .icon-box {
-                    width: 40px;
-                    height: 40px;
+                    width: 44px;
+                    height: 44px;
                     background: var(--primary-purple);
-                    border-radius: 10px;
+                    border-radius: 14px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     color: white;
-                    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+                    flex-shrink: 0;
+                    box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
                 }
 
                 .verified-badge {
@@ -247,19 +263,21 @@ export default function FaucetPage() {
                     gap: 0.4rem;
                     background: rgba(16, 185, 129, 0.05);
                     color: #10b981;
-                    padding: 0.4rem 0.8rem;
-                    border-radius: 8px;
+                    padding: 0.5rem 0.8rem;
+                    border-radius: 10px;
                     font-size: 9px;
-                    font-weight: 800;
+                    font-weight: 900;
                     letter-spacing: 0.05em;
                     border: 1px solid rgba(16, 185, 129, 0.1);
+                    flex-shrink: 0;
+                    white-space: nowrap;
                 }
 
                 .stats-list {
                     margin-bottom: 2rem;
                     background: rgba(255, 255, 255, 0.02);
                     border-radius: 16px;
-                    padding: 0.5rem 1.25rem;
+                    padding: 1rem 1.25rem;
                     border: 1px solid rgba(255, 255, 255, 0.03);
                 }
 
