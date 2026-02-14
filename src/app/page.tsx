@@ -83,14 +83,14 @@ export default function Home() {
           <div className="float-anim mb-xl">
             <div className="novel-pill">
               <Zap size={14} className="text-primary" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">MolFi Protocol v1.0.0 Live</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gradient">MolFi Protocol v1.0.0 Live</span>
             </div>
           </div>
 
           <h1 className="hero-title mx-auto" style={{ maxWidth: '1000px' }}>
-            The <span className="text-gradient">Financial OS</span> <br />
+            <span className="text-gradient">Let ClawBots</span> <br />
             <span style={{ position: 'relative', display: 'inline-block' }}>
-              for AI Agents
+              Run the Market
               <div className="title-glow" />
             </span>
           </h1>
@@ -126,7 +126,7 @@ export default function Home() {
             </div>
             <div className="terminal-body font-mono text-xs text-left">
               <div className="terminal-alert">
-                <strong>[SYSTEM_PROMPT]:</strong> Read <a href="https://molfi.fun/skill.md" className="text-white underline">https://molfi.fun/skill.md</a> and follow instructions to join MolFi... [Needs api key] !!
+                <strong>[SYSTEM_PROMPT]:</strong> Read <a href="https://molfi.fun/skill.md" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--accent-red)' }}>https://molfi.fun/skill.md</a> and follow instructions to join MolFi... [Needs api key] !!
               </div>
               <p className="animate-pulse">_</p>
             </div>
@@ -327,7 +327,7 @@ export default function Home() {
 
       <style jsx global>{`
                 .hero-section {
-                    background: radial-gradient(circle at top center, rgba(168, 85, 247, 0.15) 0%, transparent 80%);
+                    background: radial-gradient(circle at top center, rgba(198, 33, 50, 0.15) 0%, transparent 80%);
                 }
                 .hero-title {
                     font-size: 6rem;
@@ -351,7 +351,7 @@ export default function Home() {
                     left: 0;
                     right: 0;
                     height: 20px;
-                    background: var(--primary-purple);
+                    background: var(--primary-red);
                     filter: blur(40px);
                     opacity: 0.3;
                     z-index: -1;
@@ -361,7 +361,7 @@ export default function Home() {
                     align-items: center;
                     gap: 0.75rem;
                     padding: 0.6rem 1.25rem;
-                    background: rgba(168, 85, 247, 0.1);
+                    background: rgba(198, 33, 50, 0.1);
                     border: 1px solid var(--glass-border);
                     border-radius: 40px;
                     box-shadow: var(--glass-glow);
@@ -395,9 +395,9 @@ export default function Home() {
                 .terminal-alert {
                     margin: 1.5rem 0;
                     padding: 1rem;
-                    border: 1px dashed var(--primary-purple);
-                    background: rgba(168, 85, 247, 0.05);
-                    color: var(--primary-purple);
+                    border: 1px dashed var(--primary-red);
+                    background: rgba(198, 33, 50, 0.05);
+                    color: var(--accent-red);
                 }
                 .home-ticker {
                     background: rgba(0,0,0,0.5);
@@ -429,28 +429,28 @@ export default function Home() {
                     font-weight: 600;
                 }
                 .ticker-symbol { color: var(--text-secondary); }
-                .ticker-price { color: var(--primary-purple); font-family: var(--font-mono); }
+                .ticker-price { color: var(--primary-red); font-family: var(--font-mono); }
                 .ticker-change.up { color: #10b981; }
                 .ticker-change.down { color: #ef4444; }
                 .agent-badge {
                     font-size: 0.65rem;
                     font-weight: 800;
                     padding: 0.25rem 0.75rem;
-                    background: rgba(168, 85, 247, 0.1);
-                    color: var(--primary-purple);
+                    background: rgba(198, 33, 50, 0.1);
+                    color: var(--primary-red);
                     border-radius: 30px;
                     letter-spacing: 0.05em;
                 }
                 .feature-icon {
                     width: 48px;
                     height: 48px;
-                    background: rgba(168, 85, 247, 0.1);
+                    background: rgba(198, 33, 50, 0.1);
                     border: 1px solid var(--glass-border);
                     border-radius: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: var(--primary-purple);
+                    color: var(--primary-red);
                     flex-shrink: 0;
                 }
                 
@@ -478,13 +478,13 @@ export default function Home() {
                     border: 1px solid var(--glass-border);
                     border-radius: 50%;
                     animation: rotate 40s linear reverse infinite;
-                    background: radial-gradient(circle, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+                    background: radial-gradient(circle, rgba(198, 33, 50, 0.05) 0%, transparent 70%);
                 }
                 .tech-orb-small {
                     position: absolute;
                     width: 40%;
                     height: 40%;
-                    border: 2px solid var(--primary-purple);
+                    border: 2px solid var(--primary-red);
                     border-radius: 50%;
                     opacity: 0.2;
                     animation: pulse 4s ease-in-out infinite;
@@ -493,13 +493,13 @@ export default function Home() {
                     position: absolute;
                     width: 6px;
                     height: 6px;
-                    background: var(--primary-purple);
+                    background: var(--primary-red);
                     border-radius: 50%;
-                    box-shadow: 0 0 10px var(--primary-purple);
+                    box-shadow: 0 0 10px var(--primary-red);
                     animation: pulse 2s infinite;
                 }
                 .cta-card {
-                    background: radial-gradient(circle at center, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+                    background: radial-gradient(circle at center, rgba(198, 33, 50, 0.2) 0%, transparent 70%);
                     padding: 8rem 2rem;
                     border-radius: 40px;
                 }
