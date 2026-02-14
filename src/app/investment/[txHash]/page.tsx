@@ -4,7 +4,7 @@
 import { use, useEffect, useState } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatEther, parseEther } from 'viem';
-import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, TrendingUp, Wallet, AlertCircle, RefreshCw, DollarSign, Lock, BarChart3, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
 import { shortenAddress, getExplorerUrl } from '@/lib/contract-helpers';
@@ -14,13 +14,15 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const { txHash } = use(params);
     const { address, isConnected } = useAccount();
     const [investment, setInvestment] = useState<any>(null);
+    const [agentData, setAgentData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [currentValue, setCurrentValue] = useState<string>('0');
     const [pnl, setPnl] = useState<string>('0');
     const [pnlPercentage, setPnlPercentage] = useState<string>('0');
+    const [withdrawMode, setWithdrawMode] = useState<'profit' | 'all' | null>(null);
 
     // Wagmi hooks for withdrawal
-    const { writeContract, data: withdrawHash, isPending: isWithdrawing } = useWriteContract();
+    const { writeContractAsync, isPending: isWithdrawing } = useWriteContract();
 
     // Fetch investment data
     useEffect(() => {
@@ -30,6 +32,10 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 const data = await res.json();
                 if (data.success) {
                     setInvestment(data.investment);
+                    // Fetch agent details for "Agent Archi" (Architecture/Stats)
+                    if (data.investment.agents?.agentId) {
+                        fetchAgentDetails(data.investment.agents.agentId);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch investment:', error);
@@ -41,7 +47,19 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         fetchInvestment();
     }, [txHash]);
 
-    // Read current share value from contract
+    const fetchAgentDetails = async (agentId: string) => {
+        try {
+            const res = await fetch(`/api/agents/${agentId}`);
+            const data = await res.json();
+            if (data.success) {
+                setAgentData(data.agent);
+            }
+        } catch (error) {
+            console.error("Failed to fetch agent details:", error);
+        }
+    }
+
+    // Read current share value (User's Position Value)
     const { data: shareValue } = useReadContract({
         address: investment?.agents?.vault_address as `0x${string}`,
         abi: MolfiAgentVaultABI,
@@ -63,23 +81,58 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
             const pnlValue = currentAmount - initialAmount;
 
             setPnl(pnlValue.toFixed(4));
-            setPnlPercentage(((pnlValue / initialAmount) * 100).toFixed(2));
+            setPnlPercentage(initialAmount > 0 ? ((pnlValue / initialAmount) * 100).toFixed(2) : "0.00");
         }
     }, [shareValue, investment]);
 
-    const handleWithdraw = () => {
+    const handleWithdraw = async (mode: 'profit' | 'all') => {
         if (!investment?.agents?.vault_address) return;
+        setWithdrawMode(mode);
 
-        writeContract({
-            address: investment.agents.vault_address as `0x${string}`,
-            abi: MolfiAgentVaultABI,
-            functionName: 'redeem',
-            args: [
-                parseEther(investment.shares.toString()),
-                address,
-                address
-            ],
-        });
+        try {
+            let tx;
+            if (mode === 'all') {
+                // Redeem full shares
+                tx = await writeContractAsync({
+                    address: investment.agents.vault_address as `0x${string}`,
+                    abi: MolfiAgentVaultABI,
+                    functionName: 'redeem',
+                    args: [
+                        parseEther(investment.shares.toString()),
+                        address,
+                        address
+                    ],
+                });
+            } else {
+                // Withdraw Profit Only
+                // Profit = Current Value - Initial Investment
+                const initialAmount = parseFloat(investment.amount);
+                const currentVal = parseFloat(currentValue);
+                const profit = currentVal - initialAmount;
+
+                if (profit <= 0) {
+                    alert("No profit to withdraw.");
+                    setWithdrawMode(null);
+                    return;
+                }
+
+                tx = await writeContractAsync({
+                    address: investment.agents.vault_address as `0x${string}`,
+                    abi: MolfiAgentVaultABI,
+                    functionName: 'withdraw',
+                    args: [
+                        parseEther(profit.toFixed(18)), // precision handling
+                        address,
+                        address
+                    ],
+                });
+            }
+            console.log("Withdrawal TX:", tx);
+        } catch (err) {
+            console.error("Withdrawal failed:", err);
+        } finally {
+            setWithdrawMode(null);
+        }
     };
 
     if (loading) {
@@ -126,101 +179,190 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
     const isProfitable = parseFloat(pnl) >= 0;
 
     return (
-        <div className="container max-w-4xl mx-auto pt-32 px-4 pb-12">
+        <div className="container max-w-6xl mx-auto pt-32 px-4 pb-12">
             <Link href="/profile" className="inline-flex items-center text-sm text-secondary hover:text-white mb-6 transistion-colors">
                 <ArrowLeft size={16} className="mr-2" />
                 Back to Profile
             </Link>
 
-            <div className="glass-container p-8 mb-8">
-                <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30">
-                                ACTIVE INVESTMENT
-                            </span>
-                            <span className="text-secondary text-sm flex items-center gap-1">
-                                {new Date(investment.created_at).toLocaleDateString()}
-                            </span>
-                        </div>
-                        <h1 className="text-4xl font-bold mb-2 break-all">{investment.agents?.name || 'Unknown Agent'}</h1>
-                        <div className="flex items-center gap-4">
-                            <a
-                                href={getExplorerUrl(41454, investment.tx_hash)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center text-sm text-secondary hover:text-primary transition-colors"
-                            >
-                                {shortenAddress(investment.tx_hash)}
-                                <ExternalLink size={12} className="ml-1" />
-                            </a>
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Main Investment Card */}
+                <div className="lg:col-span-8">
+                    <div className="glass-container p-8 mb-8">
+                        <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30">
+                                        ACTIVE CIRCUIT
+                                    </span>
+                                    <span className="text-secondary text-sm flex items-center gap-1">
+                                        <Lock size={12} /> {new Date(investment.created_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <h1 className="text-4xl font-bold mb-2 break-all">{investment.agents?.name || 'Unknown Agent'}</h1>
+                                <div className="flex items-center gap-4">
+                                    <a
+                                        href={getExplorerUrl(41454, investment.tx_hash)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center text-sm text-secondary hover:text-primary transition-colors"
+                                    >
+                                        TX: {shortenAddress(investment.tx_hash)}
+                                        <ExternalLink size={12} className="ml-1" />
+                                    </a>
+                                </div>
+                            </div>
 
-                    <div className="text-right">
-                        <p className="text-secondary text-sm mb-1">Total PnL</p>
-                        <p className={`text-3xl font-bold ${isProfitable ? 'text-green-500' : 'text-red-500'}`}>
-                            {isProfitable ? '+' : ''}{pnlPercentage}%
-                        </p>
-                        <p className={`text-sm font-mono ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
-                            {isProfitable ? '+' : ''}{pnl} ETH
-                        </p>
+                            <div className="text-right">
+                                <p className="text-secondary text-sm mb-1 uppercase tracking-widest font-bold">Total Return</p>
+                                <p className={`text-3xl font-bold ${isProfitable ? 'text-green-500' : 'text-red-500'}`}>
+                                    {isProfitable ? '+' : ''}{pnlPercentage}%
+                                </p>
+                                <p className={`text-sm font-mono ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
+                                    {isProfitable ? '+' : ''}{pnl} USDT
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Initial Capital</p>
+                                <p className="text-xl font-bold font-mono text-white">{parseFloat(investment.amount).toFixed(2)} USDT</p>
+                                <p className="text-xs text-secondary mt-1">
+                                    {parseFloat(investment.shares).toFixed(4)} Shares Owned
+                                </p>
+                            </div>
+
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Current Value</p>
+                                <div className="flex items-center gap-2">
+                                    <TrendingUp size={16} className={isProfitable ? 'text-green-500' : 'text-red-500'} />
+                                    <p className="text-xl font-bold font-mono text-white">{parseFloat(currentValue).toFixed(2)} USDT</p>
+                                </div>
+                                <p className="text-xs text-secondary mt-1">Mark-to-Market</p>
+                            </div>
+
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                                <p className="text-secondary text-xs uppercase tracking-wider mb-1">Vault State</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                    <p className="text-lg font-bold text-white">Live</p>
+                                </div>
+                                <a
+                                    href={getExplorerUrl(41454, investment.agents?.vault_address)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:underline mt-1 block"
+                                >
+                                    {shortenAddress(investment.agents?.vault_address || '')}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-white/10 pt-8">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                <DollarSign size={18} className="text-primary" />
+                                Position Management
+                            </h3>
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <button
+                                    onClick={() => handleWithdraw('profit')}
+                                    disabled={isWithdrawing || parseFloat(pnl) <= 0}
+                                    className={`neon-button secondary flex-1 ${isWithdrawing && withdrawMode === 'profit' ? 'opacity-80' : ''} ${parseFloat(pnl) <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {isWithdrawing && withdrawMode === 'profit' ? 'Processing...' : 'Withdraw Profits Only'}
+                                </button>
+                                <button
+                                    onClick={() => handleWithdraw('all')}
+                                    disabled={isWithdrawing || parseFloat(currentValue) <= 0}
+                                    className={`neon-button flex-1 ${isWithdrawing && withdrawMode === 'all' ? 'opacity-80' : ''}`}
+                                >
+                                    {isWithdrawing && withdrawMode === 'all' ? 'Closing Position...' : 'Close Position (Withdraw All)'}
+                                </button>
+                            </div>
+
+                            {parseFloat(pnl) <= 0 && (
+                                <p className="text-xs text-dim mt-2 text-center md:text-left">
+                                    * Profit withdrawal enabled when position is in profit.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                        <p className="text-secondary text-xs uppercase tracking-wider mb-1">Initial Deposit</p>
-                        <p className="text-xl font-bold font-mono">{parseFloat(investment.amount).toFixed(4)} ETH</p>
-                        <p className="text-xs text-secondary mt-1">
-                            {parseFloat(investment.shares).toFixed(4)} Shares
-                        </p>
-                    </div>
-
-                    <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                        <p className="text-secondary text-xs uppercase tracking-wider mb-1">Current Value</p>
-                        <div className="flex items-center gap-2">
-                            <TrendingUp size={16} className={isProfitable ? 'text-green-500' : 'text-red-500'} />
-                            <p className="text-xl font-bold font-mono">{parseFloat(currentValue).toFixed(4)} ETH</p>
+                {/* Sidebar: Agent Archi/Stats */}
+                <div className="lg:col-span-4">
+                    <div className="glass-container p-6 sticky top-32">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <ShieldCheck size={18} className="text-primary-purple" />
+                                AGENT ARCHITECTURE
+                            </h3>
+                            {agentData && (
+                                <span className={`text-xs font-bold px-2 py-1 rounded border ${agentData.roi >= 0 ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                    API: {agentData.roi}%
+                                </span>
+                            )}
                         </div>
-                        <p className="text-xs text-secondary mt-1">Based on current share price</p>
-                    </div>
 
-                    <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                        <p className="text-secondary text-xs uppercase tracking-wider mb-1">Vault Status</p>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <p className="text-lg font-bold">Active</p>
-                        </div>
-                        <a
-                            href={getExplorerUrl(41454, investment.agents?.vault_address)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline mt-1 block"
-                        >
-                            View Contract
-                        </a>
-                    </div>
-                </div>
+                        {agentData ? (
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-xs font-bold text-dim uppercase mb-2 block">Strategy Core</label>
+                                    <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary">
+                                                <BarChart3 size={16} />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-sm text-white">{agentData.strategy || 'Neural Momentum'}</div>
+                                                <div className="text-xs text-secondary">{agentData.personality || 'Balanced'} Risk Profile</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-dim leading-relaxed">
+                                            {agentData.description || "Autonomous agent optimizing for long-term alpha via deep-learning market analysis."}
+                                        </p>
+                                    </div>
+                                </div>
 
-                <div className="border-t border-white/10 pt-8">
-                    <h3 className="text-lg font-bold mb-4">Manage Investment</h3>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={handleWithdraw}
-                            disabled={isWithdrawing || parseFloat(currentValue) <= 0}
-                            className={`neon-button w-full md:w-auto ${isWithdrawing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            {isWithdrawing ? 'Withdrawing...' : 'Withdraw All Capital'}
-                        </button>
+                                <div>
+                                    <label className="text-xs font-bold text-dim uppercase mb-2 block">Performance Metrics</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
+                                            <div className="text-xs text-secondary mb-1">Win Rate</div>
+                                            <div className="text-lg font-bold text-white">{agentData.winRate}%</div>
+                                        </div>
+                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
+                                            <div className="text-xs text-secondary mb-1">Total Trades</div>
+                                            <div className="text-lg font-bold text-white">{agentData.totalTrades}</div>
+                                        </div>
+                                        <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-center col-span-2">
+                                            <div className="text-xs text-secondary mb-1">Total Agent PnL</div>
+                                            <div className={`text-lg font-bold ${agentData.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                {agentData.totalPnL >= 0 ? '+' : ''}{agentData.totalPnL.toFixed(2)} USDT
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Link href={`/clawdex/agent/${agentData.agentId}`} className="block w-full py-3 text-center text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/5 border border-dashed border-primary/30 rounded-lg transition-colors">
+                                    View Full Agent Protocol
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="py-8 text-center text-secondary">
+                                <Loader2 size={24} className="mx-auto mb-2 animate-spin opacity-50" />
+                                <span className="text-xs">Synchronizing Agent Data...</span>
+                            </div>
+                        )}
                     </div>
-                    {parseFloat(currentValue) <= 0 && (
-                        <p className="text-sm text-yellow-500 mt-2">
-                            No active balance to withdraw.
-                        </p>
-                    )}
                 </div>
             </div>
         </div>
     );
+}
+
+// Helper component for Loader
+function Loader2({ className, size }: { className?: string, size?: number }) {
+    return <RefreshCw className={className} size={size} />;
 }

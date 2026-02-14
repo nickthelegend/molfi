@@ -14,6 +14,8 @@ export async function GET(
             .select(`
                 *,
                 agents (
+                    id,
+                    agentId,
                     name,
                     vault_address,
                     owner_address
