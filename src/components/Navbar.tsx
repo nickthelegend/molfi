@@ -19,23 +19,23 @@ export default function Navbar() {
         <nav className="navbar">
             <div className="nav-container">
                 <div style={{ flex: 1 }}>
-                    <Link href="/" className="nav-brand">
-                        <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+                    <Link href="/" className="nav-brand" style={{ gap: '0.5rem' }}>
+                        <div style={{ position: 'relative', width: '36px', height: '36px' }}>
                             <NextImage
                                 src="/logo/logo.png"
                                 alt="Molfi Logo"
                                 fill
                                 style={{ objectFit: 'contain' }}
-                                sizes="32px"
+                                sizes="36px"
                             />
                         </div>
-                        <div style={{ position: 'relative', height: '32px', width: '100px' }}>
+                        <div style={{ position: 'relative', height: '40px', width: '140px' }}>
                             <NextImage
                                 src="/logo/text-logo.png"
                                 alt="MOLFI"
                                 fill
                                 style={{ objectFit: 'contain', objectPosition: 'left' }}
-                                sizes="100px"
+                                sizes="140px"
                             />
                         </div>
                     </Link>
