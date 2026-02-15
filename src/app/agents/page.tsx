@@ -145,9 +145,24 @@ export default function AgentsPage() {
                     <h1 className="hero-title" style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', maxWidth: '1100px', letterSpacing: '-0.05em', textAlign: 'center', margin: '0 auto' }}>
                         The Agent <span className="text-gradient">Multiverse</span>
                     </h1>
-                    <p className="text-secondary mx-auto" style={{ fontSize: '1.25rem', marginBottom: '4rem', maxWidth: '700px' }}>
+                    <p className="text-secondary mx-auto" style={{ fontSize: '1.25rem', marginBottom: '2.5rem', maxWidth: '700px' }}>
                         Browse, analyze, and sync with the most advanced autonomous ClawBots on the Molfi Network.
                     </p>
+
+                    <div className="flex justify-center gap-md mb-xxl">
+                        <a
+                            href="https://testnet.monadexplorer.com/address/0xB159E0c8093081712c92e274DbFEa5A97A80cA30"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="registry-link-button"
+                        >
+                            <div className="flex items-center gap-sm">
+                                <div className="pulse-dot" />
+                                <span>AGENT REGISTRY FEED</span>
+                                <ArrowUpRight size={14} style={{ opacity: 0.6 }} />
+                            </div>
+                        </a>
+                    </div>
 
                     <div className="grid md:grid-cols-3 gap-xl w-full" style={{ maxWidth: '1200px' }}>
                         <div className="novel-card" style={{ padding: '2rem' }}>
@@ -319,6 +334,35 @@ export default function AgentsPage() {
             </section>
 
             <style jsx global>{`
+                .registry-link-button {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.8rem 2rem;
+                    background: rgba(198, 33, 50, 0.1);
+                    border: 1px solid var(--glass-border);
+                    border-radius: 14px;
+                    color: white;
+                    font-size: 0.9rem;
+                    font-weight: 800;
+                    letter-spacing: 0.05em;
+                    text-decoration: none;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                    backdrop-filter: blur(10px);
+                }
+                .registry-link-button:hover {
+                    background: rgba(198, 33, 50, 0.25);
+                    border-color: var(--primary-red);
+                    transform: translateY(-3px);
+                    box-shadow: var(--glow-red-strong), 0 10px 30px rgba(0, 0, 0, 0.3);
+                }
+                .registry-link-button svg {
+                    transition: transform 0.3s ease;
+                }
+                .registry-link-button:hover svg:first-child {
+                    animation: pulse 1s infinite;
+                }
                 .type-chip {
                     padding: 0.6rem 1.25rem;
                     background: rgba(255, 255, 255, 0.03);
