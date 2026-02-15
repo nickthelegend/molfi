@@ -326,7 +326,15 @@ function ClawDexPageContent() {
                     <div className="flex items-center gap-xl" style={{ marginLeft: '2rem' }}>
                         <div className="top-stat" style={{ textAlign: 'right', minWidth: '100px' }}>
                             <span className="label" style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ACTIVE TVL</span>
-                            <span className="value" style={{ fontSize: '1.25rem', fontWeight: '800', fontFamily: 'var(--font-mono)' }}>${agents.length > 0 ? '1.8' : '42.8'}M</span>
+                            <span className="value" style={{ fontSize: '1.25rem', fontWeight: '800', fontFamily: 'var(--font-mono)' }}>
+                                ${agents.length > 0
+                                    ? (agents.reduce((acc, a) => {
+                                        const val = parseFloat(a.tvl?.replace(/[$KM]/g, '') || '0');
+                                        const mult = a.tvl?.includes('M') ? 1 : a.tvl?.includes('K') ? 0.001 : 0.001;
+                                        return acc + (val * mult);
+                                    }, 0) + 1.2).toFixed(1)
+                                    : '1.2'}M
+                            </span>
                         </div>
                         <div className="top-stat" style={{ textAlign: 'right', minWidth: '140px' }}>
                             <span className="label" style={{ display: 'block', fontSize: '10px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>CLAW_CONSENSUS</span>
@@ -727,7 +735,8 @@ function ClawDexPageContent() {
                     agent={{
                         name: selectedAgent.name,
                         vaultAddress: selectedAgent.vaultAddress,
-                        agentId: String(selectedAgent.agentId)
+                        agentId: String(selectedAgent.agentId),
+                        avatar: selectedAgent.avatar
                     }}
                 />
             )}

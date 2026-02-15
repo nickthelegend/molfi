@@ -15,6 +15,8 @@ import {
     CheckCircle2,
     AlertCircle
 } from "lucide-react";
+import MolfiAgentVaultABI from "@/abis/MolfiAgentVault.json";
+import { decodeEventLog } from "viem";
 
 // ABIs
 const USDC_ABI = [
@@ -40,7 +42,7 @@ interface AllocateModalProps {
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
 
-type AllocateStep = 'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'success' | 'error';
+type AllocateStep = 'idle' | 'approving' | 'waiting_approve' | 'depositing' | 'waiting_deposit' | 'syncing' | 'success' | 'error';
 
 export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalProps) {
     const { address, isConnected } = useAccount();
@@ -76,7 +78,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
     });
 
     // 4. Wait for deposit tx confirmation
-    const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({
+    const { isSuccess: depositConfirmed, data: depositReceipt } = useWaitForTransactionReceipt({
         hash: depositTxHash,
     });
 
@@ -89,13 +91,63 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
         }
     }, [approveConfirmed]);
 
-    // When deposit is confirmed, show success
+    // When deposit is confirmed, sync with backend then show success
     useEffect(() => {
         if (depositConfirmed && step === 'waiting_deposit') {
-            console.log("[AllocateModal] ✅ Deposit confirmed! Allocation complete.");
-            setStep('success');
+            console.log("[AllocateModal] ✅ Deposit confirmed! Syncing with backend...");
+
+            const syncInvestment = async () => {
+                setStep('syncing');
+                try {
+                    let mintedShares = amount; // Fallback
+
+                    if (depositReceipt) {
+                        for (const log of depositReceipt.logs) {
+                            try {
+                                if (log.address.toLowerCase() === agent.vaultAddress.toLowerCase()) {
+                                    const event = decodeEventLog({
+                                        abi: MolfiAgentVaultABI,
+                                        data: log.data,
+                                        topics: log.topics,
+                                    }) as any;
+
+                                    if (event.eventName === 'Deposit') {
+                                        if (event.args && event.args.shares) {
+                                            mintedShares = formatEther(event.args.shares);
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                // Skip non-matching logs
+                            }
+                        }
+                    }
+
+                    console.log("[AllocateModal] Registering investment in DB...");
+                    await fetch('/api/investments/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            txHash: depositTxHash,
+                            agentId: agent.agentId,
+                            userAddress: address,
+                            amount: amount,
+                            shares: mintedShares
+                        })
+                    });
+
+                    console.log("[AllocateModal] ✅ Sync complete.");
+                    setStep('success');
+                } catch (err) {
+                    console.error("[AllocateModal] ❌ Sync failed:", err);
+                    // Still show success as the on-chain part worked, but log it
+                    setStep('success');
+                }
+            };
+
+            syncInvestment();
         }
-    }, [depositConfirmed]);
+    }, [depositConfirmed, depositReceipt]);
 
     const handleMax = () => {
         setAmount(formattedBalance);
@@ -114,7 +166,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
 
             const hash = await writeContractAsync({
                 address: agent.vaultAddress as `0x${string}`,
-                abi: VAULT_ABI,
+                abi: MolfiAgentVaultABI,
                 functionName: "deposit",
                 args: [parsedAmount, address],
             });
@@ -185,6 +237,7 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
             case 'waiting_approve': return 'WAITING FOR APPROVAL CONFIRMATION...';
             case 'depositing': return 'DEPOSIT IN WALLET...';
             case 'waiting_deposit': return 'WAITING FOR DEPOSIT CONFIRMATION...';
+            case 'syncing': return 'SYNCING WITH BACKEND...';
             case 'success': return 'ALLOCATION COMPLETE ✓';
             case 'error': return 'TRANSACTION FAILED';
             default: return 'CONFIRM ALLOCATION';
@@ -198,8 +251,14 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
             <div className="allocate-modal float-anim">
                 {/* Header */}
                 <div className="modal-header">
-                    <div>
-                        <h2 className="modal-title">ALLOCATE</h2>
+                    <div className="flex items-center gap-md">
+                        <div className="modal-agent-orb">
+                            <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
+                        </div>
+                        <div>
+                            <h2 className="modal-title">ALLOCATE</h2>
+                            <p className="modal-agent-name">{agent.name}</p>
+                        </div>
                     </div>
                     <button className="close-btn" onClick={handleClose}>
                         <X size={18} />
@@ -318,7 +377,13 @@ export default function AllocateModal({ isOpen, onClose, agent }: AllocateModalP
           font-size: 1.1rem;
           font-weight: 800;
           letter-spacing: 0.05em;
+          margin: 0;
+          line-height: 1;
         }
+
+        .modal-agent-orb { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 1px solid var(--primary-purple); }
+        .modal-agent-orb img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-agent-name { font-size: 10px; color: var(--primary-purple); font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin: 2px 0 0 0; line-height: 1; }
 
         .close-btn {
           background: transparent;
