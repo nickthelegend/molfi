@@ -169,7 +169,7 @@ export default function LaunchPage() {
                                 <div className="flex flex-col gap-xxl">
                                     <div className="flex flex-col gap-xl">
                                         <div style={{ textAlign: 'center' }}>
-                                            <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] block mb-md">Agent Neural Signature</label>
+                                            <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] block mb-md">ClawBot Name</label>
                                             <input
                                                 type="text"
                                                 className="novel-search-input"
@@ -228,12 +228,13 @@ export default function LaunchPage() {
                                         <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: 'white' }}>{agentDetails.name || 'Unnamed Agent'}</h2>
                                         <span className="text-xs text-primary font-bold uppercase tracking-[0.3em] mb-xl">{agentDetails.personality} RISK PROFILE</span>
                                         <button
-                                            className="premium-button"
+                                            className="premium-button primary-purple"
                                             disabled={!agentDetails.name}
                                             onClick={handleLaunch}
-                                            style={{ width: '100%', maxWidth: '400px', height: '64px', fontSize: '1.1rem', opacity: agentDetails.name ? 1 : 0.4 }}
+                                            style={{ width: '100%', maxWidth: '400px', height: '64px', fontSize: '1.1rem' }}
                                         >
-                                            EXECUTE NEURAL DEPLOYMENT
+                                            <Bot size={20} />
+                                            <span>LAUNCH CLAWBOT</span>
                                         </button>
                                     </div>
                                 </div>
@@ -292,10 +293,16 @@ export default function LaunchPage() {
 
                                         <div className="flex flex-col sm:flex-row gap-lg mt-xxl max-w-[600px] mx-auto">
                                             <Link href="/clawdex" style={{ flex: 1 }}>
-                                                <button className="premium-button" style={{ width: '100%', background: '#22c55e', boxShadow: '0 10px 20px rgba(34, 197, 94, 0.2)' }}>CONTINUE TO CLAWDEX</button>
+                                                <button className="premium-button primary-green" style={{ width: '100%', height: '56px' }}>
+                                                    <Zap size={18} />
+                                                    <span>CONTINUE TO CLAWDEX</span>
+                                                </button>
                                             </Link>
                                             <Link href="/" style={{ flex: 1 }}>
-                                                <button className="premium-button" style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>RETURN HOME</button>
+                                                <button className="premium-button secondary-ghost" style={{ width: '100%', height: '56px' }}>
+                                                    <ArrowLeft size={18} />
+                                                    <span>RETURN HOME</span>
+                                                </button>
                                             </Link>
                                         </div>
                                     </div>
@@ -309,6 +316,68 @@ export default function LaunchPage() {
             </div>
 
             <style jsx global>{`
+                .premium-button {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    padding: 0 2rem;
+                    border-radius: 14px;
+                    font-family: var(--font-display);
+                    font-weight: 700;
+                    font-size: 0.95rem;
+                    letter-spacing: 0.05em;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1px solid transparent;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .premium-button.primary-purple {
+                    background: var(--primary-purple);
+                    color: white;
+                    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
+                }
+
+                .premium-button.primary-purple:hover {
+                    background: #9333ea;
+                    transform: translateY(-3px);
+                    box-shadow: 0 15px 40px rgba(168, 85, 247, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+                }
+
+                .premium-button.primary-green {
+                    background: #22c55e;
+                    color: #050505;
+                    box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.4);
+                }
+
+                .premium-button.primary-green:hover {
+                    background: #16a34a;
+                    transform: translateY(-3px);
+                    box-shadow: 0 15px 40px rgba(34, 197, 94, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.5);
+                }
+
+                .premium-button.secondary-ghost {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: white;
+                    backdrop-filter: blur(10px);
+                }
+
+                .premium-button.secondary-ghost:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    border-color: rgba(255, 255, 255, 0.3);
+                    transform: translateY(-3px);
+                }
+
+                .premium-button:disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+                    transform: none !important;
+                }
+
                 .novel-search-input::placeholder {
                     color: rgba(255,255,255,0.2);
                 }
@@ -328,6 +397,7 @@ export default function LaunchPage() {
                     font-size: 0.9rem;
                 }
             `}</style>
+
         </div>
     );
 }
