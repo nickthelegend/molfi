@@ -22,7 +22,8 @@ import {
     Loader2,
     Users,
     Wallet,
-    RefreshCw
+    RefreshCw,
+    ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -91,6 +92,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const [withdrawStep, setWithdrawStep] = useState<'idle' | 'withdrawing' | 'waiting_withdraw' | 'success' | 'error'>('idle');
     const [withdrawError, setWithdrawError] = useState<string | null>(null);
     const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
+    const [totalDeposited, setTotalDeposited] = useState<bigint>(0n);
+    const [isFullWithdraw, setIsFullWithdraw] = useState(false);
 
     const REPUTATION_REGISTRY = process.env.NEXT_PUBLIC_REPUTATION_REGISTRY as `0x${string}`;
     const PROTOCOL_CLIENT = '0xcCED528A5b70e16c8131Cb2de424564dD938fD3B' as `0x${string}`; // Deployer address
@@ -244,9 +247,12 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const formattedBalance = usdcBalanceData ? formatEther(usdcBalanceData) : "0.00";
     const currentAssets = assetsFromShares ? (assetsFromShares as bigint) : 0n;
     const maxWithdrawAmount = (maxWithdraw as bigint | undefined) || 0n;
-    const pnlAvailable = maxWithdrawAmount > netDeposits ? maxWithdrawAmount - netDeposits : 0n;
+
+    // Fix: Profit is everything above the total principal deposited
+    const pnlAvailable = maxWithdrawAmount > totalDeposited ? maxWithdrawAmount - totalDeposited : 0n;
+
     const currentAssetsDisplay = formatEther(currentAssets);
-    const netDepositsDisplay = formatEther(netDeposits);
+    const totalDepositedDisplay = formatEther(totalDeposited);
     const pnlAvailableDisplay = formatEther(pnlAvailable);
 
     // 3. Wait for approve tx confirmation
@@ -335,12 +341,32 @@ function AgentDetailPageContent({ id }: { id: string }) {
         }
     }, [depositConfirmed, depositReceipt]);
 
-    // When withdraw is confirmed, show success
+    // When withdraw is confirmed, sync with Supabase and show success
     useEffect(() => {
         if (withdrawConfirmed && withdrawStep === 'waiting_withdraw') {
-            setWithdrawStep('success');
-            setWithdrawError(null);
-            setTimeout(() => setWithdrawStep('idle'), 3000);
+            const syncWithdrawal = async () => {
+                try {
+                    console.log(`[Sync] Registering withdrawal in DB. Full: ${isFullWithdraw}`);
+                    await fetch('/api/investments/sync-withdrawal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userAddress: address,
+                            agentId: agent.agentId,
+                            isFullWithdraw: isFullWithdraw
+                        })
+                    });
+                } catch (e) {
+                    console.error("Failed to sync withdrawal:", e);
+                }
+                setWithdrawStep('success');
+                setWithdrawError(null);
+                setTimeout(() => {
+                    setWithdrawStep('idle');
+                    setIsFullWithdraw(false);
+                }, 3000);
+            };
+            syncWithdrawal();
         }
     }, [withdrawConfirmed]);
 
@@ -422,11 +448,15 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
                 const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
                 const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+
                 const net = deposits > withdrawals ? deposits - withdrawals : 0n;
+
+                setTotalDeposited(deposits);
                 setNetDeposits(net);
             } catch (err) {
                 console.error("Error fetching net deposits:", err);
                 setNetDeposits(0n);
+                setTotalDeposited(0n);
             }
         };
 
@@ -519,7 +549,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         }
 
         const maxWithdrawValue = (maxWithdraw as bigint | undefined) || 0n;
-        const pnlAvailable = maxWithdrawValue > netDeposits ? maxWithdrawValue - netDeposits : 0n;
+        const pnlAvailable = maxWithdrawValue > totalDeposited ? maxWithdrawValue - totalDeposited : 0n;
 
         if (pnlAvailable <= 0n) {
             alert("No PnL available to withdraw yet.");
@@ -528,6 +558,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
         setWithdrawStep('withdrawing');
         setWithdrawError(null);
+        setIsFullWithdraw(false);
 
         try {
             const hash = await writeContractAsync({
@@ -542,6 +573,53 @@ function AgentDetailPageContent({ id }: { id: string }) {
         } catch (err: any) {
             console.error("Withdraw failed:", err);
             setWithdrawError(err.shortMessage || err.message || "Withdraw failed");
+            setWithdrawStep('error');
+        }
+    }
+
+    async function handleWithdrawAll() {
+        if (!isConnected || !address || !agent?.vaultAddress) {
+            alert("Please connect your wallet to withdraw.");
+            return;
+        }
+
+        if (!shareBalance || (shareBalance as bigint) <= 0n) {
+            alert("No shares to redeem.");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to CLOSE POSITION? \n\nThis will trigger a backend withdrawal where you receive ONLY the earned profit. Your principal will remain in the vault as protocol liquidity. Position will be marked CLOSED.")) {
+            return;
+        }
+
+        setWithdrawStep('withdrawing');
+        setWithdrawError(null);
+        setIsFullWithdraw(true);
+
+        try {
+            // BACKEND EXECUTION: Call the Payout API
+            const response = await fetch('/api/investments/close-with-profit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userAddress: address,
+                    agentId: agent.agentId,
+                    vaultAddress: agent.vaultAddress
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Backend payout failed');
+            }
+
+            console.log(`[Backend Payout] Success: ${data.txHash}`);
+            setWithdrawTxHash(data.txHash);
+            setWithdrawStep('success'); // Already confirmed by backend
+        } catch (err: any) {
+            console.error("Backend Redeem all failed:", err);
+            setWithdrawError(err.message || "Redeem all failed");
             setWithdrawStep('error');
         }
     }
@@ -687,8 +765,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
                             <div className="allocation-metrics">
                                 <div className="allocation-metric">
-                                    <span className="metric-label">Net Deposits</span>
-                                    <span className="metric-value">${Number(netDepositsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="metric-label">Principal</span>
+                                    <span className="metric-value">${Number(totalDepositedDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="allocation-metric">
                                     <span className="metric-label">Current Value</span>
@@ -729,17 +807,34 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         {step === 'success' && "SUCCESS! RELAY ACTIVE"}
                                         {step === 'error' && "FAILED - RETRY?"}
                                     </button>
-                                    <button
-                                        className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' ? 'loading' : ''}`}
-                                        onClick={handleWithdrawPnL}
-                                        disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
-                                    >
-                                        {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
-                                        {withdrawStep === 'withdrawing' && "WITHDRAW IN WALLET..."}
-                                        {withdrawStep === 'waiting_withdraw' && "CONFIRMING WITHDRAW..."}
-                                        {withdrawStep === 'success' && "PNL WITHDRAWN"}
-                                        {withdrawStep === 'error' && "WITHDRAW FAILED - RETRY?"}
-                                    </button>
+                                    <div className="flex gap-sm">
+                                        <button
+                                            className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && !isFullWithdraw ? 'loading' : ''}`}
+                                            style={{ flex: 1.5 }}
+                                            onClick={handleWithdrawPnL}
+                                            disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
+                                        >
+                                            {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
+                                            {withdrawStep === 'withdrawing' && !isFullWithdraw && "WITHDRAW IN WALLET..."}
+                                            {withdrawStep === 'waiting_withdraw' && !isFullWithdraw && "CONFIRMING WITHDRAW..."}
+                                            {withdrawStep === 'success' && !isFullWithdraw && "PNL WITHDRAWN"}
+                                            {withdrawStep === 'error' && !isFullWithdraw && "FAILED - RETRY?"}
+                                            {withdrawStep !== 'idle' && isFullWithdraw && "Withdraw PnL"}
+                                        </button>
+                                        <button
+                                            className={`withdraw-all-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && isFullWithdraw ? 'loading' : ''}`}
+                                            style={{ flex: 1 }}
+                                            onClick={handleWithdrawAll}
+                                            disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || !shareBalance || (shareBalance as bigint) <= 0n}
+                                        >
+                                            {withdrawStep === 'idle' && "Redeem All"}
+                                            {withdrawStep === 'withdrawing' && isFullWithdraw && "REDEEMING..."}
+                                            {withdrawStep === 'waiting_withdraw' && isFullWithdraw && "CONFIRMING..."}
+                                            {withdrawStep === 'success' && isFullWithdraw && "CLOSED"}
+                                            {withdrawStep === 'error' && isFullWithdraw && "FAILED"}
+                                            {withdrawStep !== 'idle' && !isFullWithdraw && "Redeem All"}
+                                        </button>
+                                    </div>
                                     {errorMsg && (
                                         <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
                                             ERROR: {errorMsg}
@@ -748,6 +843,18 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                     {withdrawError && (
                                         <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
                                             WITHDRAW ERROR: {withdrawError}
+                                        </div>
+                                    )}
+                                    {withdrawStep === 'success' && withdrawTxHash && (
+                                        <div className="mt-sm p-sm bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                                            <a
+                                                href={`https://testnet.monadexplorer.com/tx/${withdrawTxHash}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] text-green-400 font-mono flex items-center justify-center gap-1 hover:underline"
+                                            >
+                                                VIEW TRANSACTION PROOF <ExternalLink size={10} />
+                                            </a>
                                         </div>
                                     )}
                                 </>
@@ -1199,9 +1306,32 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     letter-spacing: 0.08em;
                     cursor: pointer;
                     transition: all 0.3s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
                 .withdraw-btn:hover { border-color: var(--primary-purple); color: var(--primary-purple); }
                 .withdraw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+                .withdraw-all-btn {
+                    margin-top: 0.6rem;
+                    background: rgba(168, 85, 247, 0.05);
+                    color: var(--primary-purple);
+                    border: 1px solid rgba(168, 85, 247, 0.3);
+                    height: 44px;
+                    border-radius: 12px;
+                    font-weight: 800;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.08em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .withdraw-all-btn:hover:not(:disabled) { background: rgba(168, 85, 247, 0.15); border-color: var(--primary-purple); }
+                .withdraw-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+                .withdraw-all-btn.loading { opacity: 0.7; cursor: wait; }
 
                 .neural-timeline { position: relative; padding-left: 24px; }
                 .neural-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: rgba(168, 85, 247, 0.2); }

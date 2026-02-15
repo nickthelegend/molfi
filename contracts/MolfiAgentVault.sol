@@ -121,5 +121,20 @@ contract MolfiAgentVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradea
         emit PositionClosed(positionId, pnl);
     }
 
+    /**
+     * @notice Admin-only function to payout profits to a user and close their position.
+     * @dev This burns ALL of the user's shares in this vault, but only pays out the profit amount.
+     * @param user The user address to close position for
+     * @param sharesToBurn The total shares to burn (closing position)
+     * @param profitAmount The profit amount in USDC to send to the user
+     */
+    function adminPayoutProfit(address user, uint256 sharesToBurn, uint256 profitAmount) external onlyOwner {
+        require(balanceOf(user) >= sharesToBurn, "Insufficient shares");
+        _burn(user, sharesToBurn);
+        if (profitAmount > 0) {
+            usdc.transfer(user, profitAmount);
+        }
+    }
+
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
