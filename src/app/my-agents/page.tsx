@@ -16,7 +16,8 @@ import {
     Cpu,
     Activity,
     Server,
-    Key
+    Key,
+    Plus
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -99,9 +100,20 @@ export default function MyAgentsPage() {
                     <h1 className="hero-title" style={{ fontSize: '4rem', marginBottom: '1rem' }}>
                         My  <span className="text-gradient">Clawbots</span>
                     </h1>
-                    <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem' }}>
+                    <p className="text-secondary" style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem', marginBottom: '2rem' }}>
                         Manage your deployed autonomous agents, access secure API keys, and integration prompts.
                     </p>
+                    <Link href="/launch">
+                        <button className="premium-button" style={{
+                            padding: '0.8rem 2.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontWeight: '800'
+                        }}>
+                            <Plus size={18} /> LAUNCH NEW AGENT
+                        </button>
+                    </Link>
                 </div>
 
                 {!isConnected ? (
