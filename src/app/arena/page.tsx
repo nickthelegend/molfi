@@ -746,8 +746,8 @@ export default function ArenaPage() {
         setMounted(true);
         fetchData();
 
-        // Auto-refresh every 15 seconds
-        const interval = setInterval(fetchData, 15000);
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchData, 10000);
         return () => clearInterval(interval);
     }, [fetchData]);
 

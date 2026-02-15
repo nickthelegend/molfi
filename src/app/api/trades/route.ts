@@ -64,14 +64,8 @@ export async function GET(req: NextRequest) {
         await Promise.allSettled(
             uniquePairs.map(async (pair) => {
                 try {
-                    // Try Binance first for freshest price
-                    const binanceData = await getBinancePrice(pair);
-                    if (binanceData) {
-                        livePrices[pair] = binanceData.price;
-                    } else {
-                        const pd = await getOraclePrice(pair);
-                        livePrices[pair] = pd.price;
-                    }
+                    const pd = await getOraclePrice(pair);
+                    livePrices[pair] = pd.price;
                 } catch { /* skip */ }
             })
         );

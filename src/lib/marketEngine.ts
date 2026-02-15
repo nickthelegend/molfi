@@ -275,7 +275,7 @@ export async function syncOraclePrice(symbol: string): Promise<PriceData> {
 // ── Main Price Fetcher ───────────────────────────────────────────
 /**
  * Fetches the latest price for a symbol.
- * Tries: MolfiOracle → Binance → CoinGecko → Fallback
+ * Tries: Binance → MolfiOracle → CoinGecko → Fallback
  */
 export async function getOraclePrice(symbol: string): Promise<PriceData> {
   const normalized = symbol.replace('-', '/').toUpperCase();
@@ -286,12 +286,12 @@ export async function getOraclePrice(symbol: string): Promise<PriceData> {
     return cached.data;
   }
 
-  // 1. Try oracle first
-  let data: PriceData | null = await readFromOracle(normalized);
+  // 1. Try Binance first (User requested priority)
+  let data: PriceData | null = await getBinancePrice(normalized);
 
-  // 2. Fallback to Binance direct
+  // 2. Fallback to Oracle
   if (!data) {
-    data = await readFromBinance(normalized);
+    data = await readFromOracle(normalized);
   }
 
   // 3. Fallback to CoinGecko
@@ -314,6 +314,7 @@ export async function getOraclePrice(symbol: string): Promise<PriceData> {
  */
 export async function getAllPrices(): Promise<PriceData[]> {
   // Try batch read from oracle first
+  /*
   if (ORACLE_ADDRESS && RPC_URLS.length > 0) {
     for (let attempt = 0; attempt < RPC_URLS.length; attempt++) {
       try {
@@ -344,6 +345,7 @@ export async function getAllPrices(): Promise<PriceData[]> {
       }
     }
   }
+  */
 
   // Fallback: fetch each pair individually (tries Oracle → Binance → CG → Fallback)
   const allPairs = Object.keys(BINANCE_SYMBOLS);
