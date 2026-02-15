@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
         }
 
         const { data: agent, error: authError } = await supabaseAdmin
-            .from('AIAgent')
+            .from('agents')
             .select('*')
-            .eq('apiKey', apiKey)
+            .eq('api_key', apiKey)
             .single();
 
         if (authError || !agent) {
@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
         // --- ON-CHAIN EXECUTION: Call Vault Contract ---
         let onChainData = { success: false, txHash: null, positionId: null };
 
-        if (agent.vaultAddress) {
+        if (agent.vault_address) {
             try {
                 const RPC_URL = 'https://testnet-rpc.monad.xyz';
                 const provider = new ethers.JsonRpcProvider(RPC_URL);
                 const wallet = new ethers.Wallet(process.env.DEPLOYER_PRIVATE_KEY || '', provider);
 
                 const vault = new ethers.Contract(
-                    agent.vaultAddress,
+                    agent.vault_address,
                     ["function executePerpTrade(string,uint256,uint256,uint256,bool) external returns (uint256)"],
                     wallet
                 );
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
                 const collateralWei = ethers.parseUnits(parseFloat(collateral).toFixed(18), 18);
                 const isLong = tradeSide === 'LONG';
 
-                console.log(`[ON-CHAIN] Executing trade for Agent #${agent.agentId} on vault ${agent.vaultAddress}...`);
+                console.log(`[ON-CHAIN] Executing trade for Agent #${agent.agent_id} on vault ${agent.vault_address}...`);
 
                 const tx = await vault.executePerpTrade(
                     normalizedPair,
@@ -86,42 +86,34 @@ export async function POST(request: NextRequest) {
                 console.log(`[ON-CHAIN] TX Sent: ${tx.hash}`);
                 const receipt = await tx.wait(1);
 
-                // Parse Position ID from logs or return value?
-                // executePerpTrade returns uint256 which is the positionId.
-                // In ethers v6, we can get the result if we simulate or if the event is emitted.
-                // The contract emits TradeExecuted(string pair, uint256 size, bool isLong);
-                // But it also returns positionId. 
-                // However, wait() only gives receipt. We need to check logs if we want the ID.
-                // Let's assume we can get it from logs or just use txHash for tracking.
-
                 onChainData = {
                     success: true,
                     txHash: tx.hash,
-                    positionId: null // We'll need a better way to track this if the contract doesn't emit ID in event
+                    positionId: null
                 };
 
                 console.log(`[ON-CHAIN] Trade Confirmed ✅ tx: ${tx.hash}`);
             } catch (err: any) {
                 console.error('[ON-CHAIN] Execution failed:', err.message);
-                // We'll continue with the DB log even if on-chain fails for now, 
-                // but we should probably mark it as failed in a real system.
             }
         }
 
         // --- Log Trade to Supabase ---
         const { data: trade, error: insertError } = await supabaseAdmin
-            .from('TradeLog')
+            .from('trade_signals')
             .insert({
-                agentId: agent.agentId,
+                agent_id: agent.agent_id,
                 pair: normalizedPair,
                 side: tradeSide,
                 size: parseFloat(size),
                 collateral: parseFloat(collateral),
                 leverage: lev,
-                entryPrice,
+                entry_price: entryPrice,
                 fees: tradingFee,
                 status: 'OPEN',
-                // txHash: onChainData.txHash, // Storing execution tx hash (Disabled until column exists)
+                tx_hash: onChainData.txHash,
+                is_long: tradeSide === 'LONG',
+                closed_at: null
             })
             .select()
             .single();
@@ -131,11 +123,11 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to log trade: ' + insertError.message);
         }
 
-        console.log(`[TRADE_OPEN] Agent ${agent.name} (#${agent.agentId}) opened ${tradeSide} ${normalizedPair} @ $${entryPrice.toFixed(2)} | Size: ${size} | Lev: ${lev}x`);
+        console.log(`[TRADE_OPEN] Agent ${agent.name} (#${agent.agent_id}) opened ${tradeSide} ${normalizedPair} @ $${entryPrice.toFixed(2)} | Size: ${size} | Lev: ${lev}x`);
 
         // Submit on-chain reputation (fire-and-forget)
         const reputation = await recordTradeOpen({
-            agentId: agent.agentId,
+            agentId: agent.agent_id,
             agentName: agent.name,
             pair: normalizedPair,
             side: tradeSide,
