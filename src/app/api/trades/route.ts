@@ -23,20 +23,47 @@ export async function GET(req: NextRequest) {
         }
 
         // --- Trade Log Mode ---
+        // We'll fetch trades and join agents manually or via Supabase if FK exists.
+        // To be safe given the separate fetch pattern involves elsewhere, let's try to join or fallback.
+        // Actually, let's use the explicit relation if it exists. If not, we fetch agents separately.
+        // Assuming 'agent_id' is the FK.
+
+        // Try to fetch with join first
         let query = supabaseAdmin
-            .from('TradeLog')
-            .select('*, AIAgent!inner(name, personality)')
-            .order('openedAt', { ascending: false })
+            .from('trade_signals')
+            .select('*, agents(name, personality)')
+            .order('created_at', { ascending: false })
             .limit(limit);
 
-        if (agentId) query = query.eq('agentId', parseInt(agentId));
+        if (agentId) query = query.eq('agent_id', parseInt(agentId));
         if (status) query = query.eq('status', status);
 
-        const { data: trades, error } = await query;
+        const { data: rawTrades, error } = await query;
         if (error) throw error;
 
+        // Map snake_case to camelCase
+        const trades = (rawTrades || []).map(t => ({
+            ...t,
+            id: t.id,
+            agentId: t.agent_id,
+            pair: t.pair,
+            side: t.side || (t.is_long ? 'LONG' : 'SHORT'),
+            status: t.status,
+            entryPrice: t.entry_price,
+            exitPrice: t.exit_price,
+            size: t.size,
+            collateral: t.collateral,
+            leverage: t.leverage,
+            pnl: t.pnl,
+            fees: t.fees,
+            openedAt: t.opened_at || t.created_at,
+            closedAt: t.closed_at,
+            agentName: (t as any).agents?.name || 'Unknown',
+            agentPersonality: (t as any).agents?.personality || 'Balanced',
+        }));
+
         // Fetch current prices for open positions to calculate unrealized PnL
-        const openTrades = (trades || []).filter(t => t.status === 'OPEN');
+        const openTrades = trades.filter(t => t.status === 'OPEN');
         const uniquePairs = [...new Set(openTrades.map(t => t.pair))];
         const livePrices: Record<string, number> = {};
 
@@ -49,8 +76,7 @@ export async function GET(req: NextRequest) {
             })
         );
 
-        const enriched = (trades || []).map(t => {
-            const agentName = (t as any).AIAgent?.name || 'Unknown';
+        const enriched = trades.map(t => {
             let unrealizedPnl: number | null = null;
             let currentPrice: number | null = null;
             let pnlPercent: number | null = null;
@@ -59,18 +85,16 @@ export async function GET(req: NextRequest) {
                 currentPrice = livePrices[t.pair];
                 unrealizedPnl = calculatePnL(
                     t.side as 'LONG' | 'SHORT',
-                    parseFloat(t.entryPrice),
+                    parseFloat(String(t.entryPrice)),
                     currentPrice,
-                    parseFloat(t.size)
+                    parseFloat(String(t.size))
                 );
-                pnlPercent = (unrealizedPnl / parseFloat(t.collateral || t.size)) * 100;
+                pnlPercent = (unrealizedPnl / parseFloat(String(t.collateral || t.size))) * 100;
             }
 
             return {
                 ...t,
-                agentName,
-                agentPersonality: (t as any).AIAgent?.personality || 'Balanced',
-                avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${agentName}`,
+                avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${t.agentName}`,
                 currentPrice,
                 unrealizedPnl: unrealizedPnl !== null ? parseFloat(unrealizedPnl.toFixed(4)) : null,
                 pnlPercent: pnlPercent !== null ? parseFloat(pnlPercent.toFixed(2)) : null,
@@ -86,22 +110,41 @@ export async function GET(req: NextRequest) {
 }
 
 async function getLeaderboard() {
-    // Get all agents with their trades
+    // Get all agents
     const { data: agents, error: agentError } = await supabaseAdmin
-        .from('AIAgent')
-        .select('agentId, name, personality');
+        .from('agents')
+        .select('agent_id, name, personality');
 
     if (agentError) throw agentError;
 
-    const { data: trades, error: tradeError } = await supabaseAdmin
-        .from('TradeLog')
+    // Get all trades
+    const { data: rawTrades, error: tradeError } = await supabaseAdmin
+        .from('trade_signals')
         .select('*')
-        .order('openedAt', { ascending: true });
+        .order('created_at', { ascending: true });
 
     if (tradeError) throw tradeError;
 
+    // Map trades to consistent format
+    const trades = (rawTrades || []).map(t => ({
+        ...t,
+        agentId: t.agent_id,
+        pair: t.pair,
+        side: t.side || (t.is_long ? 'LONG' : 'SHORT'),
+        status: t.status,
+        entryPrice: t.entry_price || 0,
+        exitPrice: t.exit_price,
+        size: t.size || 0,
+        collateral: t.collateral,
+        leverage: t.leverage,
+        pnl: t.pnl,
+        fees: t.fees,
+        openedAt: t.opened_at || t.created_at,
+        closedAt: t.closed_at,
+    }));
+
     // Fetch live prices for all open positions
-    const openTrades = (trades || []).filter(t => t.status === 'OPEN');
+    const openTrades = trades.filter(t => t.status === 'OPEN');
     const uniquePairs = [...new Set(openTrades.map(t => t.pair))];
     const livePrices: Record<string, number> = {};
 
@@ -116,13 +159,13 @@ async function getLeaderboard() {
 
     // Aggregate per agent
     const leaderboard = (agents || []).map(agent => {
-        const agentTrades = (trades || []).filter(t => t.agentId === agent.agentId);
+        const agentTrades = trades.filter(t => t.agentId === agent.agent_id);
         const closedTrades = agentTrades.filter(t => t.status === 'CLOSED');
         const agentOpenTrades = agentTrades.filter(t => t.status === 'OPEN');
 
         // ── Realized PnL (closed trades) ──
-        const realizedPnL = closedTrades.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
-        const totalFees = agentTrades.reduce((sum, t) => sum + parseFloat(t.fees || '0'), 0);
+        const realizedPnL = closedTrades.reduce((sum, t) => sum + parseFloat(String(t.pnl || '0')), 0);
+        const totalFees = agentTrades.reduce((sum, t) => sum + parseFloat(String(t.fees || '0')), 0);
 
         // ── Unrealized PnL (open positions with live prices) ──
         let unrealizedPnL = 0;
@@ -132,20 +175,20 @@ async function getLeaderboard() {
 
             const uPnl = calculatePnL(
                 t.side as 'LONG' | 'SHORT',
-                parseFloat(t.entryPrice),
+                parseFloat(String(t.entryPrice)),
                 currentPrice,
-                parseFloat(t.size)
+                parseFloat(String(t.size))
             );
             unrealizedPnL += uPnl;
             return { ...t, unrealizedPnl: parseFloat(uPnl.toFixed(4)), currentPrice };
         });
 
         // ── Win/Loss Stats (closed only) ──
-        const wins = closedTrades.filter(t => parseFloat(t.pnl || '0') > 0);
-        const losses = closedTrades.filter(t => parseFloat(t.pnl || '0') <= 0);
+        const wins = closedTrades.filter(t => parseFloat(String(t.pnl || '0')) > 0);
+        const losses = closedTrades.filter(t => parseFloat(String(t.pnl || '0')) <= 0);
         const winRate = closedTrades.length > 0 ? (wins.length / closedTrades.length) * 100 : 0;
 
-        const pnls = closedTrades.map(t => parseFloat(t.pnl || '0'));
+        const pnls = closedTrades.map(t => parseFloat(String(t.pnl || '0')));
         const biggestWin = pnls.length > 0 ? Math.max(...pnls, 0) : 0;
         const biggestLoss = pnls.length > 0 ? Math.min(...pnls, 0) : 0;
 
@@ -175,7 +218,7 @@ async function getLeaderboard() {
         // Walk through trade events chronologically
         for (const t of agentTrades) {
             if (t.status === 'CLOSED' && t.pnl != null) {
-                runningEquity += parseFloat(t.pnl);
+                runningEquity += parseFloat(String(t.pnl));
                 const closeTime = new Date(t.closedAt || t.openedAt).getTime() / 1000;
                 equityCurve.push({ time: closeTime, value: parseFloat(runningEquity.toFixed(2)) });
             }
@@ -193,9 +236,9 @@ async function getLeaderboard() {
             if (t.status === 'OPEN' && currentPrice) {
                 unrealizedPnl = parseFloat(calculatePnL(
                     t.side as 'LONG' | 'SHORT',
-                    parseFloat(t.entryPrice),
+                    parseFloat(String(t.entryPrice)),
                     currentPrice,
-                    parseFloat(t.size)
+                    parseFloat(String(t.size))
                 ).toFixed(4));
             }
             return {
@@ -209,7 +252,7 @@ async function getLeaderboard() {
 
         return {
             rank: 0,
-            agentId: agent.agentId,
+            agentId: agent.agent_id,
             name: agent.name,
             personality: agent.personality,
             avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`,
@@ -241,8 +284,8 @@ async function getLeaderboard() {
         leaderboard,
         livePrices,
         stats: {
-            totalTrades: (trades || []).length,
-            totalVolume: (trades || []).reduce((sum, t) => sum + parseFloat(t.size || '0'), 0),
+            totalTrades: trades.length,
+            totalVolume: trades.reduce((sum, t) => sum + parseFloat(String(t.size || '0')), 0),
             activeAgents: leaderboard.filter(a => a.tradesCount > 0).length,
             totalAgents: leaderboard.length,
         },
