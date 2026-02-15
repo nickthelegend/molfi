@@ -199,8 +199,13 @@ export default function ProfilePage() {
                             });
                             foundNew = true;
                         }
-                    } catch (e) {
-                        console.error(`Withdraw sync failed for investment ${inv.tx_hash}:`, e);
+                    } catch (e: any) {
+                        // Check for contract not found or zero data (meaning potentially invalid address)
+                        if (e.name === 'ContractFunctionExecutionError' || e.message?.includes('returned no data')) {
+                            console.warn(`[Sync] Contract not found or invalid for agent ${inv.agents.name} at ${inv.agents.vault_address}. Skipping.`);
+                        } else {
+                            console.error(`Withdraw sync failed for investment ${inv.tx_hash}:`, e);
+                        }
                     }
                 }
 

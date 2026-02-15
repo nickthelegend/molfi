@@ -278,35 +278,72 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
         }
     });
 
-    // Update PnL when share value is fetched or agent data updates
+    // Set initial values from investment data (fallback if on-chain fails)
     useEffect(() => {
-        if (shareValue && (investment || parseFloat(fallbackAmount) > 0)) {
-            const currentVal = formatEther(shareValue as bigint);
-
+        if ((investment?.amount || parseFloat(fallbackAmount) > 0) && currentValue === '0') {
             const initialAmount = parseFloat(investment?.amount || '0') > 0
                 ? parseFloat(investment.amount)
                 : parseFloat(fallbackAmount);
 
-            const onChainReturn = parseFloat(currentVal) - initialAmount;
+            setCurrentValue(initialAmount.toFixed(2));
+        }
+    }, [investment, fallbackAmount, currentValue]);
+
+    // Update PnL when share value is fetched or agent data updates
+    useEffect(() => {
+        if (investment || parseFloat(fallbackAmount) > 0) {
+            const initialAmount = parseFloat(investment?.amount || '0') > 0
+                ? parseFloat(investment.amount)
+                : parseFloat(fallbackAmount);
+
+            let currentValNum = initialAmount;
+
+            if (shareValue) {
+                currentValNum = parseFloat(formatEther(shareValue as bigint));
+            } else {
+                // Fallback: If we can't fetch share value, assume no change for now (0% PnL)
+                // This prevents showing $0.00 and -100% PnL on errors
+                currentValNum = initialAmount;
+            }
+
+            const onChainReturn = currentValNum - initialAmount;
             let calculatedPnl = onChainReturn;
             let uPnL = 0;
             let rPnL = 0;
 
             // Factor in agent performance if data is available
-            if (agentData && totalSupply && parseFloat(activeShares) > 0) {
-                const totalSharesNum = parseFloat(formatEther(totalSupply as bigint));
-                const ownership = totalSharesNum > 0 ? parseFloat(activeShares) / totalSharesNum : 0;
+            if (agentData) {
+                if (totalSupply && parseFloat(activeShares) > 0) {
+                    // Precise calculation using on-chain supply
+                    const totalSharesNum = parseFloat(formatEther(totalSupply as bigint));
+                    const ownership = totalSharesNum > 0 ? parseFloat(activeShares) / totalSharesNum : 0;
 
-                uPnL = ownership * (agentData.unrealizedPnL || 0);
-                rPnL = ownership * (agentData.realizedPnL || 0);
+                    uPnL = ownership * (agentData.unrealizedPnL || 0);
+                    rPnL = ownership * (agentData.realizedPnL || 0);
 
-                // Final profit is realized + unrealized (simulated trades)
-                calculatedPnl = rPnL + uPnL;
+                    if (shareValue) {
+                        calculatedPnl = onChainReturn + uPnL;
+                    } else {
+                        calculatedPnl = rPnL + uPnL;
+                        currentValNum = initialAmount + calculatedPnl;
+                    }
+                } else if (!shareValue) {
+                    // Fallback: If on-chain data is totally inaccessible (no supply/no share value),
+                    // Estimate based on Agent's overall ROI to show *something* other than 0.
+                    // This assumes the user participated in the agent's full performance history (approximate).
+                    const estimatedRoi = agentData.roi || 0;
+                    if (estimatedRoi !== 0) {
+                        calculatedPnl = initialAmount * (estimatedRoi / 100);
+                        currentValNum = initialAmount + calculatedPnl;
+                        // Split roughly for display
+                        rPnL = calculatedPnl;
+                    }
+                }
             }
 
             setPnl(calculatedPnl.toFixed(4));
             setPnlPercentage(initialAmount > 0 ? ((calculatedPnl / initialAmount) * 100).toFixed(2) : "0.00");
-            setCurrentValue((initialAmount + calculatedPnl).toFixed(2));
+            setCurrentValue(currentValNum.toFixed(2));
 
             setPnlBreakdown({
                 realized: rPnL.toFixed(4),

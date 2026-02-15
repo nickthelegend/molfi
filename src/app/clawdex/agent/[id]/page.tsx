@@ -452,8 +452,12 @@ function AgentDetailPageContent({ id }: { id: string }) {
                         // Update the local list so calculation is correct immediately
                         activeAgentInvestments.forEach((inv: any) => inv.status = 'CLOSED');
                     }
-                } catch (e) {
-                    console.error("Withdraw sync failed on agent page:", e);
+                } catch (e: any) {
+                    if (e.name === 'ContractFunctionExecutionError' || e.message?.includes('returned no data')) {
+                        console.warn(`[Sync] Contract not found or invalid on agent page for ${agent.vaultAddress}. Skipping.`);
+                    } else {
+                        console.error("Withdraw sync failed on agent page:", e);
+                    }
                 }
             }
 
