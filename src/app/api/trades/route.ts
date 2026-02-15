@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getOraclePrice, calculatePnL } from '@/lib/marketEngine';
+import { getOraclePrice, getBinancePrice, calculatePnL } from '@/lib/marketEngine';
 
 /**
  * GET /api/trades — Fetch trade logs for the arena
@@ -23,12 +23,6 @@ export async function GET(req: NextRequest) {
         }
 
         // --- Trade Log Mode ---
-        // We'll fetch trades and join agents manually or via Supabase if FK exists.
-        // To be safe given the separate fetch pattern involves elsewhere, let's try to join or fallback.
-        // Actually, let's use the explicit relation if it exists. If not, we fetch agents separately.
-        // Assuming 'agent_id' is the FK.
-
-        // Try to fetch with join first
         let query = supabaseAdmin
             .from('trade_signals')
             .select('*, agents(name, personality)')
@@ -70,8 +64,14 @@ export async function GET(req: NextRequest) {
         await Promise.allSettled(
             uniquePairs.map(async (pair) => {
                 try {
-                    const pd = await getOraclePrice(pair);
-                    livePrices[pair] = pd.price;
+                    // Try Binance first for freshest price
+                    const binanceData = await getBinancePrice(pair);
+                    if (binanceData) {
+                        livePrices[pair] = binanceData.price;
+                    } else {
+                        const pd = await getOraclePrice(pair);
+                        livePrices[pair] = pd.price;
+                    }
                 } catch { /* skip */ }
             })
         );
@@ -108,6 +108,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
+
+
+
 
 async function getLeaderboard() {
     // Get all agents

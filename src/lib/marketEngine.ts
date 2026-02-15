@@ -144,7 +144,7 @@ async function readFromOracle(symbol: string): Promise<PriceData | null> {
 }
 
 // ── Strategy 2: Direct Binance API fetch (Multi-endpoint) ────────
-async function readFromBinance(symbol: string): Promise<PriceData | null> {
+export async function getBinancePrice(symbol: string): Promise<PriceData | null> {
   const binanceSymbol = BINANCE_SYMBOLS[symbol];
   if (!binanceSymbol) return null;
 
@@ -173,6 +173,10 @@ async function readFromBinance(symbol: string): Promise<PriceData | null> {
     }
   }
   return null;
+}
+
+async function readFromBinance(symbol: string): Promise<PriceData | null> {
+  return getBinancePrice(symbol);
 }
 
 // ── Strategy 3: CoinGecko Fallback ───────────────────────────────
