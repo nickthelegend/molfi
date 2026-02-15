@@ -326,13 +326,16 @@ export default function ProfilePage() {
                                     width: '80px',
                                     height: '80px',
                                     borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, var(--primary-purple), var(--accent-purple))',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
+                                    overflow: 'hidden',
+                                    background: 'var(--bg-card)',
+                                    border: '2px solid var(--primary-purple)',
                                 }}
                             >
-                                <User size={40} />
+                                <img
+                                    src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${address}`}
+                                    alt="Profile"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
                             </div>
                             <div>
                                 <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Agent Manager</h1>
