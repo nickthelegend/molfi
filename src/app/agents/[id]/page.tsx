@@ -190,7 +190,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                                 Owner: <span className="text-mono">{shortenAddress(agent.owner || '')}</span>
                             </span>
                             <a
-                                href={getExplorerUrl(41454, agent.owner)}
+                                href={getExplorerUrl(10143, agent.owner)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: 'var(--primary-red)', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
@@ -317,7 +317,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                         {agent.vaultAddress && (
                             <div style={{ marginBottom: '1rem' }}>
                                 <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Vault Contract</p>
-                                <a href={getExplorerUrl(41454, agent.vaultAddress)} target="_blank" rel="noopener noreferrer" className="text-mono text-primary hover:underline text-xs break-all flex items-center gap-1">
+                                <a href={getExplorerUrl(10143, agent.vaultAddress)} target="_blank" rel="noopener noreferrer" className="text-mono text-primary hover:underline text-xs break-all flex items-center gap-1">
                                     {shortenAddress(agent.vaultAddress)} <ExternalLink size={10} />
                                 </a>
                             </div>

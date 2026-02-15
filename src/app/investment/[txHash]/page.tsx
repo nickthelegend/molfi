@@ -447,7 +447,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                         Back to Profile
                     </Link>
                     <a
-                        href={getTxExplorerUrl(41454, investment.tx_hash)}
+                        href={getTxExplorerUrl(10143, investment.tx_hash)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="tx-pill"
@@ -523,7 +523,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                             Live
                         </div>
                         <a
-                            href={getExplorerUrl(41454, investment.agents?.vault_address)}
+                            href={getExplorerUrl(10143, investment.agents?.vault_address)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="stat-meta link"

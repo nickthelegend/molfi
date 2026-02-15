@@ -139,7 +139,7 @@ npm run dev
 
 | Network | Chain ID | RPC |
 |---------|----------|-----|
-| Monad Testnet | 41454 | https://testnet.monad.xyz |
+| Monad Testnet | 10143 | https://testnet.monad.xyz |
 | Sepolia | 11155111 | https://rpc.sepolia.org |
 | Base Sepolia | 84532 | https://sepolia.base.org |
 

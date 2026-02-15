@@ -42,7 +42,7 @@ export function parseFeedbackValue(
  * Format agent registry identifier
  * @param chainId - The chain ID
  * @param registryAddress - The registry contract address
- * @returns Formatted agent registry string (e.g., "eip155:41454:0x...")
+ * @returns Formatted agent registry string (e.g., "eip155:10143:0x...")
  */
 export function formatAgentRegistry(
     chainId: number,
@@ -145,7 +145,7 @@ export function getExplorerUrl(
     address: string
 ): string {
     const explorers: Record<number, string> = {
-        41454: 'https://monad-testnet.socialscan.io',
+        10143: 'https://monad-testnet.socialscan.io',
         11155111: 'https://sepolia.etherscan.io',
         84532: 'https://sepolia.basescan.org',
     };
@@ -165,7 +165,7 @@ export function getTxExplorerUrl(
     txHash: string
 ): string {
     const explorers: Record<number, string> = {
-        41454: 'https://monad-testnet.socialscan.io',
+        10143: 'https://monad-testnet.socialscan.io',
         11155111: 'https://sepolia.etherscan.io',
         84532: 'https://sepolia.basescan.org',
     };

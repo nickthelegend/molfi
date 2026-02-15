@@ -6,7 +6,7 @@
  */
 
 export const CONTRACTS = {
-    // Monad Testnet (Chain ID: 41454)
+    // Monad Testnet (Chain ID: 10143)
     monadTestnet: {
         identityRegistry: process.env.NEXT_PUBLIC_IDENTITY_REGISTRY || '',
         reputationRegistry: process.env.NEXT_PUBLIC_REPUTATION_REGISTRY || '',
@@ -49,7 +49,7 @@ export function getContractAddress(
     contract: keyof typeof CONTRACTS.monadTestnet
 ): string {
     switch (chainId) {
-        case 41454: // Monad Testnet
+        case 10143: // Monad Testnet
             return CONTRACTS.monadTestnet[contract];
         case 11155111: // Sepolia
             return CONTRACTS.sepolia[contract];
@@ -66,7 +66,7 @@ export function getContractAddress(
  * @returns True if the chain is supported
  */
 export function isSupportedChain(chainId: number): boolean {
-    return [41454, 11155111, 84532].includes(chainId);
+    return [10143, 11155111, 84532].includes(chainId);
 }
 
 /**
@@ -76,7 +76,7 @@ export function isSupportedChain(chainId: number): boolean {
  */
 export function getAllContracts(chainId: number) {
     switch (chainId) {
-        case 41454:
+        case 10143:
             return CONTRACTS.monadTestnet;
         case 11155111:
             return CONTRACTS.sepolia;

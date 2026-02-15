@@ -53,7 +53,7 @@ async function main() {
     // 5. Deploy MolfiPerpDEX
     console.log("\n💱 Deploying MolfiPerpDEX...");
     const MolfiPerpDEX = await ethers.getContractFactory("MolfiPerpDEX");
-    const perpDex = await MolfiPerpDEX.deploy(oracleAddress);
+    const perpDex = await MolfiPerpDEX.deploy(oracleAddress, "0x486bF5FEc77A9A2f1b044B1678eD5B7CECc32A39");
     await perpDex.waitForDeployment();
     const perpDexAddress = await perpDex.getAddress();
     console.log("✅ MolfiPerpDEX:", perpDexAddress);
@@ -75,7 +75,7 @@ async function main() {
 
     // Create src/lib/contracts/addresses.json for frontend
     const webData = {
-        41454: {
+        10143: {
             identityRegistry: identityAddress,
             reputationRegistry: reputationAddress,
             chainlinkOracle: oracleAddress,

@@ -55,7 +55,7 @@ async function main() {
     // Save deployment info
     const deploymentInfo = {
         network: "monadTestnet",
-        chainId: 41454,
+        chainId: 10143,
         deployer: deployer.address,
         timestamp: new Date().toISOString(),
         contracts: {
