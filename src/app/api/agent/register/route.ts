@@ -11,7 +11,7 @@ function generateApiKey(): string {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { name, personality, ownerAddress, strategy, description } = body;
+        const { name, personality, ownerAddress, strategy, description, agentId } = body;
 
         // Validation
         if (!name || !ownerAddress) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
             .limit(1)
             .single();
 
-        const nextAgentId = (Number(maxAgent?.agent_id) || 0) + 1;
+        const nextAgentId = agentId ? Number(agentId) : (Number(maxAgent?.agent_id) || 0) + 1;
 
         // Generate API key
         const apiKey = generateApiKey();

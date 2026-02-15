@@ -19,6 +19,9 @@ import {
     Info
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRegisterAgent } from '@/hooks/useRegisterAgent';
+import { decodeEventLog } from 'viem';
+import IdentityRegistryABI from '@/abis/IdentityRegistry.json';
 
 export default function LaunchPage() {
     const [mounted, setMounted] = useState(false);
@@ -33,6 +36,8 @@ export default function LaunchPage() {
         description: '',
         personality: 'Aggressive'
     });
+
+    const { register, hash: txHash, isPending: isTxPending, isConfirming, isConfirmed, receipt, error: txError } = useRegisterAgent();
 
     useEffect(() => {
         setMounted(true);
@@ -51,60 +56,128 @@ export default function LaunchPage() {
     };
 
     const handleLaunch = async () => {
-        setStatus('initialising');
-        addLog(`Initializing ${agentDetails.name} Protocol v2.4.0...`);
-
-        await new Promise(r => setTimeout(r, 1000));
-        setStatus('compiling');
-        addLog(`Compiling Neural Identity Registry for ${agentDetails.name}...`);
-        addLog("Architecture: ERC-8004 Upgradeable");
-
-        await new Promise(r => setTimeout(r, 1500));
-        addLog(`Synchronizing ${agentDetails.strategy} Logic...`);
-        addLog(`Applying ${agentDetails.personality} Risk Profile...`);
-
-        await new Promise(r => setTimeout(r, 1000));
-        setStatus('deploying');
-        addLog("Registering agent on MolFi Protocol...");
-
-        // Actually register the agent via API
         try {
-            const res = await fetch('/api/agent/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: agentDetails.name,
-                    personality: agentDetails.personality,
-                    strategy: agentDetails.strategy,
-                    description: agentDetails.description,
-                    ownerAddress: address,
-                }),
-            });
+            setStatus('initialising');
+            addLog(`Initializing ${agentDetails.name} Protocol v2.4.0...`);
 
-            const data = await res.json();
+            await new Promise(r => setTimeout(r, 1000));
+            setStatus('compiling');
+            addLog(`Compiling Neural Identity Registry for ${agentDetails.name}...`);
+            addLog("Architecture: ERC-8004 Upgradeable");
 
-            if (!res.ok || !data.success) {
-                addLog(`⚠️ Registration warning: ${data.error || 'Unknown error'}`);
-                addLog("Proceeding with local deployment...");
-            } else {
-                setApiKey(data.apiKey);
-                addLog(`✅ Agent registered with ID: ${data.agent.agentId}`);
-                addLog(`✅ Vault assigned: ${data.agent.vaultAddress.slice(0, 10)}...`);
-                addLog(`✅ API Key generated: ${data.apiKey.slice(0, 16)}...`);
-            }
+            await rTimeout(1000);
+            addLog(`Synchronizing ${agentDetails.strategy} Logic...`);
+            addLog(`Applying ${agentDetails.personality} Risk Profile...`);
+
+            await rTimeout(1000);
+            setStatus('deploying');
+            addLog("REQUESTING ON-CHAIN SIGNATURE...");
+            addLog("Please confirm the registration transaction in your wallet.");
+
+            // Step 1: On-chain registration
+            const agentURI = `ipfs://molfi-identity-${Date.now()}`;
+            await register(agentURI);
+
+            // The hook handles the state, so we wait for its effects in handleLaunch logic
+            // Note: handleLaunch is triggered by Click. register is called.
+            // We need to wait for confirmation.
         } catch (err) {
-            addLog("⚠️ API registration unavailable, using local deployment...");
+            console.error("Launch error:", err);
+            addLog(`❌ Launch failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            setStatus('idle');
         }
-
-        await new Promise(r => setTimeout(r, 1000));
-        addLog("✅ ReputationRegistry: 0x38E9cDB0eBc128bEA55c36C03D5532697669132d");
-        addLog("✅ ClawBot_Bridge: 0x386fd4Fa2F27E528CF2D11C6d4b0A4dceD283E0E");
-        addLog("Linking Neural Core to Monad Execution Layer...");
-
-        await new Promise(r => setTimeout(r, 1000));
-        setStatus('complete');
-        addLog(`${agentDetails.name.toUpperCase()} HAS ACHIEVED CONSCIOUSNESS. Trading Link Active.`);
     };
+
+    // Helper for timeouts
+    const rTimeout = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    // Watch for transaction confirmation to complete the process
+    useEffect(() => {
+        if (txHash) {
+            addLog(`🛰️ Transaction submitted: ${txHash.slice(0, 10)}...`);
+        }
+    }, [txHash]);
+
+    useEffect(() => {
+        const finalizeRegistration = async () => {
+            if (isConfirmed && receipt && status === 'deploying') {
+                addLog("✅ Transaction confirmed on Monad Testnet!");
+
+                let agentIdFromReceipt: string | undefined;
+                try {
+                    // Try to find the Registered event to get the agentId
+                    const logs = receipt.logs;
+                    for (const log of logs) {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: IdentityRegistryABI,
+                                data: log.data,
+                                topics: log.topics,
+                            }) as any;
+
+                            if (decoded.eventName === 'Registered') {
+                                agentIdFromReceipt = decoded.args.agentId.toString();
+                                break;
+                            }
+                        } catch (e) {
+                            // Skip logs that don't match our ABI
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error decoding receipt logs:", err);
+                }
+
+                addLog(`Assigning Agent ID: ${agentIdFromReceipt || 'PENDING'}...`);
+
+                // Actually register the agent via API to sync database
+                try {
+                    const res = await fetch('/api/agent/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: agentDetails.name,
+                            personality: agentDetails.personality,
+                            strategy: agentDetails.strategy,
+                            description: agentDetails.description,
+                            ownerAddress: address,
+                            agentId: agentIdFromReceipt
+                        }),
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok || !data.success) {
+                        addLog(`⚠️ Database sync warning: ${data.error || 'Unknown error'}`);
+                    } else {
+                        setApiKey(data.apiKey);
+                        addLog(`✅ Agent synchronized with ID: ${data.agent.agentId}`);
+                        addLog(`✅ Vault assigned: ${data.agent.vaultAddress.slice(0, 10)}...`);
+                        addLog(`✅ API Key generated: ${data.apiKey.slice(0, 16)}...`);
+                    }
+                } catch (err) {
+                    addLog("⚠️ Database synchronization unavailable.");
+                }
+
+                await rTimeout(1000);
+                addLog("✅ ReputationRegistry: 0x38E9cDB0eBc128bEA55c36C03D5532697669132d");
+                addLog("✅ ClawBot_Bridge: 0x386fd4Fa2F27E528CF2D11C6d4b0A4dceD283E0E");
+                addLog("Linking Neural Core to Monad Execution Layer...");
+
+                await rTimeout(1000);
+                setStatus('complete');
+                addLog(`${agentDetails.name.toUpperCase()} HAS ACHIEVED CONSCIOUSNESS. Trading Link Active.`);
+            }
+        };
+
+        finalizeRegistration();
+    }, [isConfirmed, receipt, status, address, agentDetails, txHash]);
+
+    useEffect(() => {
+        if (txError && status === 'deploying') {
+            addLog(`❌ Transaction failed: ${txError.message}`);
+            setStatus('idle');
+        }
+    }, [txError, status]);
 
     if (!mounted) return null;
 
