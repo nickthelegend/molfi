@@ -434,16 +434,37 @@ export default function ProfilePage() {
                         </h2>
                     </div>
 
-                    <div className="flex bg-white/5 rounded-lg p-1 border border-white/10">
+                    <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                         <button
                             onClick={() => setActiveTab('active')}
-                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'active' ? 'bg-primary-purple text-white shadow-lg' : 'text-secondary hover:text-white'}`}
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem',
+                                fontWeight: activeTab === 'active' ? '800' : '500',
+                                background: activeTab === 'active' ? 'var(--primary-purple)' : 'transparent',
+                                color: activeTab === 'active' ? 'white' : 'var(--text-secondary)',
+                                boxShadow: activeTab === 'active' ? '0 4px 12px rgba(168, 85, 247, 0.3)' : 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
                         >
                             Active
                         </button>
                         <button
                             onClick={() => setActiveTab('closed')}
-                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'closed' ? 'bg-white/10 text-white shadow-lg' : 'text-secondary hover:text-white'}`}
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem',
+                                fontWeight: activeTab === 'closed' ? '800' : '500',
+                                background: activeTab === 'closed' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                                color: activeTab === 'closed' ? 'white' : 'var(--text-secondary)',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
                         >
                             History
                         </button>
@@ -452,7 +473,22 @@ export default function ProfilePage() {
                     <button
                         onClick={() => loadData(true)}
                         disabled={isSyncing || investmentsLoading}
-                        className="text-[11px] font-bold text-dim hover:text-primary transition-colors flex items-center gap-1 ml-auto"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '0.7rem',
+                            fontWeight: '800',
+                            color: 'var(--text-dim)',
+                            background: 'transparent',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            letterSpacing: '0.05em',
+                            marginLeft: 'auto',
+                            textTransform: 'uppercase'
+                        }}
                     >
                         <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
                         REFRESH
