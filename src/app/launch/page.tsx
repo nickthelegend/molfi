@@ -37,6 +37,11 @@ export default function LaunchPage() {
         personality: 'Aggressive'
     });
 
+    // Faucet Logic
+    const [faucetLoading, setFaucetLoading] = useState(false);
+    const [faucetSuccess, setFaucetSuccess] = useState(false);
+    const [faucetTxHash, setFaucetTxHash] = useState<string | null>(null);
+
     const { register, hash: txHash, isPending: isTxPending, isConfirming, isConfirmed, receipt, error: txError } = useRegisterAgent();
 
     useEffect(() => {
@@ -171,6 +176,31 @@ export default function LaunchPage() {
 
         finalizeRegistration();
     }, [isConfirmed, receipt, status, address, agentDetails, txHash]);
+
+    const handleMintFunds = async () => {
+        if (!address) return;
+        setFaucetLoading(true);
+        try {
+            const res = await fetch('/api/faucet/mint-musd', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setFaucetTxHash(data.txHash);
+                setFaucetSuccess(true);
+                addLog(`✅ DISPATCHED 10,000 mUSD to treasury.`);
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (err: any) {
+            console.error("Faucet error:", err);
+            addLog(`❌ Treasury dispatch failed: ${err.message}`);
+        } finally {
+            setFaucetLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (txError && status === 'deploying') {
@@ -340,9 +370,21 @@ export default function LaunchPage() {
                                         {/* API Key Display */}
                                         {apiKey && (
                                             <div style={{ marginTop: '2rem', background: 'rgba(198, 33, 50, 0.05)', border: '1px solid rgba(198, 33, 50, 0.3)', borderRadius: '16px', padding: '2rem' }}>
-                                                <div className="flex items-center gap-sm mb-md">
-                                                    <Zap size={14} className="text-primary" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">YOUR API KEY</span>
+                                                <div className="flex items-center justify-between mb-md">
+                                                    <div className="flex items-center gap-sm">
+                                                        <Zap size={14} className="text-primary" />
+                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">YOUR API KEY</span>
+                                                    </div>
+                                                    {txHash && (
+                                                        <a
+                                                            href={`https://testnet.monadexplorer.com/tx/${txHash}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-[10px] text-primary/60 hover:text-primary flex items-center gap-1 font-mono transition-colors"
+                                                        >
+                                                            VIEW REGISTRATION TX <Globe size={10} />
+                                                        </a>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-md" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
                                                     <code style={{ flex: 1, fontSize: '0.75rem', color: '#ff6b6b', wordBreak: 'break-all', userSelect: 'all' }}>{apiKey}</code>
@@ -363,6 +405,38 @@ export default function LaunchPage() {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Protocol Funds Initialization */}
+                                        <div style={{ marginTop: '2rem', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '16px', padding: '2rem' }}>
+                                            <div className="flex items-center gap-sm mb-md justify-between">
+                                                <div className="flex items-center gap-sm">
+                                                    <Cpu size={14} className="text-success" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-success">Protocol Initialization</span>
+                                                </div>
+                                                {faucetTxHash && (
+                                                    <a
+                                                        href={`https://testnet.monadexplorer.com/tx/${faucetTxHash}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-[10px] text-success/60 hover:text-success flex items-center gap-1 font-mono transition-colors"
+                                                    >
+                                                        VIEW MINT TX <Globe size={10} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-white/60 mb-lg text-left leading-relaxed">
+                                                Initialize your newly deployed agent with <strong className="text-white">10,000 mUSD.dev</strong> from the protocol treasury. These funds are required for the agent to execute its first neural-trade sequences.
+                                            </p>
+                                            <button
+                                                className={`premium-button ${faucetLoading ? 'loading' : 'primary-green'}`}
+                                                style={{ width: '100%', height: '50px', fontSize: '0.9rem' }}
+                                                onClick={handleMintFunds}
+                                                disabled={faucetLoading || faucetSuccess}
+                                            >
+                                                {faucetLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                                                <span>{faucetSuccess ? "FUNDS DISPATCHED" : "MINT 10,000 mUSD.dev"}</span>
+                                            </button>
+                                        </div>
 
                                         <div className="flex flex-col sm:flex-row gap-lg mt-xxl max-w-[600px] mx-auto">
                                             <Link href="/clawdex" style={{ flex: 1 }}>
