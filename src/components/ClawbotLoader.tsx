@@ -12,7 +12,7 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
 
             <div className="loading-text-wrapper">
                 <div className="scramble-text">
-                    <Zap size={14} className="text-primary-purple inline-block mr-2 animate-pulse" />
+                    <Zap size={14} className="text-primary-red inline-block mr-2 animate-pulse" />
                     {message}
                 </div>
                 <div className="loading-bar">
@@ -47,9 +47,9 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
         .core-inner {
             width: 40px;
             height: 40px;
-            background: var(--primary-purple);
+            background: var(--primary-red);
             border-radius: 50%;
-            box-shadow: 0 0 30px var(--primary-purple);
+            box-shadow: 0 0 30px var(--primary-red);
             animation: pulse-core 2s ease-in-out infinite;
             z-index: 10;
         }
@@ -57,8 +57,8 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
         .core-ring {
             position: absolute;
             inset: 0;
-            border: 2px solid rgba(168, 85, 247, 0.3);
-            border-top-color: var(--primary-purple);
+            border: 2px solid rgba(198, 33, 50, 0.3);
+            border-top-color: var(--primary-red);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -66,7 +66,7 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
         .core-orbit {
             position: absolute;
             inset: -15px;
-            border: 1px dashed rgba(168, 85, 247, 0.2);
+            border: 1px dashed rgba(198, 33, 50, 0.2);
             border-radius: 50%;
             animation: spin-reverse 4s linear infinite;
         }
@@ -80,7 +80,7 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
 
         .scramble-text {
             font-family: var(--font-mono);
-            color: var(--primary-purple);
+            color: var(--primary-red);
             font-size: 0.9rem;
             letter-spacing: 0.1em;
             font-weight: 700;
@@ -105,8 +105,8 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
             top: 0;
             bottom: 0;
             width: 30%;
-            background: var(--primary-purple);
-            box-shadow: 0 0 10px var(--primary-purple);
+            background: var(--primary-red);
+            box-shadow: 0 0 10px var(--primary-red);
             animation: loading-scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
@@ -122,8 +122,9 @@ const ClawbotLoader = ({ message = "ESTABLISHING CLAWBOT LINK" }: { message?: st
 
         @keyframes pulse-core {
             0%, 100% { transform: scale(0.9); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 50px var(--primary-purple); }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 50px var(--primary-red); }
         }
+
 
         @keyframes spin {
             to { transform: rotate(360deg); }

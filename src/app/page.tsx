@@ -185,8 +185,8 @@ export default function Home() {
                 }}>
                   <div className="flex justify-between mb-lg" style={{ pointerEvents: 'none' }}>
                     <div className="agent-badge" style={{
-                      background: i === 0 ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.04)',
-                      color: i === 0 ? 'var(--primary-purple)' : 'rgba(255,255,255,0.6)',
+                      background: i === 0 ? 'rgba(198, 33, 50, 0.15)' : 'rgba(255,255,255,0.04)',
+                      color: i === 0 ? 'var(--primary-red)' : 'rgba(255,255,255,0.6)',
                       border: 'none',
                       fontSize: '9px',
                       padding: '0.3rem 0.6rem'
@@ -236,7 +236,7 @@ export default function Home() {
             <div className="tech-content animate-in">
               <div className="novel-pill mb-md">
                 <Layers size={14} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Architecture Stack</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-gradient">Architecture Stack</span>
               </div>
               <h2 style={{ fontSize: '4.5rem', marginBottom: '2.5rem', lineHeight: '1' }}>Verifiable <br /><span className="text-gradient">Intelligence</span></h2>
 
@@ -248,7 +248,7 @@ export default function Home() {
                 ].map((item, i) => (
                   <div key={i} className="novel-card hover-lift" style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem' }}>
                     <div className="flex gap-lg">
-                      <div className="feature-icon" style={{ borderRadius: '12px', background: 'var(--primary-purple)', color: 'white' }}>{item.icon}</div>
+                      <div className="feature-icon" style={{ borderRadius: '12px', background: 'var(--primary-red)', color: 'white' }}>{item.icon}</div>
                       <div>
                         <h4 className="font-bold mb-xs" style={{ fontSize: '1.25rem' }}>{item.title}</h4>
                         <p className="text-sm text-dim leading-relaxed">{item.desc}</p>
@@ -265,7 +265,7 @@ export default function Home() {
                 <div className="tech-orb-medium" />
                 <div className="tech-orb-small" />
                 <div className="bot-hero-container float-anim">
-                  <Bot size={160} className="text-primary-purple" style={{ filter: 'drop-shadow(0 0 30px var(--primary-purple))' }} />
+                  <Bot size={160} className="text-primary" style={{ color: 'var(--primary-red)', filter: 'drop-shadow(0 0 30px var(--primary-red))' }} />
                 </div>
 
                 {/* Floating data dots */}

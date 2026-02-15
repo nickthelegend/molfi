@@ -34,10 +34,13 @@
   --glow-error: 0 0 20px rgba(239, 68, 68, 0.4);
   --shadow-luxury: 0 10px 40px rgba(198, 33, 50, 0.15);
 
-  /* Recovery for Purple theme elements */
-  --primary-purple: #a855f7;
-  --glow-purple: 0 0 20px rgba(168, 85, 247, 0.4);
-  --glow-purple-strong: 0 0 30px rgba(168, 85, 247, 0.6);
+  /* Brand Aliases - Legacy support to prevent breakage in other screens */
+  --primary-purple: var(--primary-red);
+  --secondary-purple: var(--secondary-red);
+  --accent-purple: var(--accent-red);
+  --dark-purple: var(--dark-red);
+  --glow-purple: var(--glow-red);
+  --glow-purple-strong: var(--glow-red-strong);
 }
 
 * {
@@ -274,7 +277,7 @@ h3 {
 }
 
 .text-gradient-purple {
-  background: linear-gradient(135deg, #a855f7, #d8b4fe);
+  background: linear-gradient(135deg, var(--primary-red), var(--accent-red));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
