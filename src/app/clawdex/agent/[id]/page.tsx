@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther, formatEther, decodeEventLog } from 'viem';
 import {
@@ -211,7 +211,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
     });
 
     // 2b. Fetch User Share Balance + Max Withdraw
-    const { data: shareBalance } = useReadContract({
+    const { data: shareBalance, refetch: refetchShareBalance } = useReadContract({
         address: agent?.vaultAddress as `0x${string}`,
         abi: MolfiAgentVaultABI,
         functionName: "balanceOf",
@@ -221,7 +221,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         },
     });
 
-    const { data: maxWithdraw } = useReadContract({
+    const { data: maxWithdraw, refetch: refetchMaxWithdraw } = useReadContract({
         address: agent?.vaultAddress as `0x${string}`,
         abi: MolfiAgentVaultABI,
         functionName: "maxWithdraw",
@@ -231,7 +231,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
         },
     });
 
-    const { data: assetsFromShares } = useReadContract({
+    const { data: assetsFromShares, refetch: refetchAssetsFromShares } = useReadContract({
         address: agent?.vaultAddress as `0x${string}`,
         abi: MolfiAgentVaultABI,
         functionName: "convertToAssets",
@@ -371,97 +371,102 @@ function AgentDetailPageContent({ id }: { id: string }) {
     }, [withdrawConfirmed]);
 
     // Compute net deposits for current wallet AND Sync missing investments
-    useEffect(() => {
-        if (!agent?.vaultAddress || !publicClient || !address) {
+    const fetchNetDeposits = useCallback(async () => {
+        if (!agent?.vaultAddress || !publicClient || !address || !agent?.agentId) {
             setNetDeposits(0n);
+            setTotalDeposited(0n);
             return;
         }
 
-        const fetchNetDeposits = async () => {
-            try {
-                // 1. Fetch DB Investments to check for sync status
-                const dbRes = await fetch(`/api/investments/user/${address}`);
-                const dbData = await dbRes.json();
-                const dbInvestments = dbData.success ? dbData.investments : [];
-                // Filter ensuring we match agentId and lowercase hash
-                const knownTxHashes = new Set(
-                    dbInvestments
-                        .filter((i: any) => String(i.agent_id) === String(agent.agentId))
-                        .map((i: any) => i.tx_hash.toLowerCase())
-                );
+        try {
+            // 1. Fetch DB Investments 
+            const dbRes = await fetch(`/api/investments/user/${address}`);
+            const dbData = await dbRes.json();
+            const dbInvestments = dbData.success ? dbData.investments : [];
 
-                const [depositLogs, withdrawLogs] = await Promise.all([
-                    publicClient.getLogs({
-                        address: agent.vaultAddress as `0x${string}`,
-                        event: {
-                            type: 'event',
-                            name: 'Deposit',
-                            inputs: [
-                                { type: 'address', indexed: true, name: 'sender' },
-                                { type: 'address', indexed: true, name: 'owner' },
-                                { type: 'uint256', indexed: false, name: 'assets' },
-                                { type: 'uint256', indexed: false, name: 'shares' }
-                            ]
-                        },
-                        args: { owner: address },
-                        fromBlock: 'earliest'
-                    }),
-                    publicClient.getLogs({
-                        address: agent.vaultAddress as `0x${string}`,
-                        event: {
-                            type: 'event',
-                            name: 'Withdraw',
-                            inputs: [
-                                { type: 'address', indexed: true, name: 'sender' },
-                                { type: 'address', indexed: true, name: 'receiver' },
-                                { type: 'address', indexed: true, name: 'owner' },
-                                { type: 'uint256', indexed: false, name: 'assets' },
-                                { type: 'uint256', indexed: false, name: 'shares' }
-                            ]
-                        },
-                        args: { owner: address },
-                        fromBlock: 'earliest'
-                    })
-                ]);
+            // Only consider investments for THIS agent
+            const agentInvestments = dbInvestments.filter((i: any) => String(i.agent_id) === String(agent.agentId));
 
-                // Sync Logic: Check for missing investments
-                for (const log of depositLogs) {
-                    if (!knownTxHashes.has(log.transactionHash.toLowerCase())) {
-                        console.log("SYNC: Auto-recovering missing investment:", log.transactionHash);
-                        const shares = formatEther((log.args as any).shares || 0n);
-                        const amount = formatEther((log.args as any).assets || 0n);
+            // Filter ensuring we match lowercase hash for sync check
+            const knownTxHashes = new Set(
+                agentInvestments.map((i: any) => i.tx_hash.toLowerCase())
+            );
 
-                        // Fire and forget sync request
-                        fetch('/api/investments/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                txHash: log.transactionHash,
-                                agentId: agent.agentId,
-                                userAddress: address,
-                                amount,
-                                shares: shares !== '0' ? shares : amount
-                            })
-                        }).catch(e => console.error("Sync failed for tx:", log.transactionHash, e));
-                    }
+            const [depositLogs, withdrawLogs] = await Promise.all([
+                publicClient.getLogs({
+                    address: agent.vaultAddress as `0x${string}`,
+                    event: {
+                        type: 'event',
+                        name: 'Deposit',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'sender' },
+                            { type: 'address', indexed: true, name: 'owner' },
+                            { type: 'uint256', indexed: false, name: 'assets' },
+                            { type: 'uint256', indexed: false, name: 'shares' }
+                        ]
+                    },
+                    args: { owner: address },
+                    fromBlock: 'earliest'
+                }),
+                publicClient.getLogs({
+                    address: agent.vaultAddress as `0x${string}`,
+                    event: {
+                        type: 'event',
+                        name: 'Withdraw',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'sender' },
+                            { type: 'address', indexed: true, name: 'receiver' },
+                            { type: 'address', indexed: true, name: 'owner' },
+                            { type: 'uint256', indexed: false, name: 'assets' },
+                            { type: 'uint256', indexed: false, name: 'shares' }
+                        ]
+                    },
+                    args: { owner: address },
+                    fromBlock: 'earliest'
+                })
+            ]);
+
+            // Sync Logic: Check for missing on-chain deposits
+            for (const log of depositLogs) {
+                if (!knownTxHashes.has(log.transactionHash.toLowerCase())) {
+                    console.log("SYNC: Auto-recovering missing investment:", log.transactionHash);
+                    const shares = formatEther((log.args as any).shares || 0n);
+                    const amount = formatEther((log.args as any).assets || 0n);
+                    await fetch('/api/investments/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            txHash: log.transactionHash,
+                            agentId: agent.agentId,
+                            userAddress: address,
+                            amount,
+                            shares: shares !== '0' ? shares : amount
+                        })
+                    }).catch(e => console.error("Sync failed for tx:", log.transactionHash, e));
                 }
-
-                const deposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
-                const withdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
-
-                const net = deposits > withdrawals ? deposits - withdrawals : 0n;
-
-                setTotalDeposited(deposits);
-                setNetDeposits(net);
-            } catch (err) {
-                console.error("Error fetching net deposits:", err);
-                setNetDeposits(0n);
-                setTotalDeposited(0n);
             }
-        };
 
-        fetchNetDeposits();
+            // Calculation Logic:
+            // totalDeposited should be the sum of ACTIVE principal in the database
+            const activePrincipal = agentInvestments
+                .filter((i: any) => i.status === 'ACTIVE')
+                .reduce((sum: number, inv: any) => sum + parseFloat(inv.amount), 0);
+
+            // netDeposits (historical for UX)
+            const onChainDeposits = depositLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+            const onChainWithdrawals = withdrawLogs.reduce((sum, log) => sum + (log.args.assets as bigint), 0n);
+            const net = onChainDeposits > onChainWithdrawals ? onChainDeposits - onChainWithdrawals : 0n;
+
+            setTotalDeposited(parseEther(activePrincipal.toFixed(18)));
+            setNetDeposits(net);
+        } catch (err) {
+            console.error("Error fetching net deposits:", err);
+        }
     }, [agent?.vaultAddress, publicClient, address, agent?.agentId]);
+
+    useEffect(() => {
+        fetchNetDeposits();
+    }, [fetchNetDeposits]);
 
     if (loading) return (
         <div className="container pt-xxl flex justify-center">
@@ -617,6 +622,14 @@ function AgentDetailPageContent({ id }: { id: string }) {
             console.log(`[Backend Payout] Success: ${data.txHash}`);
             setWithdrawTxHash(data.txHash);
             setWithdrawStep('success'); // Already confirmed by backend
+
+            // REFRESH ALL STATE
+            setTimeout(() => {
+                refetchShareBalance();
+                refetchMaxWithdraw();
+                refetchAssetsFromShares();
+                fetchNetDeposits();
+            }, 2000);
         } catch (err: any) {
             console.error("Backend Redeem all failed:", err);
             setWithdrawError(err.message || "Redeem all failed");
@@ -765,7 +778,14 @@ function AgentDetailPageContent({ id }: { id: string }) {
 
                             <div className="allocation-metrics">
                                 <div className="allocation-metric">
-                                    <span className="metric-label">Principal</span>
+                                    <span className="metric-label flex items-center gap-1">
+                                        Principal
+                                        <RefreshCw
+                                            size={8}
+                                            className={`cursor-pointer hover:rotate-180 transition-all ${withdrawStep === 'withdrawing' ? 'animate-spin' : ''}`}
+                                            onClick={() => fetchNetDeposits()}
+                                        />
+                                    </span>
                                     <span className="metric-value">${Number(totalDepositedDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="allocation-metric">
@@ -807,34 +827,43 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                         {step === 'success' && "SUCCESS! RELAY ACTIVE"}
                                         {step === 'error' && "FAILED - RETRY?"}
                                     </button>
-                                    <div className="flex gap-sm">
-                                        <button
-                                            className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && !isFullWithdraw ? 'loading' : ''}`}
-                                            style={{ flex: 1.5 }}
-                                            onClick={handleWithdrawPnL}
-                                            disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
-                                        >
-                                            {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
-                                            {withdrawStep === 'withdrawing' && !isFullWithdraw && "WITHDRAW IN WALLET..."}
-                                            {withdrawStep === 'waiting_withdraw' && !isFullWithdraw && "CONFIRMING WITHDRAW..."}
-                                            {withdrawStep === 'success' && !isFullWithdraw && "PNL WITHDRAWN"}
-                                            {withdrawStep === 'error' && !isFullWithdraw && "FAILED - RETRY?"}
-                                            {withdrawStep !== 'idle' && isFullWithdraw && "Withdraw PnL"}
-                                        </button>
-                                        <button
-                                            className={`withdraw-all-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && isFullWithdraw ? 'loading' : ''}`}
-                                            style={{ flex: 1 }}
-                                            onClick={handleWithdrawAll}
-                                            disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || !shareBalance || (shareBalance as bigint) <= 0n}
-                                        >
-                                            {withdrawStep === 'idle' && "Redeem All"}
-                                            {withdrawStep === 'withdrawing' && isFullWithdraw && "REDEEMING..."}
-                                            {withdrawStep === 'waiting_withdraw' && isFullWithdraw && "CONFIRMING..."}
-                                            {withdrawStep === 'success' && isFullWithdraw && "CLOSED"}
-                                            {withdrawStep === 'error' && isFullWithdraw && "FAILED"}
-                                            {withdrawStep !== 'idle' && !isFullWithdraw && "Redeem All"}
-                                        </button>
-                                    </div>
+                                    {/* Action Buttons: Only show if there is an active balance or pnl */}
+                                    {(pnlAvailable > 0n || (shareBalance && (shareBalance as bigint) > 0n)) && (
+                                        <div className="flex gap-sm">
+                                            <button
+                                                className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && !isFullWithdraw ? 'loading' : ''}`}
+                                                style={{ flex: 1.5 }}
+                                                onClick={handleWithdrawPnL}
+                                                disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
+                                            >
+                                                {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
+                                                {withdrawStep === 'withdrawing' && !isFullWithdraw && "WITHDRAW IN WALLET..."}
+                                                {withdrawStep === 'waiting_withdraw' && !isFullWithdraw && "CONFIRMING WITHDRAW..."}
+                                                {withdrawStep === 'success' && !isFullWithdraw && "PNL WITHDRAWN"}
+                                                {withdrawStep === 'error' && !isFullWithdraw && "FAILED - RETRY?"}
+                                                {withdrawStep !== 'idle' && isFullWithdraw && "Withdraw PnL"}
+                                            </button>
+                                            <button
+                                                className={`withdraw-all-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && isFullWithdraw ? 'loading' : ''}`}
+                                                style={{ flex: 1 }}
+                                                onClick={handleWithdrawAll}
+                                                disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || !shareBalance || (shareBalance as bigint) <= 0n}
+                                            >
+                                                {withdrawStep === 'idle' && "Close Position"}
+                                                {withdrawStep === 'withdrawing' && isFullWithdraw && "CLOSING..."}
+                                                {withdrawStep === 'waiting_withdraw' && isFullWithdraw && "CONFIRMING..."}
+                                                {withdrawStep === 'success' && isFullWithdraw && "CLOSED"}
+                                                {withdrawStep === 'error' && isFullWithdraw && "FAILED"}
+                                                {withdrawStep !== 'idle' && !isFullWithdraw && "Close Position"}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!(pnlAvailable > 0n || (shareBalance && (shareBalance as bigint) > 0n)) && totalDeposited === 0n && (
+                                        <div className="mt-md p-sm bg-white/5 border border-white/10 rounded-lg text-center">
+                                            <p className="text-[10px] text-dim font-bold uppercase tracking-tighter">No Active Allocation</p>
+                                        </div>
+                                    )}
                                     {errorMsg && (
                                         <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
                                             ERROR: {errorMsg}
