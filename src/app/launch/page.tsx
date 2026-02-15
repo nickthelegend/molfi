@@ -120,9 +120,9 @@ export default function LaunchPage() {
                     <div className="title-glow" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '400px', opacity: 0.15, filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }} />
 
                     <div className="float-anim mb-xl">
-                        <div className="novel-pill" style={{ background: 'rgba(168, 85, 247, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
+                        <div className="novel-pill" style={{ background: 'rgba(198, 33, 50, 0.1)', backdropFilter: 'blur(10px)', border: '1px solid var(--glass-border)' }}>
                             <Bot size={14} className="text-primary" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-gradient-purple">Molfi Agent Factory v1.0.4</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-gradient">Molfi Agent Factory v1.0.4</span>
                         </div>
                     </div>
                     <h1 style={{ fontSize: '5rem', marginBottom: '1.5rem', lineHeight: '0.9', letterSpacing: '-0.04em' }}>
@@ -134,7 +134,7 @@ export default function LaunchPage() {
                     </p>
                 </div>
 
-                <div className="novel-card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--primary-purple)', boxShadow: 'var(--glow-purple-strong)', transform: 'translateZ(0)', backdropFilter: 'blur(20px)' }}>
+                <div className="novel-card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--primary-red)', boxShadow: 'var(--glow-red-strong)', transform: 'translateZ(0)', backdropFilter: 'blur(20px)' }}>
                     <div className="terminal-header" style={{ padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--glass-border)' }}>
                         <div className="flex items-center justify-between w-full">
                             <div className="flex gap-2">
@@ -149,15 +149,15 @@ export default function LaunchPage() {
                     <div className="terminal-body" style={{ minHeight: '400px', background: 'rgba(5, 5, 10, 0.98)', padding: '3rem', fontFamily: 'var(--font-mono)' }}>
                         {!isConnected ? (
                             <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                                <Lock size={48} className="text-primary mb-lg opacity-80" style={{ filter: 'drop-shadow(0 0 10px var(--primary-purple))' }} />
+                                <Lock size={48} className="text-primary mb-lg opacity-80" style={{ filter: 'drop-shadow(0 0 10px var(--primary-red))' }} />
                                 <h3 className="mb-md" style={{ color: 'var(--text-primary)' }}>IDENTITY REQUIRED</h3>
                                 <p className="text-secondary mb-xl" style={{ maxWidth: '400px', fontSize: '0.9rem' }}>Connect your cryptographic signature to access the neural synthesis terminal.</p>
                                 <ConnectButton />
                             </div>
                         ) : status === 'idle' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-                                <div className="flex flex-col items-center gap-md p-xl novel-card" style={{ background: 'rgba(168, 85, 247, 0.05)', borderStyle: 'solid', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
-                                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--primary-purple)', boxShadow: '0 0 30px rgba(168, 85, 247, 0.3)', marginBottom: '0.5rem' }}>
+                                <div className="flex flex-col items-center gap-md p-xl novel-card" style={{ background: 'rgba(198, 33, 50, 0.05)', borderStyle: 'solid', borderColor: 'rgba(198, 33, 50, 0.3)' }}>
+                                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--primary-red)', boxShadow: '0 0 30px rgba(198, 33, 50, 0.3)', marginBottom: '0.5rem' }}>
                                         <img src={userAvatar} alt="User" style={{ width: '100%', height: '100%' }} />
                                     </div>
                                     <div>
@@ -175,8 +175,8 @@ export default function LaunchPage() {
                                                 className="novel-search-input"
                                                 placeholder="ENTER AGENT NAME..."
                                                 style={{
-                                                    background: 'rgba(168, 85, 247, 0.03)',
-                                                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                                                    background: 'rgba(198, 33, 50, 0.03)',
+                                                    border: '1px solid rgba(198, 33, 50, 0.3)',
                                                     padding: '1rem',
                                                     height: '60px',
                                                     borderRadius: '12px',
@@ -204,8 +204,8 @@ export default function LaunchPage() {
                                                             flex: 1,
                                                             padding: '1rem',
                                                             borderRadius: '12px',
-                                                            background: agentDetails.personality === risk ? 'var(--primary-purple)' : 'rgba(168, 85, 247, 0.05)',
-                                                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                                                            background: agentDetails.personality === risk ? 'var(--primary-red)' : 'rgba(198, 33, 50, 0.05)',
+                                                            border: '1px solid rgba(198, 33, 50, 0.3)',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 'bold',
                                                             color: 'white',
@@ -221,14 +221,14 @@ export default function LaunchPage() {
                                         </div>
                                     </div>
 
-                                    <div className="novel-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(168, 85, 247, 0.02)', borderStyle: 'dashed', padding: '3rem' }}>
-                                        <div className="float-anim" style={{ width: '140px', height: '140px', borderRadius: '40px', background: 'rgba(0,0,0,0.5)', padding: '16px', border: '2px solid var(--primary-purple)', marginBottom: '2rem', boxShadow: '0 0 50px rgba(168, 85, 247, 0.3)' }}>
+                                    <div className="novel-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(198, 33, 50, 0.02)', borderStyle: 'dashed', padding: '3rem' }}>
+                                        <div className="float-anim" style={{ width: '140px', height: '140px', borderRadius: '40px', background: 'rgba(0,0,0,0.5)', padding: '16px', border: '2px solid var(--primary-red)', marginBottom: '2rem', boxShadow: '0 0 50px rgba(198, 33, 50, 0.3)' }}>
                                             <img src={agentAvatar} alt="Agent Preview" style={{ width: '100%', height: '100%', borderRadius: '24px' }} />
                                         </div>
                                         <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: 'white' }}>{agentDetails.name || 'Unnamed Agent'}</h2>
                                         <span className="text-xs text-primary font-bold uppercase tracking-[0.3em] mb-xl">{agentDetails.personality} RISK PROFILE</span>
                                         <button
-                                            className="premium-button primary-purple"
+                                            className="premium-button primary-red"
                                             disabled={!agentDetails.name}
                                             onClick={handleLaunch}
                                             style={{ width: '100%', maxWidth: '400px', height: '64px', fontSize: '1.1rem' }}
@@ -266,23 +266,23 @@ export default function LaunchPage() {
 
                                         {/* API Key Display */}
                                         {apiKey && (
-                                            <div style={{ marginTop: '2rem', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '16px', padding: '2rem' }}>
+                                            <div style={{ marginTop: '2rem', background: 'rgba(198, 33, 50, 0.05)', border: '1px solid rgba(198, 33, 50, 0.3)', borderRadius: '16px', padding: '2rem' }}>
                                                 <div className="flex items-center gap-sm mb-md">
                                                     <Zap size={14} className="text-primary" />
                                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">YOUR API KEY</span>
                                                 </div>
                                                 <div className="flex items-center gap-md" style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                    <code style={{ flex: 1, fontSize: '0.75rem', color: '#a78bfa', wordBreak: 'break-all', userSelect: 'all' }}>{apiKey}</code>
+                                                    <code style={{ flex: 1, fontSize: '0.75rem', color: '#ff6b6b', wordBreak: 'break-all', userSelect: 'all' }}>{apiKey}</code>
                                                     <button
                                                         onClick={copyApiKey}
-                                                        style={{ background: copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(168, 85, 247, 0.15)', border: '1px solid ' + (copied ? 'rgba(34, 197, 94, 0.3)' : 'rgba(168, 85, 247, 0.3)'), color: copied ? '#4ade80' : '#a78bfa', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', transition: '0.2s' }}
+                                                        style={{ background: copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(198, 33, 50, 0.15)', border: '1px solid ' + (copied ? 'rgba(34, 197, 94, 0.3)' : 'rgba(198, 33, 50, 0.3)'), color: copied ? '#4ade80' : '#ff6b6b', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', transition: '0.2s' }}
                                                     >
                                                         {copied ? '✓ COPIED' : 'COPY'}
                                                     </button>
                                                 </div>
-                                                <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(168, 85, 247, 0.03)', borderRadius: '10px', border: '1px dashed rgba(168, 85, 247, 0.15)' }}>
+                                                <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(198, 33, 50, 0.03)', borderRadius: '10px', border: '1px dashed rgba(198, 33, 50, 0.15)' }}>
                                                     <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem' }}>
-                                                        <strong style={{ color: '#a78bfa' }}>For OpenClaw / AI Agents:</strong> Paste this prompt:
+                                                        <strong style={{ color: '#ff6b6b' }}>For OpenClaw / AI Agents:</strong> Paste this prompt:
                                                     </p>
                                                     <code style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', userSelect: 'all', lineHeight: 1.6 }}>
                                                         Read https://molfi.fun/skill.md and follow the instructions to join MolFi with API key: {apiKey.slice(0, 20)}...
@@ -307,7 +307,7 @@ export default function LaunchPage() {
                                         </div>
                                     </div>
                                 )}
-                                <p className="animate-pulse mt-xl text-primary-purple text-xl">_</p>
+                                <p className="animate-pulse mt-xl text-primary-red text-xl">_</p>
                             </div>
                         )}
                     </div>
@@ -335,16 +335,16 @@ export default function LaunchPage() {
                     overflow: hidden;
                 }
 
-                .premium-button.primary-purple {
-                    background: var(--primary-purple);
+                .premium-button.primary-red {
+                    background: var(--primary-red);
                     color: white;
-                    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 10px 30px rgba(198, 33, 50, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
                 }
 
-                .premium-button.primary-purple:hover {
-                    background: #9333ea;
+                .premium-button.primary-red:hover {
+                    background: var(--secondary-red);
                     transform: translateY(-3px);
-                    box-shadow: 0 15px 40px rgba(168, 85, 247, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+                    box-shadow: 0 15px 40px rgba(198, 33, 50, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
                 }
 
                 .premium-button.primary-green {
@@ -382,8 +382,8 @@ export default function LaunchPage() {
                     color: rgba(255,255,255,0.2);
                 }
                 .novel-search-input:focus {
-                    border-color: var(--primary-purple) !important;
-                    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+                    border-color: var(--primary-red) !important;
+                    box-shadow: 0 0 15px rgba(198, 33, 50, 0.2);
                     outline: none;
                 }
                 select.novel-search-input {
