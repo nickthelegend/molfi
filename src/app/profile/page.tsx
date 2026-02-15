@@ -37,7 +37,8 @@ type InvestmentItem = {
     currentValue: number;
     pnl: number;
     apy?: number;
-    txHash?: string;
+    txHash: string;
+    status: string;
 };
 
 type ActivityItem = {
@@ -54,6 +55,8 @@ export default function ProfilePage() {
     const { isConnected, address } = useAccount();
     const publicClient = usePublicClient();
     const [investments, setInvestments] = useState<InvestmentItem[]>([]);
+    const [closedInvestments, setClosedInvestments] = useState<InvestmentItem[]>([]);
+    const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
     const [investmentsLoading, setInvestmentsLoading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -73,6 +76,7 @@ export default function ProfilePage() {
 
             if (!data.success) {
                 setInvestments([]);
+                setClosedInvestments([]);
                 setMyAgents([]);
                 return;
             }
@@ -110,7 +114,7 @@ export default function ProfilePage() {
             let initialInvestments = investmentsData.success ? investmentsData.investments : [];
 
             // Only consider ACTIVE investments for the UI
-            const activeInvestments = initialInvestments.filter((inv: any) => inv.status === 'ACTIVE');
+            const allInvestments = initialInvestments;
 
             let foundNew = false;
 
@@ -168,7 +172,10 @@ export default function ProfilePage() {
 
                 // NEW: Sync Withdrawals by checking current balance
                 // If user has ACTIVE investments in DB but 0 balance on-chain, mark them CLOSED
-                for (const inv of activeInvestments) {
+                // Only iterate through ACTIVE investments for sync check
+                const activeForSync = allInvestments.filter((inv: any) => inv.status === 'ACTIVE');
+
+                for (const inv of activeForSync) {
                     if (!inv.agents?.vault_address) continue;
 
                     try {
@@ -205,27 +212,34 @@ export default function ProfilePage() {
                 setIsSyncing(false);
             }
 
-            // Map to UI objects - using activeInvestments (which might have been refreshed)
+            // Map to UI objects
             const finalInvestments = foundNew
-                ? (await (await fetch(`/api/investments/user/${address}`)).json()).investments.filter((inv: any) => inv.status === 'ACTIVE')
-                : activeInvestments;
+                ? (await (await fetch(`/api/investments/user/${address}`)).json()).investments
+                : allInvestments;
 
-            const investmentItems = await Promise.all(
+            const investmentItems: (InvestmentItem | null)[] = await Promise.all(
                 finalInvestments.map(async (inv: any) => {
                     if (!inv.agents?.vault_address) return null;
                     const vaultAddress = inv.agents.vault_address as `0x${string}`;
+                    const isClosed = inv.status === 'CLOSED';
 
                     try {
-                        const currentAssets = await publicClient.readContract({
-                            address: vaultAddress,
-                            abi: MolfiAgentVaultABI,
-                            functionName: "convertToAssets",
-                            args: [parseEther(inv.shares?.toString() || '0')],
-                        }) as bigint;
+                        // If closed, we might not have shares anymore, so current value is effectively withdrawn amount or profit
+                        // For simplicity in list, if closed, we can show 0 current value or just the static data
+
+                        let currentAssets = 0n;
+                        if (!isClosed) {
+                            currentAssets = await publicClient.readContract({
+                                address: vaultAddress,
+                                abi: MolfiAgentVaultABI,
+                                functionName: "convertToAssets",
+                                args: [parseEther(inv.shares?.toString() || '0')],
+                            }) as bigint;
+                        }
 
                         const deposited = parseFloat(inv.amount);
-                        const currentValue = parseFloat(formatEther(currentAssets));
-                        const pnl = currentValue - deposited;
+                        const currentValue = isClosed ? 0 : parseFloat(formatEther(currentAssets));
+                        const pnl = isClosed ? 0 : currentValue - deposited; // Logic can be improved for closed PnL if we stored it
 
                         return {
                             agentId: Number(inv.agents.agent_id),
@@ -236,6 +250,7 @@ export default function ProfilePage() {
                             pnl,
                             apy: 0,
                             txHash: inv.tx_hash,
+                            status: inv.status
                         };
                     } catch (err) {
                         return {
@@ -247,12 +262,15 @@ export default function ProfilePage() {
                             pnl: 0,
                             apy: 0,
                             txHash: inv.tx_hash,
+                            status: inv.status
                         };
                     }
                 })
             );
 
-            setInvestments(investmentItems.filter((i): i is InvestmentItem => i !== null));
+            const validItems = investmentItems.filter((i): i is InvestmentItem => i !== null);
+            setInvestments(validItems.filter(i => i.status === 'ACTIVE'));
+            setClosedInvestments(validItems.filter(i => i.status === 'CLOSED'));
         } catch (err) {
             console.error("Failed to fetch data", err);
             setInvestments([]);
@@ -266,6 +284,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (!isConnected || !address || !publicClient) {
             setInvestments([]);
+            setClosedInvestments([]);
             setMyAgents([]);
             setActivities([]);
             setAgentsLoading(false);
@@ -399,95 +418,147 @@ export default function ProfilePage() {
 
             {/* My Investments */}
             <div style={{ marginBottom: '3rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.75rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
-                        My Investments
-                        {isSyncing && (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-primary-purple animate-pulse">
-                                <RefreshCw size={10} className="animate-spin" /> SYNCING_ON_CHAIN...
-                            </span>
-                        )}
-                    </h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div className="flex items-center gap-4">
+                        <h2 style={{ fontSize: '1.75rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
+                            My Investments
+                            {isSyncing && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-primary-purple animate-pulse">
+                                    <RefreshCw size={10} className="animate-spin" /> SYNCING
+                                </span>
+                            )}
+                        </h2>
+                    </div>
+
+                    <div className="flex bg-white/5 rounded-lg p-1 border border-white/10">
+                        <button
+                            onClick={() => setActiveTab('active')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'active' ? 'bg-primary-purple text-white shadow-lg' : 'text-secondary hover:text-white'}`}
+                        >
+                            Active
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('closed')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'closed' ? 'bg-white/10 text-white shadow-lg' : 'text-secondary hover:text-white'}`}
+                        >
+                            History
+                        </button>
+                    </div>
+
                     <button
                         onClick={() => loadData(true)}
                         disabled={isSyncing || investmentsLoading}
-                        className="text-[11px] font-bold text-dim hover:text-primary transition-colors flex items-center gap-1"
+                        className="text-[11px] font-bold text-dim hover:text-primary transition-colors flex items-center gap-1 ml-auto"
                     >
                         <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
-                        REFRESH_DATA
+                        REFRESH
                     </button>
                 </div>
 
                 {investmentsLoading ? (
                     <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
+                        <RefreshCw size={24} className="mx-auto mb-2 animate-spin text-primary" />
                         Loading investments...
                     </div>
-                ) : (investments.length === 0 && !isSyncing) ? (
-                    <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        <AlertCircle size={32} className="mx-auto mb-3 opacity-20" />
-                        <p className="mb-4">No active investments found in our registry.</p>
-                        <button
-                            onClick={() => loadData(true)}
-                            className="neon-button secondary"
-                            style={{ fontSize: '0.8rem' }}
-                        >
-                            Deep Scan Blockchain
-                        </button>
-                    </div>
-                ) : (investments.length === 0 && isSyncing) ? (
-                    <div className="glass-container" style={{ padding: '3rem', textAlign: 'center' }}>
-                        <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-primary-purple" />
-                        <p className="font-mono text-xs tracking-widest">SCANNING_PROTOCOLS_FOR_DEPOSITS...</p>
-                    </div>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                        {investments.map((inv) => (
-                            <div key={inv.txHash} className="glass-container" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <div>
-                                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
-                                        <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
-                                    </div>
-                                    <Link href={`/investment/${inv.txHash}`} className="neon-button secondary" style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}>
-                                        Details <ExternalLink size={12} style={{ marginLeft: '6px' }} />
-                                    </Link>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Deposited</p>
-                                        <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Current Value</p>
-                                        <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>PnL</p>
-                                        <p style={{ fontSize: '1.1rem', fontWeight: 700, color: inv.pnl >= 0 ? '#10b981' : '#ef4444' }}>
-                                            {inv.pnl >= 0 ? '+' : ''}${inv.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>APY</p>
-                                        <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                            {inv.apy ? `${inv.apy}%` : '--'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
-                                    <Link href={`/investment/${inv.txHash}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
-                                        VIEW_DETAILS
-                                    </Link>
-                                    <Link href={`/investment/${inv.txHash}?action=withdraw`} className="neon-button secondary" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
-                                        WITHDRAW
-                                    </Link>
-                                </div>
+                    activeTab === 'active' ? (
+                        /* ACTIVE INVESTMENTS LIST */
+                        (investments.length === 0 && !isSyncing) ? (
+                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                <AlertCircle size={32} className="mx-auto mb-3 opacity-20" />
+                                <p className="mb-4">No active investments found.</p>
+                                <Link href="/setup" className="neon-button text-xs">Explore Agents</Link>
                             </div>
-                        ))}
-                    </div>
+                        ) : (investments.length === 0 && isSyncing) ? (
+                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center' }}>
+                                <p className="font-mono text-xs tracking-widest text-primary animate-pulse">SCANNING_PROTOCOLS...</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                                {investments.map((inv) => (
+                                    <div key={inv.txHash} className="glass-container" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <div>
+                                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
+                                                <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-500 uppercase">ACTIVE</span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Deposited</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Current Value</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>PnL</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: inv.pnl >= 0 ? '#10b981' : '#ef4444' }}>
+                                                    {inv.pnl >= 0 ? '+' : ''}${inv.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>APY</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                                    {inv.apy ? `${inv.apy}%` : '--'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+                                            <Link href={`/investment/${inv.txHash}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
+                                                Manage Position
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    ) : (
+                        /* CLOSED INVESTMENTS LIST */
+                        closedInvestments.length === 0 ? (
+                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                <p className="opacity-50 text-sm">No investment history found.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                                {closedInvestments.map((inv) => (
+                                    <div key={inv.txHash} className="glass-container grayscale hover:grayscale-0 transition-all duration-300" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', opacity: 0.8 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <div>
+                                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{inv.name}</h3>
+                                                <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold text-gray-400 uppercase">CLOSED</span>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Invested Amount</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-dim)' }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Status</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-dim)' }}>Settled</p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+                                            <Link href={`/investment/${inv.txHash}`} className="neon-button secondary" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
+                                                View Receipt <ExternalLink size={12} style={{ marginLeft: '4px' }} />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    )
                 )}
             </div>
 
