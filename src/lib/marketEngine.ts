@@ -27,9 +27,10 @@ const ORACLE_ABI = [
 const ORACLE_ADDRESS = process.env.NEXT_PUBLIC_MOLFI_ORACLE || '';
 
 const RPC_URLS = [
+  process.env.NEXT_PUBLIC_MONAD_RPC || '',
   'https://testnet-rpc.monad.xyz',
   'https://monad-testnet.drpc.org',
-];
+].filter(Boolean);
 
 // Binance symbol mapping (for direct fallback)
 const BINANCE_SYMBOLS: Record<string, string> = {
@@ -44,10 +45,43 @@ const BINANCE_SYMBOLS: Record<string, string> = {
   'NEAR/USD': 'NEARUSDT',
 };
 
+const BINANCE_ENDPOINTS = [
+  'https://api.binance.com',
+  'https://api1.binance.com',
+  'https://api2.binance.com',
+  'https://api3.binance.com',
+  'https://api.binance.us', // Often works when others are blocked
+];
+
+const COINGECKO_IDS: Record<string, string> = {
+  'BTC/USD': 'bitcoin',
+  'ETH/USD': 'ethereum',
+  'SOL/USD': 'solana',
+  'LINK/USD': 'chainlink',
+  'DOGE/USD': 'dogecoin',
+  'AVAX/USD': 'avalanche-2',
+  'MATIC/USD': 'matic-network',
+  'DOT/USD': 'polkadot',
+  'NEAR/USD': 'near',
+};
+
 export const SUPPORTED_PAIRS = [
   'BTC/USD', 'ETH/USD', 'SOL/USD', 'LINK/USD', 'DOGE/USD',
   'AVAX/USD', 'MATIC/USD', 'DOT/USD', 'NEAR/USD',
 ];
+
+// Last resort fallback prices (Static)
+const HARDCODED_FALLBACKS: Record<string, number> = {
+  'BTC/USD': 96000,
+  'ETH/USD': 2600,
+  'SOL/USD': 185,
+  'LINK/USD': 18.5,
+  'DOGE/USD': 0.15,
+  'AVAX/USD': 35,
+  'MATIC/USD': 0.5,
+  'DOT/USD': 6,
+  'NEAR/USD': 4.5,
+};
 
 // ── Types ────────────────────────────────────────────────────────
 export interface PriceData {
@@ -55,14 +89,15 @@ export interface PriceData {
   price: number;
   change24h: number;
   updatedAt: string;
-  source: 'oracle' | 'binance' | 'fallback';
+  source: 'oracle' | 'binance' | 'coingecko' | 'fallback';
 }
 
 // ── RPC Provider Pool ────────────────────────────────────────────
 let providerIndex = 0;
 
 function getProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(RPC_URLS[providerIndex % RPC_URLS.length]);
+  const url = RPC_URLS[providerIndex % RPC_URLS.length];
+  return new ethers.JsonRpcProvider(url);
 }
 
 function rotateProvider() {
@@ -75,7 +110,7 @@ const CACHE_TTL = 5000;
 
 // ── Strategy 1: Read from MolfiOracle on-chain ───────────────────
 async function readFromOracle(symbol: string): Promise<PriceData | null> {
-  if (!ORACLE_ADDRESS) return null;
+  if (!ORACLE_ADDRESS || RPC_URLS.length === 0) return null;
 
   for (let attempt = 0; attempt < RPC_URLS.length; attempt++) {
     try {
@@ -108,42 +143,83 @@ async function readFromOracle(symbol: string): Promise<PriceData | null> {
   return null;
 }
 
-// ── Strategy 2: Direct Binance API fetch ─────────────────────────
+// ── Strategy 2: Direct Binance API fetch (Multi-endpoint) ────────
 async function readFromBinance(symbol: string): Promise<PriceData | null> {
   const binanceSymbol = BINANCE_SYMBOLS[symbol];
   if (!binanceSymbol) return null;
 
+  for (const endpoint of BINANCE_ENDPOINTS) {
+    try {
+      const res = await fetch(
+        `${endpoint}/api/v3/ticker/price?symbol=${binanceSymbol}`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const price = parseFloat(data.price);
+
+      if (isNaN(price) || price <= 0) continue;
+
+      return {
+        symbol,
+        price,
+        change24h: 0,
+        updatedAt: new Date().toISOString(),
+        source: 'binance',
+      };
+    } catch (err: any) {
+      console.warn(`[MarketEngine] Binance fetch failed for ${symbol} at ${endpoint}: ${err.message}`);
+    }
+  }
+  return null;
+}
+
+// ── Strategy 3: CoinGecko Fallback ───────────────────────────────
+async function readFromCoinGecko(symbol: string): Promise<PriceData | null> {
+  const cgId = COINGECKO_IDS[symbol];
+  if (!cgId) return null;
+
   try {
     const res = await fetch(
-      `https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`,
       { signal: AbortSignal.timeout(5000) }
     );
     if (!res.ok) return null;
 
     const data = await res.json();
-    const price = parseFloat(data.price);
+    const price = data[cgId]?.usd;
 
-    if (isNaN(price) || price <= 0) return null;
+    if (!price || isNaN(price) || price <= 0) return null;
 
     return {
       symbol,
       price,
       change24h: 0,
       updatedAt: new Date().toISOString(),
-      source: 'binance',
+      source: 'coingecko',
     };
   } catch (err: any) {
-    console.warn(`[MarketEngine] Binance fetch failed for ${symbol}: ${err.message}`);
+    console.warn(`[MarketEngine] CoinGecko fetch failed for ${symbol}: ${err.message}`);
     return null;
   }
 }
 
-// ── Strategy 3: Error Out (No Mocks) ─────────────────────────────
-function handlePriceFailure(symbol: string): never {
-  const errorMsg = `[MarketEngine] CRITICAL: Failed to fetch price for ${symbol}. Both MolfiOracle and Binance sources are unavailable.`;
+// ── Strategy 4: Hardcoded Fallback (Last Resort) ─────────────────
+function handlePriceFailure(symbol: string): PriceData {
+  const fallbackPrice = HARDCODED_FALLBACKS[symbol] || 0;
+  const errorMsg = `[MarketEngine] WARNING: All live price sources failed for ${symbol}. Using hardcoded fallback: ${fallbackPrice}`;
   console.error(errorMsg);
-  throw new Error(errorMsg);
+
+  return {
+    symbol,
+    price: fallbackPrice,
+    change24h: 0,
+    updatedAt: new Date().toISOString(),
+    source: 'fallback',
+  };
 }
+
 
 // ── Just-In-Time (JIT) Oracle Synchronization ────────────────────
 /**
@@ -195,7 +271,7 @@ export async function syncOraclePrice(symbol: string): Promise<PriceData> {
 // ── Main Price Fetcher ───────────────────────────────────────────
 /**
  * Fetches the latest price for a symbol.
- * Tries: MolfiOracle → Binance → Fallback
+ * Tries: MolfiOracle → Binance → CoinGecko → Fallback
  */
 export async function getOraclePrice(symbol: string): Promise<PriceData> {
   const normalized = symbol.replace('-', '/').toUpperCase();
@@ -206,17 +282,22 @@ export async function getOraclePrice(symbol: string): Promise<PriceData> {
     return cached.data;
   }
 
-  // Try oracle first
-  let data = await readFromOracle(normalized);
+  // 1. Try oracle first
+  let data: PriceData | null = await readFromOracle(normalized);
 
-  // Fallback to Binance direct
+  // 2. Fallback to Binance direct
   if (!data) {
     data = await readFromBinance(normalized);
   }
 
-  // Last resort: error out
+  // 3. Fallback to CoinGecko
   if (!data) {
-    handlePriceFailure(normalized);
+    data = await readFromCoinGecko(normalized);
+  }
+
+  // 4. Last resort: Static fallback
+  if (!data) {
+    data = handlePriceFailure(normalized);
   }
 
   // Cache it
@@ -229,7 +310,7 @@ export async function getOraclePrice(symbol: string): Promise<PriceData> {
  */
 export async function getAllPrices(): Promise<PriceData[]> {
   // Try batch read from oracle first
-  if (ORACLE_ADDRESS) {
+  if (ORACLE_ADDRESS && RPC_URLS.length > 0) {
     for (let attempt = 0; attempt < RPC_URLS.length; attempt++) {
       try {
         const provider = getProvider();
@@ -260,7 +341,7 @@ export async function getAllPrices(): Promise<PriceData[]> {
     }
   }
 
-  // Fallback: fetch each pair individually (tries Binance → fallback)
+  // Fallback: fetch each pair individually (tries Oracle → Binance → CG → Fallback)
   const allPairs = Object.keys(BINANCE_SYMBOLS);
   const results = await Promise.allSettled(allPairs.map(p => getOraclePrice(p)));
 
@@ -269,6 +350,7 @@ export async function getAllPrices(): Promise<PriceData[]> {
     return handlePriceFailure(allPairs[i]);
   });
 }
+
 
 // ── Perpetual Math ───────────────────────────────────────────────
 export function calculatePnL(
