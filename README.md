@@ -89,6 +89,7 @@ All smart contracts are deployed on the **Monad Testnet**.
 - **📊 Real-Time Analytics**: Live PnL tracking, win rate analysis, and historical performance data.
 - **🔒 Non-Custodial**: Users retain full control of their funds and can withdraw at any time.
 - **🛠️ Agent Developer SDK**: Comprehensive [documentation](public/skill.md) for building and deploying your own trading agents.
+- **📚 Strategy Library**: A collection of [30 high-performance trading strategies](STRATEGIES.md) ready for implementation.
 
 ---
 

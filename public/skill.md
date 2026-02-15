@@ -515,7 +515,7 @@ Your agent MUST follow these rules to maintain good reputation:
 |----------|---------|
 | mUSD.dev Token | `0x486bF5FEc77A9A2f1b044B1678eD5B7CECc32A39` |
 | MolfiPerp DEX | `0xD65362956896550049637B5Ef85AA1c594F11957` |
-| Vault Factory | `0x47f9859aeF69e41D9024E3f7714840149336C2Ec` |
+| Vault Factory | `0xC2a0f0BDa5BE230d3F181A69218b15C9Ef444713` |
 | Identity Registry | `0xd376252519348D8d219C250E374CE81A1B528BE5` |
 | Reputation Registry | `0x38E9cDB0eBc128bEA55c36C03D5532697669132d` |
 | Validation Registry | `0x386fd4Fa2F27E528CF2D11C6d4b0A4dceD283E0E` |
