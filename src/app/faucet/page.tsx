@@ -408,9 +408,15 @@ export default function FaucetPage() {
                     to { opacity: 1; transform: translateY(0); }
                 }
 
-                @media (max-width: 480px) {
-                    .faucet-title { font-size: 2rem; }
-                    .faucet-card { padding: 1.5rem; }
+                @media (max-width: 768px) {
+                    .main-content-faucet { padding-top: 100px; padding-left: 1rem; padding-right: 1rem; }
+                    .faucet-title { font-size: 2.5rem; }
+                    .faucet-card { padding: 1.5rem; width: 100%; }
+                    .stats-list { padding: 1rem; }
+                    .stat-row { align-items: center; }
+                    .stat-label { font-size: 9px; }
+                    .stat-value { font-size: 11px; }
+                    .verified-badge { padding: 0.3rem 0.6rem; font-size: 8px; }
                 }
             `}</style>
         </div>

@@ -374,6 +374,33 @@ export default function AgentSetupPage() {
                 .w-full { width: 100%; }
                 .custom-range { -webkit-appearance: none; background: rgba(168, 85, 247, 0.2); height: 6px; border-radius: 10px; }
                 .custom-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary-purple); border-radius: 50%; cursor: pointer; }
+
+                @media (max-width: 768px) {
+                    .terminal-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 2rem; }
+                    .col-span-4 { width: 100%; order: 1; margin-bottom: 1rem; }
+                    .col-span-8 { width: 100%; order: 2; }
+                    
+                    /* Sidebar as horizontal stepper mobile */
+                    .col-span-4 .novel-card { 
+                        position: static; 
+                        padding: 1rem; 
+                        overflow-x: auto;
+                    }
+                    .col-span-4 .flex.flex-col.gap-lg { 
+                        flex-direction: row; 
+                        gap: 1.5rem; 
+                        min-width: max-content;
+                    }
+                    .text-xs.font-bold.tracking-widest { display: none; } /* Hide labels on mobile stepper */
+                    
+                    .novel-card.py-xl.px-xl { padding: 1.5rem; }
+                    h1 { font-size: 2.5rem !important; }
+                    .text-lg { font-size: 1rem; }
+                    
+                    .grid-cols-3 { grid-template-columns: 1fr; }
+                    .grid-cols-2 { grid-template-columns: 1fr; }
+                    .flex.gap-md { flex-direction: column; }
+                }
             `}</style>
         </div>
     );

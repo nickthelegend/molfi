@@ -1397,6 +1397,51 @@ function AgentDetailPageContent({ id }: { id: string }) {
                     border-radius: 100%;
                     animation: spin 1s linear infinite;
                 }
+
+                @media (max-width: 768px) {
+                    .premium-hero-card { padding: 1.5rem; border-radius: 20px; text-align: center; }
+                    .header-name-row h1 { font-size: 2rem; }
+                    .hero-main-layout { flex-direction: column; gap: 2rem; }
+                    .badges-row { 
+                        flex-direction: column; 
+                        gap: 0.5rem; 
+                    }
+                    .hero-apy-box { 
+                        min-width: 100%; 
+                        margin-top: 1rem; 
+                        padding: 1.5rem; 
+                        position: relative; 
+                        transform: none; 
+                        top: auto; 
+                        right: auto;
+                    }
+
+                    .agent-stats-row {
+                        grid-template-columns: 1fr;
+                        gap: 0.75rem;
+                    }
+                    .stat-card { padding: 1rem; display: flex; align-items: center; justify-content: space-between; }
+                    .stat-sub { margin-top: 0; text-align: right; }
+                    .stat-value { margin-top: 0; font-size: 1.1rem; }
+                    
+                    /* Grid Layout */
+                    .terminal-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 2rem; }
+                    .col-span-8 { width: 100%; }
+                    .col-span-4 { width: 100%; order: 2; }
+                    
+                    /* Allocation Panel */
+                    .allocation-input { font-size: 1rem; }
+                    .allocation-metrics { grid-template-columns: 1fr; gap: 0.5rem; }
+                    
+                    /* Hide orb on mobile if takes too much space, or resize */
+                    .hero-orb { width: 100px; height: 100px; margin: 0 auto 1.5rem; }
+                    
+                    /* Navigation */
+                    .container.pt-xl { padding-top: 1rem; }
+                    .flex.items-center.justify-between.mb-xl { flex-direction: column; gap: 1rem; align-items: stretch; }
+                    .glass-back-btn { width: fit-content; }
+                    .neural-status-indicator { justify-content: center; }
+                }
             `}</style>
         </div>
     );

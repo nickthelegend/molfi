@@ -1014,12 +1014,47 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     .investment-hero-performance {
                         width: 100%;
                         text-align: left;
+                        margin-top: 1.5rem;
                     }
                     .investment-grid {
                         grid-template-columns: 1fr;
                     }
                     .investment-side .glass-container {
                         position: static;
+                    }
+                    .architecture-card {
+                        margin-top: 1rem;
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .investment-hero {
+                        padding: 1.5rem;
+                    }
+                    .investment-title {
+                        font-size: 1.75rem;
+                    }
+                    .investment-stats {
+                        grid-template-columns: 1fr;
+                    }
+                    .panel-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 0.5rem;
+                    }
+                    .panel-actions {
+                        flex-direction: column;
+                    }
+                    .active-positions-table {
+                        font-size: 0.75rem;
+                    }
+                    .active-positions-table th, 
+                    .active-positions-table td {
+                        padding: 0.5rem;
+                    }
+                    .investment-topbar {
+                        gap: 0.5rem;
+                        font-size: 0.8rem;
                     }
                 }
 

@@ -513,10 +513,21 @@ export default function Home() {
                     to { transform: rotate(360deg); }
                 }
                 @media (max-width: 768px) {
-                    .hero-title { font-size: 3.5rem; }
-                    .hero-subtitle { font-size: 1.1rem; }
-                    .cta-card { padding: 4rem 1rem; }
-                    .tech-visual-container { width: 300px; height: 300px; }
+                    .hero-title { font-size: 2.5rem; }
+                    .hero-subtitle { font-size: 1rem; padding: 0 1rem; margin-bottom: 2rem; }
+                    .cta-card { padding: 3rem 1rem; }
+                    .tech-visual-container { width: 280px; height: 280px; margin: 0 auto; }
+                    .hero-cta { width: 100%; padding: 0 1rem; font-size: 0.9rem; }
+                    .flex.gap-lg.mb-xl { flex-direction: column; gap: 1rem; width: 100%; padding: 0 2rem; }
+                    .hero-terminal { margin: 2rem 1rem 0; width: auto; transform: none; }
+                    .container { padding-left: 1rem; padding-right: 1rem; }
+                    .grid.gap-xxl { gap: 2rem; }
+                    .tech-content h2 { font-size: 2.5rem !important; }
+                    .tech-content { text-align: center; }
+                    .tech-content .flex-col { gap: 1rem; }
+                    .novel-card .flex.gap-lg { flex-direction: column; text-align: center; align-items: center; }
+                    .footer-layout .flex-row { flex-direction: column; gap: 1.5rem; text-align: center; }
+                    .footer-layout .flex-col { align-items: center; }
                 }
                 .gap-xxl { gap: 4rem; }
                 .mx-auto { margin-left: auto; margin-right: auto; }

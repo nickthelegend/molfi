@@ -366,7 +366,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
                 <div className="glass-container" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                         <div style={{ padding: '0.75rem', background: 'var(--primary-purple)', borderRadius: '12px' }}>
@@ -519,7 +519,7 @@ export default function ProfilePage() {
                                 <p className="font-mono text-xs tracking-widest text-primary animate-pulse">SCANNING_PROTOCOLS...</p>
                             </div>
                         ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                                 {investments.map((inv) => (
                                     <div key={inv.txHash} className="glass-container" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -571,7 +571,7 @@ export default function ProfilePage() {
                                 <p className="opacity-50 text-sm">No investment history found.</p>
                             </div>
                         ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                                 {closedInvestments.map((inv) => (
                                     <div key={inv.txHash} className="glass-container grayscale hover:grayscale-0 transition-all duration-300" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', opacity: 0.8 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -618,7 +618,7 @@ export default function ProfilePage() {
                         Loading your agents...
                     </div>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                         {myAgents.map((agent) => (
                             <div key={agent.id} className="glass-container" style={{ padding: '1.5rem', position: 'relative' }}>
                                 <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.25rem 0.75rem', background: '#10b981', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>

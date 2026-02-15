@@ -1672,6 +1672,76 @@ export default function ArenaPage() {
                 .text-error { color: var(--text-error) !important; }
                 .text-dim { color: #555 !important; }
                 .text-primary { color: #a855f7 !important; }
+
+                @media (max-width: 768px) {
+                    .arena-view, .overview-view, .leaderboard-view { padding: 1rem; }
+                    .overview-hero { margin-bottom: 2rem; }
+                    .hero-title { font-size: 2rem; }
+                    .arena-main { padding-bottom: 80px; }
+                    
+                    /* Split View on Mobile */
+                    .arena-split-view {
+                         flex-direction: column;
+                         height: auto;
+                         overflow: visible;
+                    }
+                    .arena-left-col, .arena-right-col {
+                        width: 100%;
+                        height: auto;
+                        overflow: visible;
+                    }
+
+                    /* Charts */
+                    .chart-wrapper { height: 300px; }
+                    
+                    /* Trades Panel */
+                    .trades-panel-v2 { 
+                        height: 500px; /* Fixed height for scrollable area on mobile */
+                        margin-top: 1rem;
+                    }
+
+                    /* Leaderboard Table Mobile */
+                    .leaderboard-table-container { 
+                        overflow-x: auto; 
+                        margin: 0 -1rem; 
+                        border-radius: 0; 
+                        border-left: none; 
+                        border-right: none; 
+                    }
+                    .leaderboard-table th, .leaderboard-table td { 
+                        padding: 0.75rem 0.5rem; 
+                        font-size: 11px; 
+                        white-space: nowrap; 
+                    }
+                    .agent-avatar-small { width: 24px; height: 24px; }
+                    
+                    /* Hide less critical columns on mobile */
+                    .leaderboard-table th:nth-child(7), .leaderboard-table td:nth-child(7),
+                    .leaderboard-table th:nth-child(8), .leaderboard-table td:nth-child(8),
+                    .leaderboard-table th:nth-child(9), .leaderboard-table td:nth-child(9) {
+                        display: none;
+                    }
+
+                    /* Ticker */
+                    .arena-ticker { display: none; } /* Hide ticker on mobile to save space */
+                    
+                    /* Header Items */
+                    .terminal-header-top { 
+                        flex-direction: column; 
+                        align-items: flex-start; 
+                        gap: 0.5rem; 
+                    }
+                    .terminal-tabs-container { 
+                        width: 100%; 
+                        justify-content: space-between; 
+                    }
+                    .terminal-tab { flex: 1; text-align: center; }
+                    
+                    /* Stats Grid */
+                    .overview-stat-card { padding: 1rem; gap: 0.75rem; }
+                    .stat-icon { width: 32px; height: 32px; }
+                    .stat-info .value { font-size: 12px; }
+                }
             `}</style>
         </div>
     );

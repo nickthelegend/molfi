@@ -543,6 +543,26 @@ export default function LaunchPage() {
                     border-radius: 8px;
                     font-size: 0.9rem;
                 }
+
+                @media (max-width: 768px) {
+                    .container { padding-top: 100px !important; }
+                    .title-glow { width: 100% !important; height: 300px !important; }
+                    .hero-title { font-size: 3rem !important; }
+                    .hero-subtitle { font-size: 1rem !important; padding: 0 1rem; }
+                    
+                    /* Terminal */
+                    .novel-card { border-radius: 0; border-left: none; border-right: none; }
+                    .terminal-body { padding: 1.5rem !important; }
+                    
+                    /* Inputs */
+                    .novel-search-input { font-size: 1rem !important; }
+                    
+                    /* Risk Buttons */
+                    .flex.justify-center.gap-md { flex-direction: column; width: 100%; }
+                    
+                    /* Profile Card */
+                    .flex.flex-col.items-center.gap-md.p-xl { padding: 1rem !important; }
+                }
             `}</style>
 
 
