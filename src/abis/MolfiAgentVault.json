@@ -1223,5 +1223,28 @@
     ],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "sharesToBurn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "profitAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "adminPayoutProfit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ]

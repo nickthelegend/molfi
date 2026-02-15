@@ -41,8 +41,8 @@ contract MolfiVaultFactory {
         ERC1967Proxy proxy = new ERC1967Proxy(implementation, data);
         address vaultAddress = address(proxy);
 
-        // Link the vault in the IdentityRegistry manually in the deployment script
-        // IdentityRegistryUpgradeable(identityRegistry).setAgentVault(agentId, vaultAddress);
+        // Transfer ownership of the vault to the caller (deployer) so they can upgrade it later
+        MolfiAgentVault(vaultAddress).transferOwnership(msg.sender);
 
         emit VaultDeployed(agentId, vaultAddress);
         return vaultAddress;
