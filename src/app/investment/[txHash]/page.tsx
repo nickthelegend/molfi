@@ -363,6 +363,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     ],
                 });
             }
+            setWithdrawHash(tx);
             console.log("Withdrawal TX:", tx);
         } catch (err) {
             console.error("Withdrawal failed:", err);
@@ -370,6 +371,39 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
             setWithdrawMode(null);
         }
     };
+
+    const [withdrawHash, setWithdrawHash] = useState<string | null>(null);
+    const { isLoading: isConfirmingWithdraw, isSuccess: withdrawConfirmed } = useWaitForTransactionReceipt({
+        hash: withdrawHash as `0x${string}` | undefined,
+    });
+
+    // Sync after withdrawal is confirmed
+    useEffect(() => {
+        if (withdrawConfirmed && investment) {
+            const syncWithdrawal = async () => {
+                try {
+                    console.log("Syncing withdrawal to DB...");
+                    await fetch('/api/investments/sync-withdrawal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userAddress: address,
+                            agentId: investment.agents.agentId,
+                            txHash: withdrawHash,
+                            isFullWithdraw: withdrawMode === 'all' || currentValue === '0'
+                        })
+                    });
+
+                    // Refresh data
+                    fetchInvestment(true);
+                    setWithdrawHash(null);
+                } catch (err) {
+                    console.error("Sync withdrawal failed:", err);
+                }
+            };
+            syncWithdrawal();
+        }
+    }, [withdrawConfirmed, investment, address, withdrawHash]);
 
     if (loading) {
         return (

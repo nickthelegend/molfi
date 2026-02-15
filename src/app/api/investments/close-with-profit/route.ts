@@ -63,7 +63,9 @@ export async function POST(req: Request) {
         const { error: updateError } = await supabaseAdmin
             .from('investments')
             .update({ status: 'CLOSED' })
-            .match({ user_address: userAddress, agent_id: agentId, status: 'ACTIVE' });
+            .ilike('user_address', userAddress)
+            .eq('agent_id', agentId)
+            .eq('status', 'ACTIVE');
 
         if (updateError) {
             console.error('[PayoutAPI] Supabase update failed:', updateError);

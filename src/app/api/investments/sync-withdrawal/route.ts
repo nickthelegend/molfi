@@ -16,7 +16,9 @@ export async function POST(req: Request) {
             const { error } = await supabaseAdmin
                 .from('investments')
                 .update({ status: 'CLOSED' })
-                .match({ user_address: userAddress, agent_id: agentId, status: 'ACTIVE' });
+                .ilike('user_address', userAddress)
+                .eq('agent_id', agentId)
+                .eq('status', 'ACTIVE');
 
             if (error) {
                 console.error('Supabase error updating investment status:', error);

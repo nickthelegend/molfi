@@ -109,11 +109,15 @@ export default function ProfilePage() {
             const investmentsData = await investmentsRes.json();
             let initialInvestments = investmentsData.success ? investmentsData.investments : [];
 
+            // Only consider ACTIVE investments for the UI
+            const activeInvestments = initialInvestments.filter((inv: any) => inv.status === 'ACTIVE');
+
+            let foundNew = false;
+
             // BACKGROUND SYNC LOGIC
             if (shouldSync && allAgents.length > 0) {
                 setIsSyncing(true);
                 const knownHashes = new Set(initialInvestments.map((inv: any) => inv.tx_hash.toLowerCase()));
-                let foundNew = false;
 
                 // Scan all agents for deposits from this user
                 for (const agent of allAgents) {
@@ -162,6 +166,37 @@ export default function ProfilePage() {
                     }
                 }
 
+                // NEW: Sync Withdrawals by checking current balance
+                // If user has ACTIVE investments in DB but 0 balance on-chain, mark them CLOSED
+                for (const inv of activeInvestments) {
+                    if (!inv.agents?.vault_address) continue;
+
+                    try {
+                        const balance = await publicClient.readContract({
+                            address: inv.agents.vault_address as `0x${string}`,
+                            abi: MolfiAgentVaultABI,
+                            functionName: 'balanceOf',
+                            args: [address]
+                        }) as bigint;
+
+                        if (balance === 0n) {
+                            console.log(`[Sync] Found closed position for agent ${inv.agents.name}, marking CLOSED`);
+                            await fetch('/api/investments/sync-withdrawal', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    userAddress: address,
+                                    agentId: inv.agent_id,
+                                    isFullWithdraw: true
+                                })
+                            });
+                            foundNew = true;
+                        }
+                    } catch (e) {
+                        console.error(`Withdraw sync failed for investment ${inv.tx_hash}:`, e);
+                    }
+                }
+
                 if (foundNew) {
                     const refreshRes = await fetch(`/api/investments/user/${address}`);
                     const refreshData = await refreshRes.json();
@@ -170,9 +205,13 @@ export default function ProfilePage() {
                 setIsSyncing(false);
             }
 
-            // Map to UI objects
+            // Map to UI objects - using activeInvestments (which might have been refreshed)
+            const finalInvestments = foundNew
+                ? (await (await fetch(`/api/investments/user/${address}`)).json()).investments.filter((inv: any) => inv.status === 'ACTIVE')
+                : activeInvestments;
+
             const investmentItems = await Promise.all(
-                initialInvestments.map(async (inv: any) => {
+                finalInvestments.map(async (inv: any) => {
                     if (!inv.agents?.vault_address) return null;
                     const vaultAddress = inv.agents.vault_address as `0x${string}`;
 

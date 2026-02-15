@@ -426,23 +426,34 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 })
             ]);
 
-            // Sync Logic: Check for missing on-chain deposits
-            for (const log of depositLogs) {
-                if (!knownTxHashes.has(log.transactionHash.toLowerCase())) {
-                    console.log("SYNC: Auto-recovering missing investment:", log.transactionHash);
-                    const shares = formatEther((log.args as any).shares || 0n);
-                    const amount = formatEther((log.args as any).assets || 0n);
-                    await fetch('/api/investments/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            txHash: log.transactionHash,
-                            agentId: agent.agentId,
-                            userAddress: address,
-                            amount,
-                            shares: shares !== '0' ? shares : amount
-                        })
-                    }).catch(e => console.error("Sync failed for tx:", log.transactionHash, e));
+            // Sync Logic: Check for withdrawals
+            // If user has ACTIVE investments in DB but 0 balance on-chain, mark CLOSED
+            const activeAgentInvestments = agentInvestments.filter((i: any) => i.status === 'ACTIVE');
+            if (activeAgentInvestments.length > 0) {
+                try {
+                    const balance = await publicClient.readContract({
+                        address: agent.vaultAddress as `0x${string}`,
+                        abi: MolfiAgentVaultABI,
+                        functionName: 'balanceOf',
+                        args: [address]
+                    }) as bigint;
+
+                    if (balance === 0n) {
+                        console.log("SYNC: Marking agent investments CLOSED due to 0 balance");
+                        await fetch('/api/investments/sync-withdrawal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userAddress: address,
+                                agentId: agent.agentId,
+                                isFullWithdraw: true
+                            })
+                        });
+                        // Update the local list so calculation is correct immediately
+                        activeAgentInvestments.forEach((inv: any) => inv.status = 'CLOSED');
+                    }
+                } catch (e) {
+                    console.error("Withdraw sync failed on agent page:", e);
                 }
             }
 
