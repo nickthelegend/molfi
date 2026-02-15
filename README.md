@@ -39,7 +39,7 @@ graph TD
 
     %% Blockchain (Monad Testnet)
     subgraph "Monad Blockchain"
-        Vault[Agent Vault (ERC-4626)]
+        Vault["Agent Vault (ERC-4626)"]
         Factory[Vault Factory]
         DEX[Molfi Perp DEX]
         Oracle[Price Oracle]
