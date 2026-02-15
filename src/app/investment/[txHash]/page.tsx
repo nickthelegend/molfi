@@ -494,7 +494,9 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 <div className="glass-container investment-hero">
                     <div className="investment-hero-main">
                         <div className="investment-badges">
-                            <span className="status-pill">ACTIVE CIRCUIT</span>
+                            <span className={`status-pill ${investment.status === 'CLOSED' ? 'closed' : ''}`}>
+                                {investment.status === 'CLOSED' ? 'CLOSED POSITION' : 'ACTIVE CIRCUIT'}
+                            </span>
                             <span className="meta-pill">
                                 <Lock size={12} /> {new Date(investment.created_at).toLocaleDateString()}
                             </span>
@@ -578,28 +580,41 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                 <span className="panel-tag">Manage Withdrawals</span>
                             </div>
                             <div className="panel-body">
-                                <div className="panel-actions">
-                                    <button
-                                        onClick={() => handleWithdraw('profit')}
-                                        disabled={isWithdrawing || parseFloat(pnl) <= 0}
-                                        className={`neon-button secondary flex-1 ${isWithdrawing && withdrawMode === 'profit' ? 'opacity-80' : ''} ${parseFloat(pnl) <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    >
-                                        {isWithdrawing && withdrawMode === 'profit' ? 'Processing...' : 'Withdraw Profits Only'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleWithdraw('all')}
-                                        disabled={isWithdrawing || parseFloat(currentValue) <= 0}
-                                        className={`neon-button flex-1 ${isWithdrawing && withdrawMode === 'all' ? 'opacity-80' : ''}`}
-                                    >
-                                        {isWithdrawing && withdrawMode === 'all' ? 'Closing Position...' : 'Close Position (Withdraw All)'}
-                                    </button>
-                                </div>
+                                {investment.status === 'CLOSED' ? (
+                                    <div className="p-6 text-center bg-white/5 rounded-xl border border-white/10">
+                                        <ShieldCheck size={32} className="mx-auto mb-2 text-secondary" />
+                                        <h4 className="text-lg font-bold mb-1">Position Closed</h4>
+                                        <p className="text-sm text-secondary">
+                                            This investment has been fully withdrawn.
+                                            {investment.withdrawn_at && <span className="block mt-1 text-xs opacity-60">Closed on {new Date(investment.withdrawn_at).toLocaleDateString()}</span>}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="panel-actions">
+                                            <button
+                                                onClick={() => handleWithdraw('profit')}
+                                                disabled={isWithdrawing || parseFloat(pnl) <= 0}
+                                                className={`neon-button secondary flex-1 ${isWithdrawing && withdrawMode === 'profit' ? 'opacity-80' : ''} ${parseFloat(pnl) <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                {isWithdrawing && withdrawMode === 'profit' ? 'Processing...' : 'Withdraw Profits Only'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleWithdraw('all')}
+                                                disabled={isWithdrawing || parseFloat(currentValue) <= 0}
+                                                className={`neon-button flex-1 ${isWithdrawing && withdrawMode === 'all' ? 'opacity-80' : ''}`}
+                                            >
+                                                {isWithdrawing && withdrawMode === 'all' ? 'Closing Position...' : 'Close Position (Withdraw All)'}
+                                            </button>
+                                        </div>
 
-                                <div className="panel-note">
-                                    {parseFloat(pnl) <= 0
-                                        ? '* Profit withdrawal enabled when position is in profit.'
-                                        : 'Profit withdrawal uses on-chain share pricing.'}
-                                </div>
+                                        <div className="panel-note">
+                                            {parseFloat(pnl) <= 0
+                                                ? '* Profit withdrawal enabled when position is in profit.'
+                                                : 'Profit withdrawal uses on-chain share pricing.'}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -803,6 +818,11 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     background: rgba(168, 85, 247, 0.2);
                     border: 1px solid rgba(168, 85, 247, 0.3);
                     color: var(--primary-purple);
+                }
+                .status-pill.closed {
+                    background: rgba(107, 114, 128, 0.2);
+                    border-color: rgba(107, 114, 128, 0.3);
+                    color: rgba(156, 163, 175, 1);
                 }
                 .meta-pill {
                     display: inline-flex;
