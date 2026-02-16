@@ -453,6 +453,111 @@ export default function ProfilePage() {
                     </div>
                 </section>
 
+
+                {/* Allocations Section */}
+                <section className="glass-card rounded-xl overflow-hidden">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-lg font-bold">Allocations</h3>
+                            <div className="flex bg-white/5 rounded-lg p-1">
+                                <button
+                                    onClick={() => setActiveTab('active')}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${activeTab === 'active' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                >
+                                    Active
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('closed')}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${activeTab === 'closed' ? 'bg-primary text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                >
+                                    Closed
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="text-white/40 text-xs font-bold uppercase tracking-wider">
+                                    <th className="px-6 py-4">Agent</th>
+                                    <th className="px-6 py-4">Invested</th>
+                                    <th className="px-6 py-4">Current Value</th>
+                                    <th className="px-6 py-4">PnL</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {investmentsLoading ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-8 text-center text-white/40">
+                                            Loading allocations...
+                                        </td>
+                                    </tr>
+                                ) : (activeTab === 'active' ? investments : closedInvestments).length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-8 text-center text-white/40">
+                                            No {activeTab} allocations found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    (activeTab === 'active' ? investments : closedInvestments).map((inv) => (
+                                        <tr
+                                            key={inv.txHash}
+                                            // @ts-ignore
+                                            onClick={() => window.location.href = `/investment/${inv.txHash}`}
+                                            className="hover:bg-white/[0.05] transition-colors group cursor-pointer"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                                        <Bot size={16} className="text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm font-bold block">{inv.name}</span>
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                            }}
+                                                        >
+                                                            <Link href={`/clawdex/agent/${inv.agentId}`} className="text-xs text-white/40 hover:text-primary transition-colors flex items-center gap-1">
+                                                                View Agent <ExternalLink size={10} />
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-mono tracking-wider text-white/80">{inv.deposited.toFixed(4)} MON</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-mono tracking-wider font-bold text-white">{inv.currentValue.toFixed(4)} MON</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className={`flex items-center gap-1 text-sm font-bold ${inv.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                    {inv.pnl >= 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />}
+                                                    <span>{inv.pnl > 0 ? '+' : ''}{inv.pnl.toFixed(4)} MON</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                    <a
+                                                        href={`https://testnet.monadexplorer.com/tx/${inv.txHash}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1 text-xs font-bold text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg"
+                                                    >
+                                                        Explorer <ExternalLink size={10} />
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 {/* Recent Activity Table */}
                 <section className="glass-card rounded-xl overflow-hidden">
                     <div className="p-6 border-b border-white/5 flex items-center justify-between">
