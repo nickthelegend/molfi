@@ -364,7 +364,7 @@ export default function ProfilePage() {
                 }
             `}</style>
 
-            <main className="max-w-7xl mx-auto px-6 py-10 space-y-8 font-display text-white mt-16">
+            <main className="max-w-[1536px] mx-auto px-4 py-10 space-y-8 font-display text-white mt-16">
                 {/* User Info Section */}
                 <section className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8 pb-8 border-b border-white/5">
                     <div className="flex flex-col md:flex-row items-center gap-6">

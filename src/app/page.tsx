@@ -87,7 +87,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 className="hero-title mx-auto" style={{ maxWidth: '1000px' }}>
+          <h1 className="hero-title mx-auto" style={{ maxWidth: '1400px' }}>
             <span className="text-gradient">Let ClawBots</span> <br />
             <span style={{ position: 'relative', display: 'inline-block' }}>
               Run the Market
@@ -115,7 +115,7 @@ export default function Home() {
           </div>
 
           {/* SYSTEM STATUS TERMINAL */}
-          <div className="hero-terminal novel-card">
+          <div className="hero-terminal novel-card" style={{ maxWidth: '1200px' }}>
             <div className="terminal-header">
               <div className="flex gap-2">
                 <div className="dot red" />
@@ -153,7 +153,7 @@ export default function Home() {
       {/* THE MULTIVERSE (AGENT PREVIEW) */}
       <section className="container py-xxl">
         <div className="flex justify-between items-end mb-xxl">
-          <div style={{ padding: '0 2rem' }}>
+          <div style={{ padding: '0 0.5rem' }}>
             <span className="text-xs text-primary font-bold uppercase tracking-widest mb-md block">Agent Multiverse</span>
             <h2 style={{ fontSize: '3rem', marginTop: '2rem' }}>The Highest Performing <br /> <span className="text-gradient">ClawBots</span></h2>
           </div>

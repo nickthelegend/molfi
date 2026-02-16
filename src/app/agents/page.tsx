@@ -164,7 +164,7 @@ export default function AgentsPage() {
                         </a>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-xl w-full" style={{ maxWidth: '1200px' }}>
+                    <div className="grid md:grid-cols-3 gap-xl w-full" style={{ maxWidth: '1600px' }}>
                         <div className="novel-card" style={{ padding: '2rem' }}>
                             <span className="text-[10px] text-dim uppercase font-bold tracking-widest block mb-sm">Live Agents</span>
                             <div className="flex items-center justify-center gap-sm">
@@ -203,7 +203,7 @@ export default function AgentsPage() {
             {/* FILTER & DISCOVER BAR */}
             <section className="container py-xl" style={{ borderTop: 'none', background: 'transparent' }}>
                 <div className="filter-bar" style={{ marginBottom: '0' }}>
-                    <div className="search-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, maxWidth: '800px' }}>
+                    <div className="search-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, maxWidth: '1200px' }}>
                         <Search size={20} className="text-dim" />
                         <input
                             type="text"

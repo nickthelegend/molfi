@@ -582,7 +582,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 }
             `}</style>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20 font-display text-white">
+            <main className="max-w-[1536px] mx-auto px-4 py-8 mt-20 font-display text-white">
                 <div className="glass-card rounded-xl p-6 mb-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">

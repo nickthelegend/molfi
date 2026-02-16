@@ -202,7 +202,7 @@ h3 {
 .container {
   max-width: 1640px;
   margin: 0 auto;
-  padding: 0 4rem;
+  padding: 0 1.5rem;
 }
 
 .terminal-grid {
@@ -247,7 +247,7 @@ h3 {
 .nav-container {
   max-width: 1740px;
   margin: 0 auto;
-  padding: 0 4rem;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
 }
