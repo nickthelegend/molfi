@@ -550,8 +550,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
             <style jsx global>{`
                 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap');
-                body {
+                                body {
                     font-family: 'Space Grotesk', sans-serif;
                     background-color: #050505;
                 }
@@ -583,13 +582,17 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                 }
             `}</style>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20 font-display text-white">
+            <main className="max-w-[1536px] mx-auto px-4 py-8 mt-20 font-display text-white">
                 <div className="glass-card rounded-xl p-6 mb-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         <div className="flex items-start gap-5">
-                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 flex items-center justify-center glow-red">
-                                <span className="material-symbols-outlined text-4xl text-white">robot_2</span>
+                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 overflow-hidden glow-red border border-primary/20">
+                                <img
+                                    src={`https://api.dicebear.com/7.x/bottts/svg?seed=${investment.agents?.name || 'Agent'}`}
+                                    alt=""
+                                    className="w-full h-full object-cover p-1"
+                                />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
@@ -600,7 +603,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                         className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${investment.status === 'CLOSED'
                                             ? 'bg-slate-500/10 border-slate-500/20 text-slate-400'
                                             : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-                                        }`}
+                                            }`}
                                     >
                                         <span className={`w-1.5 h-1.5 rounded-full ${investment.status === 'CLOSED' ? 'bg-slate-400' : 'bg-emerald-500 pulse-red'}`} />
                                         {investment.status === 'CLOSED' ? 'Closed Circuit' : 'Active Circuit'}
@@ -742,7 +745,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
                                                             ? 'bg-emerald-500/10 text-emerald-500'
                                                             : 'bg-rose-500/10 text-rose-500'
-                                                        }`}
+                                                            }`}
                                                         >
                                                             {pos.side}
                                                         </span>
