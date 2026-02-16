@@ -350,8 +350,7 @@ export default function ProfilePage() {
             {/* Inject styles to ensure fonts and some overrides work */}
             <style jsx global>{`
                 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
-                
+                                
                 .glass-card {
                     background: rgba(10, 10, 10, 0.8);
                     backdrop-filter: blur(12px);
@@ -443,7 +442,11 @@ export default function ProfilePage() {
                             <div className="space-y-1">
                                 {myAgents.slice(0, 3).map((agent, i) => (
                                     <div key={agent.id} className="flex items-center gap-2 text-xs">
-                                        <span className={`size-2 rounded-full ${i === 0 ? 'bg-primary' : i === 1 ? 'bg-white/40' : 'bg-white/10'}`}></span>
+                                        <img
+                                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
+                                            alt=""
+                                            className="size-4 rounded-full"
+                                        />
                                         <span className="font-medium truncate max-w-[100px]">{agent.name}</span>
                                     </div>
                                 ))}
@@ -509,8 +512,12 @@ export default function ProfilePage() {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                                                        <Bot size={16} className="text-primary" />
+                                                    <div className="size-8 rounded-full bg-primary/10 overflow-hidden border border-primary/20">
+                                                        <img
+                                                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${inv.name}`}
+                                                            alt={inv.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
                                                     </div>
                                                     <div>
                                                         <span className="text-sm font-bold block">{inv.name}</span>
