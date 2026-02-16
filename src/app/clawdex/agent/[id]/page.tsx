@@ -99,7 +99,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const PROTOCOL_CLIENT = '0xcCED528A5b70e16c8131Cb2de424564dD938fD3B' as `0x${string}`; // Deployer address
 
     // 0. Fetch Reputation Logs from Chain
-    const { data: feedbackData } = useReadContract({
+    const { data: feedbackData, isLoading: feedbackLoading, refetch: refetchReputation } = useReadContract({
         address: REPUTATION_REGISTRY,
         abi: [
             {
@@ -125,7 +125,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
             }
         ],
         functionName: "readAllFeedback",
-        args: agent?.agentId ? [BigInt(agent.agentId), [PROTOCOL_CLIENT], "", "", false] : undefined,
+        args: agent?.agentId ? [BigInt(agent.agentId), [], "", "", false] : undefined,
     });
 
     useEffect(() => {
@@ -1013,6 +1013,10 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                     <Zap size={18} className="text-primary-purple" />
                                     ON-CHAIN REPUTATION LOG
                                 </h3>
+                                <div className="live-status">
+                                    <div className="pulse-dot" />
+                                    <span style={{ fontSize: '9px', fontWeight: 800 }}>SYNCED</span>
+                                </div>
                             </div>
                             <div className="panel-body no-padding">
                                 <div className="reputation-list">
@@ -1021,10 +1025,18 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                             <div key={i} className="reputation-entry">
                                                 <div className="flex justify-between items-center mb-xs">
                                                     <div className="flex items-center gap-xs">
-                                                        <div className={`action-dot ${log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? 'win' : 'loss') : 'neutral'}`} />
-                                                        <span className="action-label">{log.action.replace('_', ' ')}</span>
+                                                        {log.action === 'DECISION' ? (
+                                                            <div className="action-dot neutral" style={{ background: '#3b82f6', boxShadow: '0 0 8px #3b82f6' }} />
+                                                        ) : (
+                                                            <div className={`action-dot ${log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? 'win' : 'loss') : 'neutral'}`} />
+                                                        )}
+                                                        <span className="action-label">
+                                                            {log.action === 'TRADE_OPEN' && 'SIGNAL CAPTURED'}
+                                                            {log.action === 'TRADE_CLOSE' && 'SETTLEMENT LOG'}
+                                                            {log.action === 'DECISION' && 'MODEL INFERENCE'}
+                                                        </span>
                                                     </div>
-                                                    <span className="entry-value font-mono">
+                                                    <span className={`entry-value font-mono ${log.action === 'DECISION' ? 'text-blue-400' : (log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? 'text-green-400' : 'text-red-400') : '')}`}>
                                                         {log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? '+' : '') : ''}
                                                         {log.value.toFixed(log.value < 1 && log.value !== 0 ? 4 : 2)}
                                                         {log.action === 'DECISION' ? '%' : ' USDT'}
@@ -1032,16 +1044,29 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                                 </div>
                                                 <div className="flex justify-between text-[10px] text-dim">
                                                     <span>{log.pair}</span>
-                                                    <span className="font-mono text-[9px] truncate ml-lg opacity-50">#IX_{log.index}</span>
+                                                    <div className="flex items-center gap-xs">
+                                                        <span className="font-mono text-[9px] opacity-40">#{log.client.substring(0, 6)}...</span>
+                                                        <span className="font-mono text-[9px] opacity-50">IX_{log.index}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="p-xl text-center text-dim text-[11px] italic">
-                                            Synchronizing reputation relay...
+                                            {feedbackLoading ? 'Scanning network relay...' : 'No reputation signatures found on-chain.'}
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                            <div className="p-md bg-white/[0.02] border-t border-white/5 flex justify-center">
+                                <a
+                                    href={`https://testnet.monadexplorer.com/address/${REPUTATION_REGISTRY}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[9px] font-bold text-dim hover:text-primary-purple transition-colors flex items-center gap-xs"
+                                >
+                                    VERIFY ON REPUTATION REGISTRY <ExternalLink size={10} />
+                                </a>
                             </div>
                         </div>
                     </div>
