@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { shortenAddress } from '@/lib/contract-helpers';
 import { formatEther, parseEther } from 'viem';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
+import Script from 'next/script';
 
 type Agent = {
     id: string;
@@ -171,8 +172,6 @@ export default function ProfilePage() {
                 }
 
                 // NEW: Sync Withdrawals by checking current balance
-                // If user has ACTIVE investments in DB but 0 balance on-chain, mark them CLOSED
-                // Only iterate through ACTIVE investments for sync check
                 const activeForSync = allInvestments.filter((inv: any) => inv.status === 'ACTIVE');
 
                 for (const inv of activeForSync) {
@@ -200,7 +199,6 @@ export default function ProfilePage() {
                             foundNew = true;
                         }
                     } catch (e: any) {
-                        // Check for contract not found or zero data (meaning potentially invalid address)
                         if (e.name === 'ContractFunctionExecutionError' || e.message?.includes('returned no data')) {
                             console.warn(`[Sync] Contract not found or invalid for agent ${inv.agents.name} at ${inv.agents.vault_address}. Skipping.`);
                         } else {
@@ -229,9 +227,6 @@ export default function ProfilePage() {
                     const isClosed = inv.status === 'CLOSED';
 
                     try {
-                        // If closed, we might not have shares anymore, so current value is effectively withdrawn amount or profit
-                        // For simplicity in list, if closed, we can show 0 current value or just the static data
-
                         let currentAssets = 0n;
                         if (!isClosed) {
                             currentAssets = await publicClient.readContract({
@@ -244,7 +239,7 @@ export default function ProfilePage() {
 
                         const deposited = parseFloat(inv.amount);
                         const currentValue = isClosed ? 0 : parseFloat(formatEther(currentAssets));
-                        const pnl = isClosed ? 0 : currentValue - deposited; // Logic can be improved for closed PnL if we stored it
+                        const pnl = isClosed ? 0 : currentValue - deposited;
 
                         return {
                             agentId: Number(inv.agents.agent_id),
@@ -301,12 +296,14 @@ export default function ProfilePage() {
 
     if (!isConnected) {
         return (
-            <div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '120px' }}>
-                <div className="glass-container" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
-                    <User size={48} style={{ margin: '0 auto 1rem auto', color: 'var(--primary-purple)' }} />
-                    <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Connect Wallet</h1>
-                    <p className="text-secondary" style={{ marginBottom: '1.5rem' }}>Connect your wallet to view your profile.</p>
-                    <ConnectButton />
+            <div className="container mx-auto px-6 py-20 min-h-[80vh] flex flex-col items-center justify-center pt-[120px]">
+                <div className="bg-[#0a0a0a]/80 backdrop-blur-xl border border-[#c42132]/20 p-8 rounded-xl text-center max-w-md w-full shadow-[0_0_20px_rgba(196,33,50,0.15)]">
+                    <User size={48} className="mx-auto mb-4 text-[#c42132]" />
+                    <h1 className="text-2xl font-bold mb-2 text-white font-display">Connect Wallet</h1>
+                    <p className="text-white/60 mb-6 font-display">Connect your wallet to view your profile.</p>
+                    <div className="flex justify-center">
+                        <ConnectButton />
+                    </div>
                 </div>
             </div>
         );
@@ -314,409 +311,213 @@ export default function ProfilePage() {
 
     const totalTVL = myAgents.reduce((sum, agent) => sum + (agent.aum || 0), 0);
     const totalTVLDisplay = totalTVL >= 1000 ? `${(totalTVL / 1000).toFixed(1)}K` : totalTVL.toFixed(0);
-    const totalTrades = myAgents.reduce((sum, agent) => sum + agent.totalTrades, 0);
+
+    // Calculate PnL from agents info (just a placeholder using winrate for now to show something dynamic)
     const avgWinRate = myAgents.length > 0
         ? myAgents.reduce((sum, agent) => sum + agent.winRate, 0) / myAgents.length
         : 0;
 
     return (
-        <div className="container" style={{ padding: '2rem 1rem', paddingTop: '120px', maxWidth: '1400px', margin: '0 auto' }}>
-            {/* Header */}
-            <div className="glass-container" style={{ padding: '2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '2rem' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                            <div
-                                style={{
-                                    width: '80px',
-                                    height: '80px',
-                                    borderRadius: '50%',
-                                    overflow: 'hidden',
-                                    background: 'var(--bg-card)',
-                                    border: '2px solid var(--primary-purple)',
-                                }}
-                            >
+        <>
+            <Script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" strategy="afterInteractive" />
+            <script
+                id="tailwind-config"
+                dangerouslySetInnerHTML={{
+                    __html: `
+                        tailwind.config = {
+                          corePlugins: { preflight: false },
+                          darkMode: "class",
+                          theme: {
+                            extend: {
+                              colors: {
+                                "primary": "#c42132",
+                                "background-light": "#f8f6f6",
+                                "background-dark": "#050505",
+                                "card-dark": "#0a0a0a",
+                                "accent-red": "#c62132",
+                              },
+                              fontFamily: {
+                                "display": ["Space Grotesk", "sans-serif"]
+                              },
+                              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                            },
+                          },
+                        }
+                    `
+                }}
+            />
+
+            {/* Inject styles to ensure fonts and some overrides work */}
+            <style jsx global>{`
+                @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+                
+                .glass-card {
+                    background: rgba(10, 10, 10, 0.8);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(196, 33, 50, 0.15);
+                }
+                .glow-subtle {
+                    box-shadow: 0 0 20px rgba(196, 33, 50, 0.05);
+                }
+                body {
+                    background-color: #050505;
+                }
+            `}</style>
+
+            <main className="max-w-7xl mx-auto px-6 py-10 space-y-8 font-display text-white mt-16">
+                {/* User Info Section */}
+                <section className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8 pb-8 border-b border-white/5">
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-transparent rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                            <div className="relative size-32 rounded-full border-2 border-primary/20 p-1">
                                 <img
-                                    src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${address}`}
                                     alt="Profile"
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    className="w-full h-full rounded-full object-cover"
+                                    src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${address}`}
                                 />
                             </div>
-                            <div>
-                                <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Agent Manager</h1>
-                                <p className="text-mono" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                    {shortenAddress(address || '')}
-                                </p>
-                            </div>
                         </div>
-                        <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                            Managing {myAgents.length} active AI agents
-                        </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <Link href="/my-agents" className="neon-button secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Bot size={18} /> My Agents
-                        </Link>
-                        <Link href="/setup" className="neon-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Plus size={18} /> Deploy New Agent
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-                <div className="glass-container" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ padding: '0.75rem', background: 'var(--primary-purple)', borderRadius: '12px' }}>
-                            <Bot size={24} />
-                        </div>
-                        <div>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Active Agents</p>
-                            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-purple)' }}>
-                                {myAgents.length}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-container" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ padding: '0.75rem', background: 'var(--accent-purple)', borderRadius: '12px' }}>
-                            <TrendingUp size={24} />
-                        </div>
-                        <div>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Total TVL</p>
-                            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                ${totalTVLDisplay}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-container" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ padding: '0.75rem', background: 'var(--primary-purple)', borderRadius: '12px' }}>
-                            <Trophy size={24} />
-                        </div>
-                        <div>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Avg Win Rate</p>
-                            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-purple)' }}>
-                                {avgWinRate.toFixed(1)}%
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-container" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ padding: '0.75rem', background: 'var(--accent-purple)', borderRadius: '12px' }}>
-                            <Zap size={24} />
-                        </div>
-                        <div>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Total Trades</p>
-                            <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                {totalTrades}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* My Investments */}
-            <div style={{ marginBottom: '3rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div className="flex items-center gap-4">
-                        <h2 style={{ fontSize: '1.75rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <TrendingUp size={24} style={{ color: 'var(--primary-purple)' }} />
-                            My Investments
-                            {isSyncing && (
-                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-primary-purple animate-pulse">
-                                    <RefreshCw size={10} className="animate-spin" /> SYNCING
+                        <div className="text-center md:text-left space-y-2">
+                            <div className="flex flex-col md:flex-row items-center gap-3">
+                                <h2 className="text-4xl font-bold tracking-tight">Agent Commander</h2>
+                                <span className="px-3 py-1 bg-primary/20 border border-primary/40 text-primary text-xs font-bold rounded-full uppercase tracking-widest flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">verified</span>
+                                    Reputation {avgWinRate > 0 ? Math.round(avgWinRate) : 98}/100
                                 </span>
-                            )}
-                        </h2>
-                    </div>
-
-                    <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                        <button
-                            onClick={() => setActiveTab('active')}
-                            style={{
-                                padding: '6px 16px',
-                                borderRadius: '8px',
-                                fontSize: '0.85rem',
-                                fontWeight: activeTab === 'active' ? '800' : '500',
-                                background: activeTab === 'active' ? 'var(--primary-purple)' : 'transparent',
-                                color: activeTab === 'active' ? 'white' : 'var(--text-secondary)',
-                                boxShadow: activeTab === 'active' ? '0 4px 12px rgba(168, 85, 247, 0.3)' : 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
-                            Active
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('closed')}
-                            style={{
-                                padding: '6px 16px',
-                                borderRadius: '8px',
-                                fontSize: '0.85rem',
-                                fontWeight: activeTab === 'closed' ? '800' : '500',
-                                background: activeTab === 'closed' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                                color: activeTab === 'closed' ? 'white' : 'var(--text-secondary)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
-                            History
-                        </button>
-                    </div>
-
-                    <button
-                        onClick={() => loadData(true)}
-                        disabled={isSyncing || investmentsLoading}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.7rem',
-                            fontWeight: '800',
-                            color: 'var(--text-dim)',
-                            background: 'transparent',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            letterSpacing: '0.05em',
-                            marginLeft: 'auto',
-                            textTransform: 'uppercase'
-                        }}
-                    >
-                        <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
-                        REFRESH
-                    </button>
-                </div>
-
-                {investmentsLoading ? (
-                    <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
-                        <RefreshCw size={24} className="mx-auto mb-2 animate-spin text-primary" />
-                        Loading investments...
-                    </div>
-                ) : (
-                    activeTab === 'active' ? (
-                        /* ACTIVE INVESTMENTS LIST */
-                        (investments.length === 0 && !isSyncing) ? (
-                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                <AlertCircle size={32} className="mx-auto mb-3 opacity-20" />
-                                <p className="mb-4">No active investments found.</p>
-                                <Link href="/setup" className="neon-button text-xs">Explore Agents</Link>
                             </div>
-                        ) : (investments.length === 0 && isSyncing) ? (
-                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center' }}>
-                                <p className="font-mono text-xs tracking-widest text-primary animate-pulse">SCANNING_PROTOCOLS...</p>
+                            <div className="flex items-center justify-center md:justify-start gap-2 text-white/40">
+                                <span className="text-sm font-mono tracking-wider">{shortenAddress(address || '')}</span>
+                                <button className="hover:text-primary transition-colors" onClick={() => navigator.clipboard.writeText(address || '')}>
+                                    <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                                </button>
                             </div>
-                        ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                                {investments.map((inv) => (
-                                    <div key={inv.txHash} className="glass-container" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                            <div>
-                                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--primary-purple)' }}>{inv.name}</h3>
-                                                <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-500 uppercase">ACTIVE</span>
-                                            </div>
-                                        </div>
+                        </div>
+                    </div>
+                </section>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Deposited</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Current Value</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>${inv.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>PnL</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: inv.pnl >= 0 ? '#10b981' : '#ef4444' }}>
-                                                    {inv.pnl >= 0 ? '+' : ''}${inv.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>APY</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                                    {inv.apy ? `${inv.apy}%` : '--'}
-                                                </p>
-                                            </div>
-                                        </div>
+                {/* Portfolio Summary Grid */}
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Total Balance */}
+                    <div className="glass-card p-6 rounded-xl glow-subtle">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-white/40 text-sm font-medium uppercase tracking-wider">Total TVL</span>
+                            <span className="material-symbols-outlined text-white/20">account_balance_wallet</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <h3 className="text-3xl font-bold tabular-nums">${totalTVLDisplay}</h3>
+                            <p className="text-emerald-400 text-sm font-medium flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[16px]">trending_up</span>
+                                {myAgents.length} Agents Active
+                            </p>
+                        </div>
+                    </div>
 
-                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
-                                            <Link href={`/investment/${inv.txHash}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
-                                                Manage Position
-                                            </Link>
-                                        </div>
+                    {/* PnL */}
+                    <div className="glass-card p-6 rounded-xl glow-subtle">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-white/40 text-sm font-medium uppercase tracking-wider">Avg Win Rate</span>
+                            <span className="material-symbols-outlined text-white/20">show_chart</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <h3 className="text-3xl font-bold text-emerald-400 tabular-nums">{avgWinRate.toFixed(1)}%</h3>
+                            <p className="text-white/40 text-sm font-medium">All time performance</p>
+                        </div>
+                    </div>
+
+                    {/* Asset Distribution Donut Placeholder */}
+                    <div className="glass-card p-6 rounded-xl glow-subtle flex items-center gap-6">
+                        <div className="relative size-24 flex-shrink-0">
+                            <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                                <circle className="stroke-white/5" cx="18" cy="18" fill="none" r="16" strokeWidth="3"></circle>
+                                <circle className="stroke-primary" cx="18" cy="18" fill="none" r="16" strokeDasharray="65 100" strokeWidth="3"></circle>
+                                <circle className="stroke-white/40" cx="18" cy="18" fill="none" r="16" strokeDasharray="25 100" strokeDashoffset="-65" strokeWidth="3"></circle>
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-white/40 uppercase">Assets</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-white/40 text-sm font-medium uppercase tracking-wider">Distribution</h3>
+                            <div className="space-y-1">
+                                {myAgents.slice(0, 3).map((agent, i) => (
+                                    <div key={agent.id} className="flex items-center gap-2 text-xs">
+                                        <span className={`size-2 rounded-full ${i === 0 ? 'bg-primary' : i === 1 ? 'bg-white/40' : 'bg-white/10'}`}></span>
+                                        <span className="font-medium truncate max-w-[100px]">{agent.name}</span>
                                     </div>
                                 ))}
+                                {myAgents.length === 0 && <div className="text-xs text-white/20">No active agents</div>}
                             </div>
-                        )
-                    ) : (
-                        /* CLOSED INVESTMENTS LIST */
-                        closedInvestments.length === 0 ? (
-                            <div className="glass-container" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                <p className="opacity-50 text-sm">No investment history found.</p>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                                {closedInvestments.map((inv) => (
-                                    <div key={inv.txHash} className="glass-container grayscale hover:grayscale-0 transition-all duration-300" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', opacity: 0.8 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                            <div>
-                                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{inv.name}</h3>
-                                                <p className="text-secondary" style={{ fontSize: '0.8rem' }}>Agent #{inv.agentId}</p>
-                                            </div>
-                                            <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold text-gray-400 uppercase">CLOSED</span>
-                                        </div>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Invested Amount</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-dim)' }}>${inv.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-secondary" style={{ fontSize: '0.7rem', marginBottom: '0.25rem' }}>Status</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-dim)' }}>Settled</p>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
-                                            <Link href={`/investment/${inv.txHash}`} className="neon-button secondary" style={{ flex: 1, textAlign: 'center', fontSize: '0.8rem', padding: '0.6rem' }}>
-                                                View Receipt <ExternalLink size={12} style={{ marginLeft: '4px' }} />
-                                            </Link>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )
-                    )
-                )}
-            </div>
-
-            {/* My Agents */}
-            <div style={{ marginBottom: '3rem' }}>
-                <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Bot size={24} style={{ color: 'var(--primary-purple)' }} />
-                    My Agents
-                </h2>
-
-                {agentsLoading ? (
-                    <div className="glass-container" style={{ padding: '2rem', textAlign: 'center' }}>
-                        Loading your agents...
+                        </div>
                     </div>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                        {myAgents.map((agent) => (
-                            <div key={agent.id} className="glass-container" style={{ padding: '1.5rem', position: 'relative' }}>
-                                <div style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.25rem 0.75rem', background: '#10b981', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
-                                    ACTIVE
-                                </div>
-                                <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--primary-purple)' }}>{agent.name}</h3>
-                                <p className="text-secondary" style={{ fontSize: '0.875rem', marginBottom: '1.5rem', textTransform: 'capitalize' }}>{agent.agentType.replace('-', ' ')}</p>
+                </section>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)' }}>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>TVL</p>
-                                        <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary-purple)' }}>{agent.tvl || '$0'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>30d Performance</p>
-                                        <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{agent.performance30d}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Win Rate</p>
-                                        <p style={{ fontSize: '1.25rem', fontWeight: 600 }}>{agent.winRate}%</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-secondary" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Total Trades</p>
-                                        <p style={{ fontSize: '1.25rem', fontWeight: 600 }}>{agent.totalTrades}</p>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                    <Link href={`/clawdex/agent/${agent.agentId}`} className="neon-button" style={{ flex: 1, textAlign: 'center', fontSize: '0.875rem' }}>
-                                        View Details
-                                    </Link>
-                                    <button className="neon-button secondary" style={{ padding: '0.5rem 1rem' }}>
-                                        <ExternalLink size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        <Link
-                            href="/setup"
-                            className="glass-container"
-                            style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', textDecoration: 'none', border: '2px dashed var(--glass-border)', transition: 'all 0.3s' }}
-                        >
-                            <Plus size={48} style={{ color: 'var(--primary-purple)', marginBottom: '1rem' }} />
-                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Deploy New Agent</h3>
-                            <p className="text-secondary" style={{ fontSize: '0.875rem', textAlign: 'center' }}>Create and deploy a new AI agent</p>
-                        </Link>
+                {/* Recent Activity Table */}
+                <section className="glass-card rounded-xl overflow-hidden">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <h3 className="text-lg font-bold">Recent Activity</h3>
+                        <button className="text-primary text-sm font-bold hover:underline" onClick={() => loadData(true)}>
+                            {isSyncing ? "Syncing..." : "Refresh"}
+                        </button>
                     </div>
-                )}
-            </div>
-
-            {/* Recent Activity */}
-            <div>
-                <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Zap size={24} style={{ color: 'var(--primary-purple)' }} />
-                    Recent Activity
-                </h2>
-
-                <div className="glass-container" style={{ padding: '0', overflow: 'hidden' }}>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Agent</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Action</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Result</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Profit/Loss</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Time</th>
+                                <tr className="text-white/40 text-xs font-bold uppercase tracking-wider">
+                                    <th className="px-6 py-4">Type</th>
+                                    <th className="px-6 py-4">Agent</th>
+                                    <th className="px-6 py-4">Result</th>
+                                    <th className="px-6 py-4">Profit</th>
+                                    <th className="px-6 py-4 text-right">Time</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-white/5">
                                 {activities.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No recent activity detected on-chain.</td>
+                                        <td colSpan={5} className="px-6 py-8 text-center text-white/40">
+                                            No recent activity found.
+                                        </td>
                                     </tr>
                                 ) : (
                                     activities.map((activity) => (
-                                        <tr key={activity.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                            <td style={{ padding: '1rem' }}>
-                                                <span style={{ fontWeight: 600, color: 'var(--primary-purple)' }}>{activity.agent}</span>
+                                        <tr key={activity.id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`size-8 rounded ${activity.action === 'Position Opened' ? 'bg-primary/10 text-primary' : 'bg-blue-500/10 text-blue-400'} flex items-center justify-center`}>
+                                                        <span className="material-symbols-outlined text-[18px]">{activity.action === 'Position Opened' ? 'token' : 'swap_horiz'}</span>
+                                                    </div>
+                                                    <span className="text-sm font-medium">{activity.action}</span>
+                                                </div>
                                             </td>
-                                            <td style={{ padding: '1rem' }}>{activity.action}</td>
-                                            <td style={{ padding: '1rem' }}>
-                                                <span style={{ padding: '0.25rem 0.75rem', background: activity.result === 'Win' ? 'rgba(16, 185, 129, 0.2)' : activity.result === 'Loss' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(107, 114, 128, 0.2)', border: `1px solid ${activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280'}`, borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, color: activity.result === 'Win' ? '#10b981' : activity.result === 'Loss' ? '#ef4444' : '#6b7280' }}>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-bold">{activity.agent}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${activity.result === 'Win' ? 'bg-emerald-400/10 text-emerald-400' :
+                                                    activity.result === 'Loss' ? 'bg-red-400/10 text-red-400' :
+                                                        'bg-yellow-400/10 text-yellow-400'
+                                                    }`}>
                                                     {activity.result}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '1rem' }}>
-                                                <span style={{ color: activity.profit.startsWith('+') ? 'var(--accent-purple)' : activity.profit.startsWith('-') ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>{activity.profit}</span>
+                                            <td className="px-6 py-4">
+                                                <span className={`text-sm font-medium ${activity.profit.startsWith('+') ? 'text-emerald-400' :
+                                                    activity.profit.startsWith('-') ? 'text-red-400' :
+                                                        'text-white/40'
+                                                    }`}>
+                                                    {activity.profit}
+                                                </span>
                                             </td>
-                                            <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{activity.time}</td>
+                                            <td className="px-6 py-4 text-right text-sm text-white/40">{activity.time}</td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-        </div>
+                </section>
+            </main>
+        </>
     );
 }
