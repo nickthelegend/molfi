@@ -587,12 +587,8 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         <div className="flex items-start gap-5">
-                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 overflow-hidden glow-red border border-primary/20">
-                                <img
-                                    src={`https://api.dicebear.com/7.x/bottts/svg?seed=${investment.agents?.name || 'Agent'}`}
-                                    alt=""
-                                    className="w-full h-full object-cover p-1"
-                                />
+                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 flex items-center justify-center glow-red border border-primary/20">
+                                <Bot size={48} className="text-white" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3 mb-1">

@@ -697,17 +697,13 @@ function AgentDetailPageContent({ id }: { id: string }) {
                 }
             `}</style>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20 font-display text-white">
+            <main className="max-w-[1536px] mx-auto px-4 py-8 mt-20 font-display text-white">
                 <div className="glass-card rounded-xl p-6 mb-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         <div className="flex items-start gap-5">
                             <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 flex items-center justify-center glow-red overflow-hidden">
-                                <img
-                                    src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
-                                    alt={agent.name}
-                                    className="w-full h-full object-cover"
-                                />
+                                <Bot size={48} className="text-white" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
