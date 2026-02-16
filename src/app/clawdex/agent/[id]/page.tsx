@@ -3,35 +3,14 @@
 import { useState, useEffect, use, useCallback } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther, formatEther, decodeEventLog } from 'viem';
-import {
-    Activity,
-    Zap,
-    Bot,
-    TrendingUp,
-    TrendingDown,
-    ShieldCheck,
-    Globe,
-    BarChart3,
-    Lock,
-    ArrowUpRight,
-    ArrowLeft,
-    CheckCircle2,
-    Clock,
-    DollarSign,
-    Percent,
-    Loader2,
-    Users,
-    Wallet,
-    RefreshCw,
-    ExternalLink
-} from 'lucide-react';
+import { Activity, Bot } from 'lucide-react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import TradingViewChart from '@/components/TradingViewChart';
 import AgentPerformanceChart from '@/components/AgentPerformanceChart';
 import ClawbotLoader from '@/components/ClawbotLoader';
-import { AIAgent } from '@/lib/agents';
 import MolfiAgentVaultABI from '@/abis/MolfiAgentVault.json';
+import { shortenAddress, getExplorerUrl } from '@/lib/contract-helpers';
+import Script from 'next/script';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC as `0x${string}`;
 
@@ -652,797 +631,553 @@ function AgentDetailPageContent({ id }: { id: string }) {
         }
     }
 
+    const roiValue = Number(agent.roi || 0);
+    const totalPnlValue = Number(agent.totalPnL || 0);
+    const hasVault = !!agent.vaultAddress;
+    const vaultExplorerUrl = hasVault ? getExplorerUrl(10143, agent.vaultAddress) : '#';
+    const hasPnl = pnlAvailable > 0n;
+    const hasShares = shareBalance && (shareBalance as bigint) > 0n;
+    const canAllocate = step === 'idle' || step === 'success' || step === 'error';
+
     return (
-        <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '4rem' }}>
-            <div className="grid-overlay" />
+        <>
+            <Script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" strategy="afterInteractive" />
+            <script
+                id="tailwind-config"
+                dangerouslySetInnerHTML={{
+                    __html: `
+                        tailwind.config = {
+                          corePlugins: { preflight: false },
+                          darkMode: "class",
+                          theme: {
+                            extend: {
+                              colors: {
+                                "primary": "#c42132",
+                                "background-light": "#f8f6f6",
+                                "background-dark": "#050505",
+                                "card-dark": "#0a0a0a",
+                              },
+                              fontFamily: {
+                                "display": ["Space Grotesk", "sans-serif"]
+                              },
+                              borderRadius: {
+                                "DEFAULT": "0.25rem",
+                                "lg": "0.5rem",
+                                "xl": "0.75rem",
+                                "full": "9999px"
+                              },
+                            },
+                          },
+                        }
+                    `
+                }}
+            />
 
-            <div className="container pt-xl">
-                {/* Navigation & Top Bar */}
-                <div className="flex items-center justify-between mb-xl">
-                    <Link href="/clawdex" className="glass-back-btn">
-                        <ArrowLeft size={16} />
-                        <span>REGISTRY</span>
-                    </Link>
-                    <div className="flex items-center gap-md">
-                        <div className="neural-status-indicator">
-                            <div className="pulse-dot" />
-                            <span>NODE_CONNECTED: {agent.agentId || '001'}</span>
-                        </div>
-                        <ConnectButton />
-                    </div>
-                </div>
+            <style jsx global>{`
+                @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap');
+                body {
+                    font-family: 'Space Grotesk', sans-serif;
+                    background-color: #050505;
+                }
+                .glass-card {
+                    background: rgba(10, 10, 10, 0.8);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(196, 33, 50, 0.15);
+                }
+                .glow-red {
+                    box-shadow: 0 0 15px rgba(196, 33, 50, 0.3);
+                }
+                .pulse-red {
+                    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: .5; }
+                }
+            `}</style>
 
-                <div className="premium-hero-card">
-                    <div className="hero-glow" style={{ position: 'absolute', top: '-50%', right: '-10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)', zIndex: 0 }} />
-                    <div className="hero-main-layout">
-                        <div className="hero-center-info">
-                            <div className="hero-orb mb-lg">
-                                <img src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`} alt={agent.name} />
-                                <div className="orb-scan" />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20 font-display text-white">
+                <div className="glass-card rounded-xl p-6 mb-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                        <div className="flex items-start gap-5">
+                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-rose-900 flex items-center justify-center glow-red overflow-hidden">
+                                <img
+                                    src={agent.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.name}`}
+                                    alt={agent.name}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
-                            <div className="flex flex-col items-center">
-                                <div className="header-name-row">
-                                    <h1>{agent.name}</h1>
-                                    <span className="hero-strategy-badge">{agent.strategy || 'Neural Momentum'}</span>
-                                </div>
-                                <div className="badges-row">
-                                    <span className="hero-stat">
-                                        <Bot size={14} /> CLAW_AGENT_v2
-                                    </span>
-                                    <span className="hero-stat">
-                                        <Users size={14} /> {investorCount} {investorCount === 1 ? 'INVESTOR' : 'INVESTORS'}
-                                    </span>
-                                    <span className="hero-stat">
-                                        <Wallet size={14} /> ${parseFloat(vaultBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TVL
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h1 className="text-3xl font-bold text-white tracking-tight">{agent.name}</h1>
+                                    <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-red" />
+                                        Active Circuit
                                     </span>
                                 </div>
-                                <p className="hero-description">
-                                    {agent.description || `Autonomous agent optimizing for long-term alpha via ${agent.personality || 'Balanced'} execution strategies. Powered by deep-learning market analysis.`}
+                                <p className="text-slate-400 text-sm max-w-md">
+                                    {agent.description || `Autonomous agent optimizing for long-term alpha via ${agent.personality || 'Balanced'} execution strategies.`}
+                                </p>
+                                <p className="text-slate-500 text-xs mt-2 font-medium">
+                                    CREATED {new Date(agent.created_at).toLocaleDateString()} • CONTRACT:{' '}
+                                    <a
+                                        href={vaultExplorerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`transition-colors ${hasVault ? 'hover:text-primary' : 'pointer-events-none opacity-60'}`}
+                                    >
+                                        {shortenAddress(agent.vaultAddress || '')}
+                                    </a>
                                 </p>
                             </div>
                         </div>
-
-                        <div className="hero-apy-box">
-                            <span className="apy-box-label">PROJECTED APY</span>
-                            <h2 className="text-gradient" style={{ fontSize: '3rem' }}>{agent.apy || '28.5'}%</h2>
-                            <div className="apy-box-footer">
-                                <TrendingUp size={12} />
-                                <span>CONSENSUS VERIFIED</span>
+                        <div className="text-right">
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Total Return</p>
+                            <div className="flex flex-col items-end">
+                                <span className={`text-4xl font-bold ${roiValue >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                                    {roiValue >= 0 ? '+' : ''}{roiValue.toFixed(2)}%
+                                </span>
+                                <span className={`text-slate-300 font-medium ${totalPnlValue >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                    {totalPnlValue >= 0 ? '+' : ''}{totalPnlValue.toFixed(2)} USDT
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="agent-stats-row">
-                    <div className="stat-card">
-                        <div className="stat-label">ROI</div>
-                        <div className={`stat-value ${Number(agent.roi || 0) >= 0 ? 'plus' : 'minus'}`}>
-                            {Number(agent.roi || 0) >= 0 ? '+' : ''}{Number(agent.roi || 0).toFixed(2)}%
-                        </div>
-                        <div className="stat-sub">Since inception</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-label">WIN RATE</div>
-                        <div className="stat-value">{agent.winRate || 0}%</div>
-                        <div className="stat-sub">{agent.totalTrades || 0} total trades</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-label">TOTAL PNL</div>
-                        <div className={`stat-value ${Number(agent.totalPnL || 0) >= 0 ? 'plus' : 'minus'}`}>
-                            {Number(agent.totalPnL || 0) >= 0 ? '+' : ''}${Number(agent.totalPnL || 0).toFixed(2)}
-                        </div>
-                        <div className="stat-sub">Realized + Unrealized</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-label">AUM</div>
-                        <div className="stat-value">${parseFloat(vaultBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        <div className="stat-sub">Vault TVL</div>
-                    </div>
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="terminal-grid">
-                    {/* Left: Chart & Stats */}
-                    <div className="col-span-8">
-                        <div className="premium-panel mb-xl">
-                            <div className="panel-header">
-                                <h3 className="flex items-center gap-sm">
-                                    <BarChart3 size={18} className="text-primary" />
-                                    PERFORMANCE ANALYSIS
-                                </h3>
-                                <div className="panel-actions">
-                                    <span className="time-tag active">ALL</span>
-                                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="glass-card p-5 rounded-xl border-l-4 border-l-primary/40">
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Initial Capital</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {Number(totalDepositedDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                                    <span className="text-xs text-slate-400">USDT</span>
+                                </p>
+                                <p className="text-emerald-500 text-xs mt-1 font-medium flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-xs">arrow_upward</span>
+                                    {investorCount} investors
+                                </p>
                             </div>
-                            <div className="panel-body">
-                                <AgentPerformanceChart data={agent.equityCurve || []} height={450} />
-                            </div>
-                        </div>
-
-                        {/* Allocate Capital */}
-                        <div className="allocation-panel mb-xl">
-                            <div className="flex justify-between items-center mb-xl">
-                                <h3 className="m-0 flex items-center gap-sm text-[12px] font-bold tracking-wider">
-                                    <Percent size={14} className="text-primary" />
-                                    ALLOCATE CAPITAL
-                                </h3>
-                                <div className="text-[10px] text-dim font-mono">
-                                    NODE: {agent.agentId || '001'}
-                                </div>
-                            </div>
-
-                            <div className="mb-xl">
-                                <div className="flex justify-between mb-xs">
-                                    <label className="text-[9px] font-bold text-dim uppercase">Amount (USDT)</label>
-                                    <span className="text-[9px] text-primary cursor-pointer hover:underline" onClick={() => setStakeAmount(formattedBalance)}>BAL: {parseFloat(formattedBalance).toLocaleString()}</span>
-                                </div>
-                                <div className="allocation-input-wrap">
-                                    <span className="currency-prefix text-xs">$</span>
-                                    <input
-                                        type="number"
-                                        placeholder="0.00"
-                                        className="allocation-input"
-                                        style={{ fontSize: '1rem' }}
-                                        value={stakeAmount}
-                                        onChange={(e) => setStakeAmount(e.target.value)}
-                                        disabled={step !== 'idle'}
-                                    />
-                                    <button className="max-btn" onClick={() => setStakeAmount(formattedBalance)} disabled={step !== 'idle'}>MAX</button>
-                                </div>
-                            </div>
-
-                            <div className="allocation-metrics">
-                                <div className="allocation-metric">
-                                    <span className="metric-label flex items-center gap-1">
-                                        Principal
-                                        <RefreshCw
-                                            size={8}
-                                            className={`cursor-pointer hover:rotate-180 transition-all ${withdrawStep === 'withdrawing' ? 'animate-spin' : ''}`}
-                                            onClick={() => fetchNetDeposits()}
-                                        />
+                            <div className="glass-card p-5 rounded-xl">
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Current Value</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {Number(currentAssetsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                                    <span className="text-xs text-slate-400">USDT</span>
+                                </p>
+                                <p className={`text-xs mt-1 font-medium flex items-center gap-1 ${roiValue >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <span className="material-symbols-outlined text-xs">
+                                        {roiValue >= 0 ? 'arrow_upward' : 'arrow_downward'}
                                     </span>
-                                    <span className="metric-value">${Number(totalDepositedDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    {roiValue >= 0 ? '+' : ''}{roiValue.toFixed(2)}%
+                                </p>
+                            </div>
+                            <div className="glass-card p-5 rounded-xl">
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Vault State</p>
+                                <p className={`text-2xl font-bold flex items-center gap-2 ${hasVault ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {hasVault ? 'Live' : 'Pending'}
+                                    <span className="material-symbols-outlined text-sm">verified</span>
+                                </p>
+                                <a
+                                    href={vaultExplorerUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`text-slate-500 text-xs mt-1 truncate transition-colors block ${hasVault ? 'hover:text-primary cursor-pointer' : 'pointer-events-none opacity-60'}`}
+                                >
+                                    {shortenAddress(agent.vaultAddress || '')}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6 rounded-xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-lg font-bold text-white uppercase tracking-tight">Return Over Time</h3>
+                                    <p className="text-slate-500 text-xs">Aggregated performance of the {agent.name} circuit</p>
                                 </div>
-                                <div className="allocation-metric">
-                                    <span className="metric-label">Current Value</span>
-                                    <span className="metric-value">${Number(currentAssetsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="allocation-metric highlight">
-                                    <span className="metric-label">PnL Available</span>
-                                    <span className={`metric-value ${Number(pnlAvailableDisplay) >= 0 ? 'plus' : 'minus'}`}>
-                                        {Number(pnlAvailableDisplay) >= 0 ? '+' : ''}${Number(pnlAvailableDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
+                                <div className="flex gap-2">
+                                    <button className="px-3 py-1 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase">24H</button>
+                                    <button className="px-3 py-1 rounded bg-white/5 text-slate-400 text-[10px] font-bold uppercase hover:bg-white/10 transition-colors">7D</button>
+                                    <button className="px-3 py-1 rounded bg-white/5 text-slate-400 text-[10px] font-bold uppercase hover:bg-white/10 transition-colors">1M</button>
                                 </div>
                             </div>
-
-                            <div className="flex flex-col gap-xs mb-xl pb-md border-b border-white/5">
-                                <div className="flex justify-between text-[10px]">
-                                    <span className="text-dim/60">Execution Fee</span>
-                                    <span className="text-primary-purple font-bold">0.05%</span>
-                                </div>
-                                <div className="flex justify-between text-[10px]">
-                                    <span className="text-dim/60">Strategy Lock</span>
-                                    <span className="font-bold">Neutral Only</span>
-                                </div>
+                            <div className="h-64 w-full relative">
+                                {agent.equityCurve ? (
+                                    <AgentPerformanceChart data={agent.equityCurve} height={240} />
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-slate-500">
+                                        <div className="text-center">
+                                            <Activity size={32} className="mx-auto mb-2 animate-pulse" />
+                                            <p className="text-xs">Generating Performance Data...</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+                        </div>
 
-                            {agent.vaultAddress ? (
-                                <>
+                        <div className="glass-card rounded-xl overflow-hidden">
+                            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-lg">bolt</span>
+                                    Live Agent Activity
+                                </h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                {agent.activePositions && agent.activePositions.length > 0 ? (
+                                    <table className="w-full text-left">
+                                        <thead className="text-[10px] uppercase font-bold text-slate-500 border-b border-white/5">
+                                            <tr>
+                                                <th className="px-6 py-4">Position</th>
+                                                <th className="px-6 py-4 text-right">Size</th>
+                                                <th className="px-6 py-4 text-right">Leverage</th>
+                                                <th className="px-6 py-4 text-right">Entry Price</th>
+                                                <th className="px-6 py-4 text-right">Unrealized PnL</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm font-medium divide-y divide-white/5">
+                                            {agent.activePositions.map((pos: any, idx: number) => (
+                                                <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                                                    <td className="px-6 py-4 flex items-center gap-2">
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
+                                                            ? 'bg-emerald-500/10 text-emerald-500'
+                                                            : 'bg-rose-500/10 text-rose-500'
+                                                        }`}
+                                                        >
+                                                            {pos.side}
+                                                        </span>
+                                                        <span className="text-white">{pos.pair}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-slate-300">
+                                                        {parseFloat(pos.size).toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-slate-300">{pos.leverage}x</td>
+                                                    <td className="px-6 py-4 text-right text-slate-300 font-mono">
+                                                        {Number(pos.entryPrice || 0).toLocaleString()}
+                                                    </td>
+                                                    <td className={`px-6 py-4 text-right font-bold ${pos.unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {pos.unrealizedPnl >= 0 ? '+' : ''}{pos.unrealizedPnl} USDT
+                                                        <div className="text-[10px] opacity-70">
+                                                            ({pos.unrealizedPnlPercent >= 0 ? '+' : ''}{pos.unrealizedPnlPercent}%)
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="py-12 text-center">
+                                        <Bot size={40} className="mx-auto mb-3 opacity-20" />
+                                        <p className="text-slate-400 text-sm">Agent is currently analyzing market for entry...</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card rounded-xl overflow-hidden">
+                            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-widest">Position History</h3>
+                                <div className="flex gap-2">
                                     <button
-                                        className={`allocate-btn ${step !== 'idle' && step !== 'success' && step !== 'error' ? 'loading' : ''}`}
-                                        onClick={handleStake}
-                                        disabled={step !== 'idle' && step !== 'success' && step !== 'error'}
+                                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase ${posTab === 'active' ? 'bg-primary/20 text-primary' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                        onClick={() => setPosTab('active')}
                                     >
-                                        {step === 'idle' && "Allocate capital"}
-                                        {step === 'approving' && "APPROVE IN WALLET..."}
-                                        {step === 'waiting_approve' && "CONFIRMING APPROVAL..."}
-                                        {step === 'depositing' && "DEPOSIT IN WALLET..."}
-                                        {step === 'waiting_deposit' && "CONFIRMING DEPOSIT..."}
-                                        {step === 'syncing' && "SYNCING INVESTMENT..."}
-                                        {step === 'success' && "SUCCESS! RELAY ACTIVE"}
-                                        {step === 'error' && "FAILED - RETRY?"}
+                                        Active
                                     </button>
-                                    {/* Action Buttons: Only show if there is an active balance or pnl */}
-                                    {(pnlAvailable > 0n || (shareBalance && (shareBalance as bigint) > 0n)) && (
-                                        <div className="flex gap-sm">
+                                    <button
+                                        className={`px-3 py-1 rounded text-[10px] font-bold uppercase ${posTab === 'completed' ? 'bg-primary/20 text-primary' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                        onClick={() => setPosTab('completed')}
+                                    >
+                                        History
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="text-[10px] uppercase font-bold text-slate-500 border-b border-white/5">
+                                        <tr>
+                                            <th className="px-6 py-4">Asset</th>
+                                            <th className="px-6 py-4">Side</th>
+                                            <th className="px-6 py-4">{posTab === 'active' ? 'Leverage' : 'PnL'}</th>
+                                            <th className="px-6 py-4">Size</th>
+                                            <th className="px-6 py-4">{posTab === 'active' ? 'PnL (Unrealized)' : 'Exit Price'}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm font-medium divide-y divide-white/5">
+                                        {posTab === 'active' ? (
+                                            <>
+                                                {agent.activePositions?.map((pos: any, idx: number) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-6 py-4 text-white">{pos.pair}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
+                                                                ? 'bg-emerald-500/10 text-emerald-500'
+                                                                : 'bg-rose-500/10 text-rose-500'
+                                                            }`}
+                                                            >
+                                                                {pos.side}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-300">{pos.leverage || '10'}x</td>
+                                                        <td className="px-6 py-4 text-slate-300">${Number(pos.size).toLocaleString()}</td>
+                                                        <td className={`px-6 py-4 font-bold ${pos.unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                            {pos.unrealizedPnl >= 0 ? '+' : ''}{pos.unrealizedPnl} USDT
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(!agent.activePositions || agent.activePositions.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-6 py-6 text-center text-slate-500">
+                                                            No active positions. Monitoring for high-precision entry.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {agent.completedPositions?.map((pos: any, idx: number) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-6 py-4 text-white">{pos.pair}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
+                                                                ? 'bg-emerald-500/10 text-emerald-500'
+                                                                : 'bg-rose-500/10 text-rose-500'
+                                                            }`}
+                                                            >
+                                                                {pos.side}
+                                                            </span>
+                                                        </td>
+                                                        <td className={`px-6 py-4 font-bold ${Number(pos.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                            {Number(pos.pnl || 0) >= 0 ? '+' : ''}{Number(pos.pnl || 0).toFixed(2)} USDT
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-300">${Number(pos.size).toLocaleString()}</td>
+                                                        <td className="px-6 py-4 text-slate-400">{pos.exitPrice || '---'}</td>
+                                                    </tr>
+                                                ))}
+                                                {(!agent.completedPositions || agent.completedPositions.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-6 py-6 text-center text-slate-500">
+                                                            No completed trades on record.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="glass-card rounded-xl p-6 border-t-4 border-t-primary">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">settings_suggest</span>
+                                Position Management
+                            </h3>
+                            {!isConnected ? (
+                                <div className="space-y-4">
+                                    <p className="text-xs text-slate-400">Connect your wallet to allocate and manage your position.</p>
+                                    <ConnectButton />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                                            <span>Amount (USDT)</span>
                                             <button
-                                                className={`withdraw-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && !isFullWithdraw ? 'loading' : ''}`}
-                                                style={{ flex: 1.5 }}
+                                                className="text-primary hover:underline"
+                                                onClick={() => setStakeAmount(formattedBalance)}
+                                            >
+                                                BAL: {parseFloat(formattedBalance).toLocaleString()}
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2">
+                                            <span className="text-primary font-bold">$</span>
+                                            <input
+                                                type="number"
+                                                placeholder="0.00"
+                                                className="bg-transparent outline-none text-sm w-full"
+                                                value={stakeAmount}
+                                                onChange={(e) => setStakeAmount(e.target.value)}
+                                                disabled={!canAllocate}
+                                            />
+                                            <button
+                                                className="text-[10px] font-bold uppercase text-primary px-2 py-1 rounded bg-primary/10"
+                                                onClick={() => setStakeAmount(formattedBalance)}
+                                                disabled={!canAllocate}
+                                            >
+                                                Max
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 rounded bg-white/[0.03] border border-white/5 text-[10px] text-slate-400 uppercase tracking-widest space-y-2">
+                                        <div className="flex justify-between">
+                                            <span>Principal</span>
+                                            <span className="text-white">${Number(totalDepositedDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Current Value</span>
+                                            <span className="text-white">${Number(currentAssetsDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>PnL Available</span>
+                                            <span className={`${Number(pnlAvailableDisplay) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {Number(pnlAvailableDisplay) >= 0 ? '+' : ''}${Number(pnlAvailableDisplay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {hasVault ? (
+                                        <>
+                                            <button
+                                                className={`w-full py-3 px-4 rounded-lg bg-primary text-white text-sm font-bold uppercase tracking-wider hover:bg-rose-700 transition-all glow-red ${!canAllocate ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                onClick={handleStake}
+                                                disabled={!canAllocate}
+                                            >
+                                                {step === 'idle' && "Allocate capital"}
+                                                {step === 'approving' && "Approve in wallet..."}
+                                                {step === 'waiting_approve' && "Confirming approval..."}
+                                                {step === 'depositing' && "Deposit in wallet..."}
+                                                {step === 'waiting_deposit' && "Confirming deposit..."}
+                                                {step === 'syncing' && "Syncing investment..."}
+                                                {step === 'success' && "Success! Relay active"}
+                                                {step === 'error' && "Failed - Retry?"}
+                                            </button>
+
+                                            <button
+                                                className={`w-full py-3 px-4 rounded-lg border border-primary/20 bg-primary/5 text-primary text-sm font-bold uppercase tracking-wider hover:bg-primary/10 transition-all flex items-center justify-center gap-2 ${withdrawStep !== 'idle' || !hasPnl ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 onClick={handleWithdrawPnL}
-                                                disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || pnlAvailable <= 0n}
+                                                disabled={withdrawStep !== 'idle' || !hasPnl}
                                             >
-                                                {withdrawStep === 'idle' && (pnlAvailable > 0n ? "Withdraw PnL" : "No PnL Available")}
-                                                {withdrawStep === 'withdrawing' && !isFullWithdraw && "WITHDRAW IN WALLET..."}
-                                                {withdrawStep === 'waiting_withdraw' && !isFullWithdraw && "CONFIRMING WITHDRAW..."}
-                                                {withdrawStep === 'success' && !isFullWithdraw && "PNL WITHDRAWN"}
-                                                {withdrawStep === 'error' && !isFullWithdraw && "FAILED - RETRY?"}
-                                                {withdrawStep !== 'idle' && isFullWithdraw && "Withdraw PnL"}
+                                                {withdrawStep === 'idle' && (hasPnl ? "Withdraw Profits Only" : "No PnL Available")}
+                                                {withdrawStep === 'withdrawing' && !isFullWithdraw && "Withdrawing..."}
+                                                {withdrawStep === 'waiting_withdraw' && !isFullWithdraw && "Confirming..."}
+                                                {withdrawStep === 'success' && !isFullWithdraw && "PnL Withdrawn"}
+                                                {withdrawStep === 'error' && !isFullWithdraw && "Failed - Retry?"}
+                                                <span className="material-symbols-outlined text-sm">lock</span>
                                             </button>
+
                                             <button
-                                                className={`withdraw-all-btn ${withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' && isFullWithdraw ? 'loading' : ''}`}
-                                                style={{ flex: 1 }}
+                                                className={`w-full py-3 px-4 rounded-lg bg-primary text-white text-sm font-bold uppercase tracking-wider hover:bg-rose-700 transition-all glow-red ${withdrawStep !== 'idle' || !hasShares ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 onClick={handleWithdrawAll}
-                                                disabled={withdrawStep !== 'idle' && withdrawStep !== 'success' && withdrawStep !== 'error' || !shareBalance || (shareBalance as bigint) <= 0n}
+                                                disabled={withdrawStep !== 'idle' || !hasShares}
                                             >
-                                                {withdrawStep === 'idle' && "Close Position"}
-                                                {withdrawStep === 'withdrawing' && isFullWithdraw && "CLOSING..."}
-                                                {withdrawStep === 'waiting_withdraw' && isFullWithdraw && "CONFIRMING..."}
-                                                {withdrawStep === 'success' && isFullWithdraw && "CLOSED"}
-                                                {withdrawStep === 'error' && isFullWithdraw && "FAILED"}
-                                                {withdrawStep !== 'idle' && !isFullWithdraw && "Close Position"}
+                                                {withdrawStep === 'idle' && "Close Position (Withdraw All)"}
+                                                {withdrawStep === 'withdrawing' && isFullWithdraw && "Closing..."}
+                                                {withdrawStep === 'waiting_withdraw' && isFullWithdraw && "Confirming..."}
+                                                {withdrawStep === 'success' && isFullWithdraw && "Closed"}
+                                                {withdrawStep === 'error' && isFullWithdraw && "Failed"}
                                             </button>
+                                        </>
+                                    ) : (
+                                        <div className="p-3 rounded bg-white/[0.03] border border-white/5 text-xs text-slate-400">
+                                            Neural vault pending initialization.
                                         </div>
                                     )}
 
-                                    {!(pnlAvailable > 0n || (shareBalance && (shareBalance as bigint) > 0n)) && totalDeposited === 0n && (
-                                        <div className="mt-md p-sm bg-white/5 border border-white/10 rounded-lg text-center">
-                                            <p className="text-[10px] text-dim font-bold uppercase tracking-tighter">No Active Allocation</p>
-                                        </div>
-                                    )}
                                     {errorMsg && (
-                                        <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
+                                        <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
                                             ERROR: {errorMsg}
                                         </div>
                                     )}
                                     {withdrawError && (
-                                        <div className="mt-sm p-sm bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-mono">
+                                        <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
                                             WITHDRAW ERROR: {withdrawError}
                                         </div>
                                     )}
                                     {withdrawStep === 'success' && withdrawTxHash && (
-                                        <div className="mt-sm p-sm bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-                                            <a
-                                                href={`https://testnet.monadexplorer.com/tx/${withdrawTxHash}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-[10px] text-green-400 font-mono flex items-center justify-center gap-1 hover:underline"
-                                            >
-                                                VIEW TRANSACTION PROOF <ExternalLink size={10} />
-                                            </a>
+                                        <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+                                            Withdrawal confirmed: {shortenAddress(withdrawTxHash)}
                                         </div>
                                     )}
-                                </>
-                            ) : (
-                                <div className="p-md bg-purple-500/5 border border-purple-500/20 rounded-xl text-center">
-                                    <div className="text-[10px] text-primary-purple font-bold uppercase tracking-widest mb-xs">Vault Status</div>
-                                    <div className="text-[11px] text-dim">Neural vault pending initialization.</div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Positions Table */}
-                        <div className="premium-panel">
-                            <div className="panel-header flex justify-between items-center">
-                                <h3>{posTab === 'active' ? 'ACTIVE CIRCUITS' : 'COMPLETED CIRCUITS'}</h3>
-                                <div className="tab-control">
-                                    <button
-                                        className={`tab-btn ${posTab === 'active' ? 'active' : ''}`}
-                                        onClick={() => setPosTab('active')}
-                                    >
-                                        ACTIVE
-                                    </button>
-                                    <button
-                                        className={`tab-btn ${posTab === 'completed' ? 'active' : ''}`}
-                                        onClick={() => setPosTab('completed')}
-                                    >
-                                        HISTORY
-                                    </button>
+                        <div className="glass-card rounded-xl p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="size-10 rounded bg-white/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-slate-300">neurology</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">{agent.strategy || 'Neural Momentum'}</h3>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase">v2.4 Circuit Strategy</p>
                                 </div>
                             </div>
-                            <div className="panel-body no-padding">
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table className="premium-table">
-                                        <thead>
-                                            <tr>
-                                                <th>ASSET</th>
-                                                <th>SIDE</th>
-                                                <th>{posTab === 'active' ? 'LEVERAGE' : 'PnL'}</th>
-                                                <th>SIZE</th>
-                                                <th>{posTab === 'active' ? 'PnL (UNREALIZED)' : 'EXIT PRICE'}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {posTab === 'active' ? (
-                                                <>
-                                                    {agent.activePositions?.map((pos: any) => (
-                                                        <tr key={pos.id}>
-                                                            <td className="font-bold">{pos.pair}</td>
-                                                            <td>
-                                                                <span className={`side-tag ${pos.side}`}>
-                                                                    {pos.side}
-                                                                </span>
-                                                            </td>
-                                                            <td className="font-mono">{pos.leverage || '10'}x</td>
-                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
-                                                            <td>
-                                                                <div className={`pnl-display ${(pos.unrealizedPnl || 0) >= 0 ? 'plus' : 'minus'}`}>
-                                                                    {(pos.unrealizedPnl || 0) >= 0 ? '+' : ''}${pos.unrealizedPnl || '0.00'} ({(pos.unrealizedPnlPercent || 0).toFixed(2)}%)
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {(!agent.activePositions || agent.activePositions.length === 0) && (
-                                                        <tr>
-                                                            <td colSpan={5} className="empty-state">
-                                                                No active positions. Monitoring for high-precision entry.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {agent.completedPositions?.map((pos: any) => (
-                                                        <tr key={pos.id}>
-                                                            <td className="font-bold">{pos.pair}</td>
-                                                            <td>
-                                                                <span className={`side-tag ${pos.side}`}>
-                                                                    {pos.side}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div className={`pnl-display ${(pos.pnl || 0) >= 0 ? 'plus' : 'minus'}`}>
-                                                                    {(pos.pnl || 0) >= 0 ? '+' : ''}${pos.pnl || '0.00'} ({(pos.pnlPercent || 0).toFixed(2)}%)
-                                                                </div>
-                                                            </td>
-                                                            <td className="font-mono">${Number(pos.size).toLocaleString()}</td>
-                                                            <td className="font-mono text-dim">${pos.exitPrice || '---'}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {(!agent.completedPositions || agent.completedPositions.length === 0) && (
-                                                        <tr>
-                                                            <td colSpan={5} className="empty-state">
-                                                                No completed trades on record.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </>
-                                            )}
-                                        </tbody>
-                                    </table>
+                            <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                                {agent.description || 'Utilizes high-frequency sentiment analysis and order-flow heuristics to capture micro-momentum in volatile assets. Optimized for low-latency execution.'}
+                            </p>
+                            <div className="space-y-4 mb-6">
+                                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Win Rate</span>
+                                    <span className="text-sm font-bold text-white font-mono">{Number(agent.winRate ?? 0)}%</span>
                                 </div>
+                                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Total Trades</span>
+                                    <span className="text-sm font-bold text-white font-mono">{Number(agent.totalTrades ?? 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Total Agent PnL</span>
+                                    <span className={`text-sm font-bold font-mono ${totalPnlValue >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        {totalPnlValue >= 0 ? '+' : ''}{totalPnlValue.toFixed(2)} USDT
+                                    </span>
+                                </div>
+                            </div>
+                            <Link
+                                href="/clawdex/agents"
+                                className="flex items-center justify-between text-[10px] font-bold text-primary uppercase tracking-widest hover:translate-x-1 transition-transform"
+                            >
+                                View Full Agent Protocol
+                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                            </Link>
+                        </div>
+
+                        <div className="glass-card rounded-xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">On-Chain Reputation</h4>
+                                <span className="text-[10px] text-slate-500">Relay</span>
+                            </div>
+                            <div className="space-y-3 max-h-72 overflow-y-auto">
+                                {reputationLogs.length > 0 ? (
+                                    reputationLogs.map((log, i) => (
+                                        <div key={i} className="p-3 rounded bg-white/[0.03] border border-white/5">
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-300 uppercase tracking-widest text-[10px]">
+                                                    {log.action.replace('_', ' ')}
+                                                </span>
+                                                <span className={`font-mono ${log.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    {log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? '+' : '') : ''}
+                                                    {log.value.toFixed(log.value < 1 && log.value !== 0 ? 4 : 2)}
+                                                    {log.action === 'DECISION' ? '%' : ' USDT'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] text-slate-500 mt-2">
+                                                <span>{log.pair}</span>
+                                                <span className="font-mono">#IX_{log.index}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center text-xs text-slate-500 py-6">
+                                        Synchronizing reputation relay...
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Right: Verified Decisions & Staking */}
-                    <div className="col-span-4 flex flex-col gap-xl">
-                        {/* Reputation Log - ON CHAIN DATA */}
-                        <div className="premium-panel">
-                            <div className="panel-header">
-                                <h3 className="flex items-center gap-sm">
-                                    <Zap size={18} className="text-primary-purple" />
-                                    ON-CHAIN REPUTATION LOG
-                                </h3>
+                        <div className="relative rounded-xl p-6 overflow-hidden bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 group cursor-pointer">
+                            <div className="relative z-10">
+                                <h4 className="text-white font-bold mb-1">Boost Your Yield</h4>
+                                <p className="text-xs text-slate-300">Upgrade to Premium for lower execution fees and higher priority on agent trades.</p>
                             </div>
-                            <div className="panel-body no-padding">
-                                <div className="reputation-list">
-                                    {reputationLogs.length > 0 ? (
-                                        reputationLogs.map((log, i) => (
-                                            <div key={i} className="reputation-entry">
-                                                <div className="flex justify-between items-center mb-xs">
-                                                    <div className="flex items-center gap-xs">
-                                                        <div className={`action-dot ${log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? 'win' : 'loss') : 'neutral'}`} />
-                                                        <span className="action-label">{log.action.replace('_', ' ')}</span>
-                                                    </div>
-                                                    <span className="entry-value font-mono">
-                                                        {log.action === 'TRADE_CLOSE' ? (log.value >= 0 ? '+' : '') : ''}
-                                                        {log.value.toFixed(log.value < 1 && log.value !== 0 ? 4 : 2)}
-                                                        {log.action === 'DECISION' ? '%' : ' USDT'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between text-[10px] text-dim">
-                                                    <span>{log.pair}</span>
-                                                    <span className="font-mono text-[9px] truncate ml-lg opacity-50">#IX_{log.index}</span>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="p-xl text-center text-dim text-[11px] italic">
-                                            Synchronizing reputation relay...
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-7xl text-white/5 group-hover:text-primary/10 transition-colors">diamond</span>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <style jsx global>{`
-                .glass-back-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    padding: 0.5rem 1rem;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    letter-spacing: 0.1em;
-                    transition: all 0.2s;
-                }
-                .glass-back-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary-purple); }
-
-                .tab-control {
-                    display: flex;
-                    gap: 0.5rem;
-                    background: rgba(0,0,0,0.3);
-                    padding: 0.25rem;
-                    border-radius: 8px;
-                    border: 1px solid rgba(255,255,255,0.05);
-                }
-                .tab-btn {
-                    padding: 0.3rem 0.8rem;
-                    border-radius: 6px;
-                    font-size: 9px;
-                    font-weight: 800;
-                    border: none;
-                    background: transparent;
-                    color: var(--text-dim);
-                    cursor: pointer;
-                    transition: 0.2s;
-                }
-                .tab-btn.active {
-                    background: var(--primary-purple);
-                    color: white;
-                }
-
-                .agent-stats-row {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 1rem;
-                    margin-bottom: 2.5rem;
-                }
-                .stat-card {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    border-radius: 16px;
-                    padding: 1.25rem;
-                }
-                .stat-label {
-                    font-size: 10px;
-                    letter-spacing: 0.2em;
-                    font-weight: 800;
-                    color: var(--text-dim);
-                }
-                .stat-value {
-                    font-size: 1.4rem;
-                    font-weight: 800;
-                    margin-top: 0.5rem;
-                }
-                .stat-value.plus { color: #10b981; }
-                .stat-value.minus { color: #ef4444; }
-                .stat-sub {
-                    font-size: 10px;
-                    color: var(--text-dim);
-                    margin-top: 0.35rem;
-                }
-
-                .reputation-list {
-                    padding: 0.5rem;
-                    max-height: 400px;
-                    overflow-y: auto;
-                }
-                .reputation-entry {
-                    padding: 0.75rem;
-                    border-bottom: 1px solid rgba(255,255,255,0.03);
-                    transition: 0.2s;
-                }
-                .reputation-entry:hover { background: rgba(168, 85, 247, 0.03); }
-                .reputation-entry:last-child { border-bottom: none; }
-                .action-dot { width: 6px; height: 6px; border-radius: 50%; }
-                .action-dot.win { background: #10b981; box-shadow: 0 0 8px #10b981; }
-                .action-dot.loss { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-                .action-dot.neutral { background: var(--primary-purple); }
-                .action-label { font-size: 10px; font-weight: 800; color: white; letter-spacing: 0.05em; text-transform: uppercase; }
-                .entry-value { font-size: 11px; font-weight: 700; color: var(--primary-purple); }
-
-                .neural-status-indicator {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    background: rgba(168, 85, 247, 0.1);
-                    padding: 0.5rem 1rem;
-                    border-radius: 99px;
-                    border: 1px solid rgba(168, 85, 247, 0.2);
-                }
-                .neural-status-indicator span { font-size: 10px; font-weight: 800; font-family: var(--font-mono); color: var(--primary-purple); }
-
-                .premium-hero-card {
-                    background: linear-gradient(135deg, rgba(16, 16, 24, 0.9) 0%, rgba(10, 10, 15, 0.95) 100%);
-                    border: 1px solid rgba(168, 85, 247, 0.2);
-                    border-radius: 32px;
-                    padding: 3rem;
-                    margin-bottom: 3rem;
-                    position: relative;
-                    overflow: hidden;
-                }
-                .hero-orb { position: relative; width: 140px; height: 140px; }
-                .hero-orb img { width: 100%; height: 100%; border-radius: 32px; object-fit: cover; border: 2px solid rgba(168, 85, 247, 0.3); }
-                .orb-scan {
-                    position: absolute;
-                    top: 0; left: 0; right: 0;
-                    height: 2px;
-                    background: var(--primary-purple);
-                    box-shadow: 0 0 15px var(--primary-purple);
-                    animation: scan 3s ease-in-out infinite;
-                }
-                @keyframes scan { 0%, 100% { top: 0%; } 50% { top: 100%; } }
-
-                .hero-strategy-badge {
-                    font-size: 10px;
-                    font-weight: 800;
-                    background: rgba(168, 85, 247, 0.15);
-                    color: var(--primary-purple);
-                    padding: 0.3rem 0.8rem;
-                    border-radius: 8px;
-                    letter-spacing: 0.1em;
-                }
-
-                .hero-main-layout {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 3rem;
-                    position: relative;
-                    z-index: 10;
-                }
-
-                .hero-center-info {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    text-align: center;
-                    flex: 1;
-                }
-
-                .header-name-row {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .header-name-row h1 {
-                    font-size: 3.5rem;
-                    letter-spacing: -0.04em;
-                    margin: 0;
-                }
-
-                .badges-row {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 2rem;
-                    margin-bottom: 2rem;
-                }
-
-                .hero-stat { display: flex; align-items: center; gap: 0.5rem; font-size: 11px; font-weight: 700; color: var(--text-dim); }
-                .hero-description { font-size: 1rem; color: var(--text-secondary); line-height: 1.6; max-width: 700px; margin: 0 auto; }
-
-                @media (min-width: 1024px) {
-                    .hero-main-layout {
-                        flex-direction: row;
-                        justify-content: center;
-                        min-height: 200px;
-                    }
-                    .hero-apy-box {
-                        position: absolute;
-                        right: 0;
-                        top: 50%;
-                        transform: translateY(-50%);
-                    }
-                }
-
-                .hero-apy-box {
-                    background: rgba(168, 85, 247, 0.05);
-                    border: 1px solid rgba(168, 85, 247, 0.3);
-                    padding: 2rem;
-                    border-radius: 24px;
-                    text-align: center;
-                    min-width: 240px;
-                }
-                .apy-box-label { font-size: 10px; font-weight: 800; color: var(--text-dim); letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }
-                .apy-box-footer { display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: #10b981; font-size: 9px; font-weight: 800; margin-top: 1rem; }
-
-                .premium-panel {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid var(--glass-border);
-                    border-radius: 24px;
-                    overflow: hidden;
-                }
-                .panel-header { padding: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center; }
-                .panel-header h3 { font-size: 0.9rem; font-weight: 800; letter-spacing: 0.1em; }
-                .time-tag { font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 0.3rem 0.6rem; cursor: pointer; border-radius: 6px; }
-                .time-tag.active { background: var(--primary-purple); color: white; }
-
-                .premium-table { width: 100%; border-collapse: collapse; }
-                .premium-table th { text-align: left; padding: 1.25rem; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; border-bottom: 1px solid rgba(255,255,255,0.05); }
-                .premium-table td { padding: 1.25rem; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
-                .side-tag { font-size: 8px; font-weight: 900; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
-                .side-tag.long { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-                .side-tag.short { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-                .pnl-display { font-weight: 800; font-family: var(--font-mono); }
-                .pnl-display.plus { color: #10b981; }
-                .pnl-display.minus { color: #ef4444; }
-
-                .terminal-grid {
-                    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
-                    align-items: start;
-                }
-                @media (max-width: 1200px) {
-                    .terminal-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .allocation-panel {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(168, 85, 247, 0.2);
-                    border-radius: 20px;
-                    padding: 1.5rem;
-                }
-                .allocation-input-wrap {
-                    background: rgba(0,0,0,0.3);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 12px;
-                    padding: 0.75rem 1rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                }
-                .currency-prefix { font-weight: 800; color: var(--primary-purple); }
-                .allocation-input { background: transparent; border: none; color: white; font-weight: 700; font-size: 1.25rem; width: 100%; outline: none; }
-                .max-btn { background: rgba(168, 85, 247, 0.2); color: var(--primary-purple); border: none; font-size: 10px; font-weight: 800; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; }
-
-                .allocation-metrics {
-                    display: grid;
-                    gap: 0.5rem;
-                    margin-bottom: 1rem;
-                    padding: 0.75rem 0;
-                }
-                .allocation-metric {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 10px;
-                    color: var(--text-dim);
-                    letter-spacing: 0.05em;
-                    text-transform: uppercase;
-                }
-                .allocation-metric .metric-value {
-                    font-size: 11px;
-                    font-weight: 800;
-                    color: white;
-                }
-                .allocation-metric .metric-value.plus { color: #10b981; }
-                .allocation-metric .metric-value.minus { color: #ef4444; }
-                .allocation-metric.highlight {
-                    padding-top: 0.5rem;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                }
-
-                .allocate-btn {
-                    width: 100%;
-                    background: var(--primary-purple);
-                    color: white;
-                    border: none;
-                    height: 48px;
-                    border-radius: 12px;
-                    font-weight: 800;
-                    font-size: 0.8rem;
-                    letter-spacing: 0.05em;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                }
-                .allocate-btn:hover { background: var(--secondary-purple); transform: translateY(-1px); }
-                .withdraw-btn {
-                    width: 100%;
-                    margin-top: 0.6rem;
-                    background: rgba(255, 255, 255, 0.06);
-                    color: white;
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    height: 44px;
-                    border-radius: 12px;
-                    font-weight: 800;
-                    font-size: 0.75rem;
-                    letter-spacing: 0.08em;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .withdraw-btn:hover { border-color: var(--primary-purple); color: var(--primary-purple); }
-                .withdraw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-                .withdraw-all-btn {
-                    margin-top: 0.6rem;
-                    background: rgba(168, 85, 247, 0.05);
-                    color: var(--primary-purple);
-                    border: 1px solid rgba(168, 85, 247, 0.3);
-                    height: 44px;
-                    border-radius: 12px;
-                    font-weight: 800;
-                    font-size: 0.75rem;
-                    letter-spacing: 0.08em;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .withdraw-all-btn:hover:not(:disabled) { background: rgba(168, 85, 247, 0.15); border-color: var(--primary-purple); }
-                .withdraw-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-                .withdraw-all-btn.loading { opacity: 0.7; cursor: wait; }
-
-                .neural-timeline { position: relative; padding-left: 24px; }
-                .neural-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: rgba(168, 85, 247, 0.2); }
-                .timeline-step { position: relative; margin-bottom: 2rem; }
-                .step-marker { position: absolute; left: -28px; top: 0; width: 7px; height: 7px; border-radius: 100%; background: var(--primary-purple); box-shadow: 0 0 10px var(--primary-purple); }
-                .step-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 12px; padding: 1rem; }
-                .step-action { font-size: 8px; font-weight: 900; }
-                .step-action.long { color: #10b981; }
-                .step-action.short { color: #ef4444; }
-                .step-time { font-size: 8px; color: var(--text-dim); }
-                .step-pair { font-size: 0.9rem; font-weight: 800; color: white; margin-top: 0.25rem; }
-                .step-sig { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
-                .sig-hash { font-size: 8px; color: var(--text-dim); font-family: var(--font-mono); }
-
-                .neural-loading-orb {
-                    width: 60px; height: 60px;
-                    border: 3px solid rgba(168, 85, 247, 0.1);
-                    border-top: 3px solid var(--primary-purple);
-                    border-radius: 100%;
-                    animation: spin 1s linear infinite;
-                }
-
-                @media (max-width: 768px) {
-                    .premium-hero-card { padding: 1.5rem; border-radius: 20px; text-align: center; }
-                    .header-name-row h1 { font-size: 2rem; }
-                    .hero-main-layout { flex-direction: column; gap: 2rem; }
-                    .badges-row { 
-                        flex-direction: column; 
-                        gap: 0.5rem; 
-                    }
-                    .hero-apy-box { 
-                        min-width: 100%; 
-                        margin-top: 1rem; 
-                        padding: 1.5rem; 
-                        position: relative; 
-                        transform: none; 
-                        top: auto; 
-                        right: auto;
-                    }
-
-                    .agent-stats-row {
-                        grid-template-columns: 1fr;
-                        gap: 0.75rem;
-                    }
-                    .stat-card { padding: 1rem; display: flex; align-items: center; justify-content: space-between; }
-                    .stat-sub { margin-top: 0; text-align: right; }
-                    .stat-value { margin-top: 0; font-size: 1.1rem; }
-                    
-                    /* Grid Layout */
-                    .terminal-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; gap: 2rem; }
-                    .col-span-8 { width: 100%; }
-                    .col-span-4 { width: 100%; order: 2; }
-                    
-                    /* Allocation Panel */
-                    .allocation-input { font-size: 1rem; }
-                    .allocation-metrics { grid-template-columns: 1fr; gap: 0.5rem; }
-                    
-                    /* Hide orb on mobile if takes too much space, or resize */
-                    .hero-orb { width: 100px; height: 100px; margin: 0 auto 1.5rem; }
-                    
-                    /* Navigation */
-                    .container.pt-xl { padding-top: 1rem; }
-                    .flex.items-center.justify-between.mb-xl { flex-direction: column; gap: 1rem; align-items: stretch; }
-                    .glass-back-btn { width: fit-content; }
-                    .neural-status-indicator { justify-content: center; }
-                }
-            `}</style>
-        </div>
+            </main>
+        </>
     );
 }
