@@ -516,44 +516,7 @@ export default function InvestmentDetailsPage({ params }: { params: Promise<{ tx
 
     return (
         <>
-            <Script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" strategy="afterInteractive" />
-            <script
-                id="tailwind-config"
-                dangerouslySetInnerHTML={{
-                    __html: `
-                        tailwind.config = {
-                          corePlugins: { preflight: false },
-                          darkMode: "class",
-                          theme: {
-                            extend: {
-                              colors: {
-                                "primary": "#c42132",
-                                "background-light": "#f8f6f6",
-                                "background-dark": "#050505",
-                                "card-dark": "#0a0a0a",
-                              },
-                              fontFamily: {
-                                "display": ["Space Grotesk", "sans-serif"]
-                              },
-                              borderRadius: {
-                                "DEFAULT": "0.25rem",
-                                "lg": "0.5rem",
-                                "xl": "0.75rem",
-                                "full": "9999px"
-                              },
-                            },
-                          },
-                        }
-                    `
-                }}
-            />
-
             <style jsx global>{`
-                @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-                                body {
-                    font-family: 'Space Grotesk', sans-serif;
-                    background-color: #050505;
-                }
                 .glass-card {
                     background: rgba(10, 10, 10, 0.8);
                     backdrop-filter: blur(12px);
