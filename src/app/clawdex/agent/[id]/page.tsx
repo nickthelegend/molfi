@@ -78,7 +78,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
     const PROTOCOL_CLIENT = '0xcCED528A5b70e16c8131Cb2de424564dD938fD3B' as `0x${string}`; // Deployer address
 
     // 0. Fetch Reputation Logs from Chain
-    const { data: feedbackData } = useReadContract({
+    const { data: feedbackData, isLoading: feedbackLoading, refetch: refetchReputation } = useReadContract({
         address: REPUTATION_REGISTRY,
         abi: [
             {
@@ -104,7 +104,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
             }
         ],
         functionName: "readAllFeedback",
-        args: agent?.agentId ? [BigInt(agent.agentId), [PROTOCOL_CLIENT], "", "", false] : undefined,
+        args: agent?.agentId ? [BigInt(agent.agentId), [], "", "", false] : undefined,
     });
 
     useEffect(() => {
@@ -843,7 +843,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
                                                             ? 'bg-emerald-500/10 text-emerald-500'
                                                             : 'bg-rose-500/10 text-rose-500'
-                                                        }`}
+                                                            }`}
                                                         >
                                                             {pos.side}
                                                         </span>
@@ -914,7 +914,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
                                                                 ? 'bg-emerald-500/10 text-emerald-500'
                                                                 : 'bg-rose-500/10 text-rose-500'
-                                                            }`}
+                                                                }`}
                                                             >
                                                                 {pos.side}
                                                             </span>
@@ -943,7 +943,7 @@ function AgentDetailPageContent({ id }: { id: string }) {
                                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${pos.side === 'LONG'
                                                                 ? 'bg-emerald-500/10 text-emerald-500'
                                                                 : 'bg-rose-500/10 text-rose-500'
-                                                            }`}
+                                                                }`}
                                                             >
                                                                 {pos.side}
                                                             </span>
@@ -1177,7 +1177,8 @@ function AgentDetailPageContent({ id }: { id: string }) {
                         </div>
                     </div>
                 </div>
-            </main>
+
+            </main >
         </>
     );
 }
