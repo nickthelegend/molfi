@@ -5,24 +5,24 @@
 @tailwind utilities;
 
 :root {
-  /* Premium Red Palette */
-  --bg-dark: #050505;
-  --bg-card: #0a0a0a;
-  --bg-accent: #111111;
+  /* Premium Purple Palette */
+  --bg-dark: #000000;
+  --bg-card: #050505;
+  --bg-accent: #0a0a0a;
 
-  --primary-red: #c62132;
-  --secondary-red: #e63946;
-  --accent-red: #ff6b6b;
-  --dark-red: #8a121f;
+  --primary-red: #7d41e4;
+  --secondary-red: #dbccf3;
+  --accent-red: #dbccf3;
+  --dark-red: #4a2b85;
 
   --text-primary: #ffffff;
   --text-secondary: #e5e5e5;
   --text-dim: #a3a3a3;
 
-  --glass-border: rgba(198, 33, 50, 0.2);
-  --glass-bg: rgba(198, 33, 50, 0.05);
-  --glass-bg-hover: rgba(198, 33, 50, 0.1);
-  --glass-glow: 0 0 20px rgba(198, 33, 50, 0.15);
+  --glass-border: rgba(125, 65, 228, 0.2);
+  --glass-bg: rgba(125, 65, 228, 0.05);
+  --glass-bg-hover: rgba(125, 65, 228, 0.1);
+  --glass-glow: 0 0 20px rgba(125, 65, 228, 0.15);
 
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'IBM Plex Sans', sans-serif;
@@ -32,11 +32,11 @@
   --tracking-normal: 0.01em;
   --tracking-wide: 0.06em;
 
-  --glow-red: 0 0 20px rgba(198, 33, 50, 0.4);
-  --glow-red-strong: 0 0 30px rgba(198, 33, 50, 0.6);
+  --glow-red: 0 0 20px rgba(125, 65, 228, 0.4);
+  --glow-red-strong: 0 0 30px rgba(125, 65, 228, 0.6);
   --glow-success: 0 0 20px rgba(16, 185, 129, 0.4);
   --glow-error: 0 0 20px rgba(239, 68, 68, 0.4);
-  --shadow-luxury: 0 10px 40px rgba(198, 33, 50, 0.15);
+  --shadow-luxury: 0 10px 40px rgba(125, 65, 228, 0.15);
 
   /* Brand Aliases - Legacy support to prevent breakage in other screens */
   --primary-purple: var(--primary-red);
@@ -63,7 +63,7 @@ body {
   min-height: 100vh;
   position: relative;
   /* Elegant dark gradient */
-  background-image: radial-gradient(circle at 50% 0%, rgba(198, 33, 50, 0.1) 0%, var(--bg-dark) 50%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(125, 65, 228, 0.1) 0%, var(--bg-dark) 50%);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "ss01" 1, "ss02" 1;
@@ -175,7 +175,7 @@ h3 {
   font-size: 0.75rem;
   padding: 0.4rem 0.9rem;
   border-radius: 6px;
-  background: rgba(198, 33, 50, 0.1);
+  background: rgba(125, 65, 228, 0.1);
   border: 1px solid var(--glass-border);
   text-transform: uppercase;
   color: var(--accent-red);
@@ -186,7 +186,7 @@ h3 {
 .status-badge.active {
   color: var(--primary-red);
   border-color: var(--primary-red);
-  box-shadow: 0 0 15px rgba(198, 33, 50, 0.3);
+  box-shadow: 0 0 15px rgba(125, 65, 228, 0.3);
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
@@ -194,11 +194,11 @@ h3 {
 
   0%,
   100% {
-    box-shadow: 0 0 15px rgba(198, 33, 50, 0.3);
+    box-shadow: 0 0 15px rgba(125, 65, 228, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 25px rgba(198, 33, 50, 0.5);
+    box-shadow: 0 0 25px rgba(125, 65, 228, 0.5);
   }
 }
 
@@ -227,8 +227,8 @@ h3 {
 .grid-overlay {
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(rgba(198, 33, 50, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(198, 33, 50, 0.02) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(125, 65, 228, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 65, 228, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: -1;
@@ -245,7 +245,7 @@ h3 {
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-border);
   padding: 1rem 0;
-  box-shadow: 0 4px 20px rgba(198, 33, 50, 0.1);
+  box-shadow: 0 4px 20px rgba(125, 65, 228, 0.1);
 }
 
 .nav-container {
@@ -546,7 +546,7 @@ h3 {
   background: linear-gradient(135deg, rgba(20, 20, 31, 0.7) 0%, rgba(10, 10, 15, 0.8) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(198, 33, 50, 0.15);
+  border: 1px solid rgba(125, 65, 228, 0.15);
   border-radius: 20px;
   padding: 1.5rem;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -555,7 +555,7 @@ h3 {
 }
 
 .novel-card:hover {
-  border-color: rgba(198, 33, 50, 0.4);
+  border-color: rgba(125, 65, 228, 0.4);
   transform: translateY(-5px) scale(1.01);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--glass-glow);
 }
@@ -567,7 +567,7 @@ h3 {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at center, rgba(198, 33, 50, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(125, 65, 228, 0.05) 0%, transparent 70%);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.4s ease;
@@ -591,7 +591,7 @@ h3 {
 .ticker-container {
   overflow: hidden;
   white-space: nowrap;
-  background: rgba(198, 33, 50, 0.05);
+  background: rgba(125, 65, 228, 0.05);
   border-bottom: 1px solid var(--glass-border);
   padding: 0.5rem 0;
 }
@@ -663,7 +663,7 @@ h3 {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1.25rem;
-  background: rgba(198, 33, 50, 0.1);
+  background: rgba(125, 65, 228, 0.1);
   border: 1px solid var(--glass-border);
   border-radius: 40px;
   box-shadow: var(--glass-glow);
@@ -733,7 +733,7 @@ h3 {
 .agent-orb {
   width: 48px;
   height: 48px;
-  background: rgba(198, 33, 50, 0.1);
+  background: rgba(125, 65, 228, 0.1);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
   display: flex;

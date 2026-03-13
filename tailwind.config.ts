@@ -9,10 +9,10 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
-                "primary": "#c42132",
+                "primary": "#7d41e4",
                 "background-light": "#f8f6f6",
-                "background-dark": "#050505",
-                "card-dark": "#0a0a0a",
+                "background-dark": "#000000",
+                "card-dark": "#050505",
             },
             fontFamily: {
                 "display": ["Space Grotesk", "sans-serif"]
